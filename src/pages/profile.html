@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TripCanvas - 프로필 관리</title>
+        <style>
+            :root {
+                /* 푸른색 계열 CSS 변수 */
+                --primary: #87ceeb;
+                --primary-dark: #1e40af;
+                --primary-light: #3b82f6;
+                --secondary: #0ea5e9;
+                --accent: #06b6d4;
+                --bg: #f0f9ff;
+                --card: #ffffff;
+                --text: #0f172a;
+                --text-light: #475569;
+                --border: #bfdbfe;
+                --hover: #dbeafe;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: var(--bg);
+            }
+
+            /* 네비게이션 */
+            .navbar {
+                /* 그라디언트 제거 및 파란색 변수 사용 */
+                background: var(--primary);
+                color: white;
+                padding: 16px 32px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .navbar-left {
+                display: flex;
+                align-items: center;
+                gap: 32px;
+            }
+
+            .logo {
+                font-size: 24px;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                cursor: pointer;
+            }
+
+            .nav-links {
+                display: flex;
+                gap: 24px;
+            }
+
+            .nav-link {
+                color: white;
+                text-decoration: none;
+                font-weight: 500;
+                padding: 0.8rem 1rem;
+                border-radius: 8px;
+                transition: all 0.3s;
+                opacity: 0.9;
+            }
+
+            .nav-link:hover {
+                background: rgba(255, 255, 255, 0.2);
+                opacity: 1;
+            }
+
+            .user-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                cursor: pointer;
+            }
+
+            /* 컨테이너 */
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+                padding: 40px 32px;
+            }
+
+            /* 프로필 헤더 */
+            .profile-header {
+                background: var(--card);
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                margin-bottom: 32px;
+                display: flex;
+                align-items: center;
+                gap: 32px;
+            }
+
+            .profile-avatar-large {
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                /* 그라디언트 제거, 단색 파란색 사용 */
+                background: var(--primary-light);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 56px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .profile-avatar-large img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .avatar-upload {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                background: white;
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s;
+            }
+
+            .avatar-upload:hover {
+                transform: scale(1.1);
+            }
+
+            .profile-info {
+                flex: 1;
+            }
+
+            .profile-name {
+                font-size: 28px;
+                font-weight: bold;
+                color: var(--text);
+                margin-bottom: 8px;
+            }
+
+            .profile-email {
+                font-size: 16px;
+                color: var(--text-light);
+                margin-bottom: 16px;
+            }
+
+            .profile-stats {
+                display: flex;
+                gap: 24px;
+            }
+
+            .profile-stat {
+                text-align: center;
+            }
+
+            .profile-stat-value {
+                font-size: 24px;
+                font-weight: bold;
+                color: var(--primary-light);
+                margin-bottom: 4px;
+            }
+
+            .profile-stat-label {
+                font-size: 13px;
+                color: var(--text-light);
+            }
+
+            /* 탭 */
+            .tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 24px;
+                border-bottom: 2px solid var(--border);
+            }
+
+            .tab-btn {
+                padding: 12px 24px;
+                border: none;
+                background: transparent;
+                color: var(--text-light);
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                border-bottom: 3px solid transparent;
+                margin-bottom: -2px;
+            }
+
+            .tab-btn:hover {
+                color: var(--primary-light);
+            }
+
+            .tab-btn.active {
+                color: var(--primary-light);
+                border-bottom-color: var(--primary-light);
+            }
+
+            /* 설정 카드 */
+            .settings-card {
+                background: var(--card);
+                border-radius: 16px;
+                padding: 32px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                margin-bottom: 24px;
+            }
+
+            .card-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: var(--text);
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .form-group {
+                margin-bottom: 24px;
+            }
+
+            .form-group label {
+                display: block;
+                font-weight: 600;
+                color: var(--text);
+                margin-bottom: 8px;
+                font-size: 14px;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+                padding: 12px 16px;
+                border: 2px solid var(--border);
+                border-radius: 10px;
+                font-size: 14px;
+                font-family: inherit;
+                transition: border-color 0.3s;
+            }
+
+            .form-group input:focus,
+            .form-group select:focus,
+            .form-group textarea:focus {
+                outline: none;
+                border-color: var(--primary-light);
+            }
+
+            .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                border-radius: 10px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                border: none;
+                font-size: 14px;
+            }
+
+            .btn-primary {
+                /* 그라디언트 제거, 파란색 변수 사용 */
+                background: var(--primary-light);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+            }
+
+            .btn-secondary {
+                background: white;
+                color: var(--text-light);
+                border: 2px solid var(--border);
+            }
+
+            .btn-secondary:hover {
+                border-color: var(--primary-light);
+                color: var(--primary-light);
+            }
+
+            .btn-danger {
+                background: #fee2e2;
+                color: #dc2626;
+                border: none;
+            }
+
+            .btn-danger:hover {
+                background: #fecaca;
+            }
+
+            .form-actions {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                margin-top: 32px;
+            }
+
+            /* 성취 배지 */
+            .badges-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 16px;
+            }
+
+            .badge-item {
+                background: var(--hover);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                padding: 20px;
+                text-align: center;
+                transition: all 0.3s;
+            }
+
+            .badge-item.earned {
+                background: var(--hover);
+                border-color: var(--primary-light);
+            }
+
+            .badge-item:hover {
+                transform: translateY(-4px);
+            }
+
+            .badge-icon {
+                font-size: 40px;
+                margin-bottom: 8px;
+                filter: grayscale(100%);
+            }
+
+            .badge-item.earned .badge-icon {
+                filter: grayscale(0%);
+            }
+
+            .badge-name {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--text-light);
+            }
+
+            .badge-item.earned .badge-name {
+                color: var(--primary-light);
+            }
+
+            /* 여행 히스토리 */
+            .trip-history {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .trip-history-item {
+                background: var(--hover);
+                border: 2px solid var(--border);
+                border-radius: 12px;
+                padding: 20px;
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                transition: all 0.3s;
+            }
+
+            .trip-history-item:hover {
+                border-color: var(--primary-light);
+                transform: translateX(4px);
+            }
+
+            .trip-history-icon {
+                font-size: 40px;
+            }
+
+            .trip-history-info {
+                flex: 1;
+            }
+
+            .trip-history-title {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text);
+                margin-bottom: 4px;
+            }
+
+            .trip-history-date {
+                font-size: 13px;
+                color: var(--text-light);
+            }
+
+            .trip-history-stats {
+                display: flex;
+                gap: 16px;
+                font-size: 13px;
+                color: var(--text-light);
+            }
+
+            /* 반응형 */
+            @media (max-width: 768px) {
+                .navbar {
+                    padding: 16px 20px;
+                }
+
+                .nav-links {
+                    display: none;
+                }
+
+                .container {
+                    padding: 24px 16px;
+                }
+
+                .profile-header {
+                    flex-direction: column;
+                    text-align: center;
+                    padding: 32px 24px;
+                }
+
+                .profile-stats {
+                    justify-content: center;
+                }
+
+                .form-row {
+                    grid-template-columns: 1fr;
+                }
+
+                .badges-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .trip-history-item {
+                    flex-direction: column;
+                    text-align: center;
+                }
+
+                .trip-history-stats {
+                    justify-content: center;
+                }
+            }
+
+            /* 알림 설정 */
+            .notification-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .notification-item:last-child {
+                border-bottom: none;
+            }
+
+            .notification-info {
+                flex: 1;
+            }
+
+            .notification-title {
+                font-weight: 600;
+                color: var(--text);
+                margin-bottom: 4px;
+                font-size: 14px;
+            }
+
+            .notification-desc {
+                font-size: 13px;
+                color: var(--text-light);
+            }
+
+            .toggle-switch {
+                position: relative;
+                width: 50px;
+                height: 26px;
+            }
+
+            .toggle-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+            .toggle-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: var(--border);
+                transition: 0.4s;
+                border-radius: 26px;
+            }
+
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: 0.4s;
+                border-radius: 50%;
+            }
+
+            input:checked + .toggle-slider {
+                background-color: var(--primary-light);
+            }
+
+            input:checked + .toggle-slider:before {
+                transform: translateX(24px);
+            }
+        </style>
+    </head>
+    <body>
+        <!-- 네비게이션 -->
+        <nav class="navbar">
+            <div class="navbar-left">
+                <div class="logo" onclick="goHome()">🗺️ TripCanvas</div>
+                <div class="nav-links">
+                    <a href="#" class="nav-link">대시보드</a>
+                    <a href="#" class="nav-link">내 여행</a>
+                    <a href="#" class="nav-link">버킷리스트</a>
+                    <a href="#" class="nav-link">커뮤니티</a>
+                </div>
+            </div>
+            <div class="user-avatar">🧑</div>
+        </nav>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="container">
+            <!-- 프로필 헤더 -->
+            <div class="profile-header">
+                <div class="profile-avatar-large">
+                    🧑
+                    <label class="avatar-upload" for="avatarUpload"> 📷 </label>
+                    <input type="file" id="avatarUpload" style="display: none" accept="image/*" />
+                </div>
+                <div class="profile-info">
+                    <h1 class="profile-name">김여행</h1>
+                    <p class="profile-email">travel@example.com</p>
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <div class="profile-stat-value">12</div>
+                            <div class="profile-stat-label">여행</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-value">127</div>
+                            <div class="profile-stat-label">장소</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-value">45</div>
+                            <div class="profile-stat-label">챌린지</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-value">18</div>
+                            <div class="profile-stat-label">배지</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 탭 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="account">계정 정보</button>
+                <button class="tab-btn" data-tab="preferences">환경 설정</button>
+                <button class="tab-btn" data-tab="achievements">성취 & 배지</button>
+                <button class="tab-btn" data-tab="history">여행 히스토리</button>
+            </div>
+
+            <!-- 계정 정보 탭 -->
+            <div class="tab-content" id="accountTab">
+                <div class="settings-card">
+                    <h2 class="card-title">👤 기본 정보</h2>
+                    <form>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>아이디</label>
+                                <input type="text" value="travelkim" disabled />
+                            </div>
+                            <div class="form-group">
+                                <label>닉네임</label>
+                                <input type="text" value="김여행" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>이메일</label>
+                            <input type="email" value="travel@example.com" />
+                        </div>
+                        <div class="form-group">
+                            <label>자기소개</label>
+                            <textarea rows="4" placeholder="나를 소개하는 글을 작성해주세요"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary">취소</button>
+                            <button type="submit" class="btn btn-primary">저장</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <h2 class="card-title">🔒 비밀번호 변경</h2>
+                    <form>
+                        <div class="form-group">
+                            <label>현재 비밀번호</label>
+                            <input type="password" placeholder="현재 비밀번호를 입력하세요" />
+                        </div>
+                        <div class="form-group">
+                            <label>새 비밀번호</label>
+                            <input type="password" placeholder="새 비밀번호를 입력하세요" />
+                        </div>
+                        <div class="form-group">
+                            <label>새 비밀번호 확인</label>
+                            <input type="password" placeholder="새 비밀번호를 다시 입력하세요" />
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">비밀번호 변경</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <h2 class="card-title">⚠️ 계정 관리</h2>
+                    <p style="color: #64748b; margin-bottom: 16px">
+                        계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+                    </p>
+                    <button class="btn btn-danger">계정 삭제</button>
+                </div>
+            </div>
+
+            <!-- 환경 설정 탭 -->
+            <div class="tab-content" id="preferencesTab" style="display: none">
+                <div class="settings-card">
+                    <h2 class="card-title">🔔 알림 설정</h2>
+                    <div class="notification-item">
+                        <div class="notification-info">
+                            <div class="notification-title">여행 알림</div>
+                            <div class="notification-desc">다가오는 여행 시작 전 알림을 받습니다</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-info">
+                            <div class="notification-title">챌린지 달성</div>
+                            <div class="notification-desc">챌린지를 완료하면 알림을 받습니다</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-info">
+                            <div class="notification-title">실시간 경로 변경</div>
+                            <div class="notification-desc">날씨/교통 변화로 경로 변경 시 알림을 받습니다</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="notification-item">
+                        <div class="notification-info">
+                            <div class="notification-title">예산 초과 경고</div>
+                            <div class="notification-desc">설정한 예산을 초과하면 알림을 받습니다</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h2 class="card-title">🌐 언어 & 지역</h2>
+                    <form>
+                        <div class="form-group">
+                            <label>언어</label>
+                            <select>
+                                <option>한국어</option>
+                                <option>English</option>
+                                <option>日本語</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>타임존</label>
+                            <select>
+                                <option>Asia/Seoul (GMT+9)</option>
+                                <option>America/New_York (GMT-5)</option>
+                                <option>Europe/London (GMT+0)</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 성취 & 배지 탭 -->
+            <div class="tab-content" id="achievementsTab" style="display: none">
+                <div class="settings-card">
+                    <h2 class="card-title">🏆 획득한 배지</h2>
+                    <div class="badges-grid">
+                        <div class="badge-item earned">
+                            <div class="badge-icon">🌟</div>
+                            <div class="badge-name">첫 여행</div>
+                        </div>
+                        <div class="badge-item earned">
+                            <div class="badge-icon">☕</div>
+                            <div class="badge-name">카페 애호가</div>
+                        </div>
+                        <div class="badge-item earned">
+                            <div class="badge-icon">🍽️</div>
+                            <div class="badge-name">미식가</div>
+                        </div>
+                        <div class="badge-item earned">
+                            <div class="badge-icon">📸</div>
+                            <div class="badge-name">포토그래퍼</div>
+                        </div>
+                        <div class="badge-item earned">
+                            <div class="badge-icon">🏛️</div>
+                            <div class="badge-name">역사학자</div>
+                        </div>
+                        <div class="badge-item">
+                            <div class="badge-icon">🏖️</div>
+                            <div class="badge-name">해변 정복</div>
+                        </div>
+                        <div class="badge-item">
+                            <div class="badge-icon">⛰️</div>
+                            <div class="badge-name">등산가</div>
+                        </div>
+                        <div class="badge-item">
+                            <div class="badge-icon">🎨</div>
+                            <div class="badge-name">예술가</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 여행 히스토리 탭 -->
+            <div class="tab-content" id="historyTab" style="display: none">
+                <div class="settings-card">
+                    <h2 class="card-title">📅 최근 여행</h2>
+                    <div class="trip-history">
+                        <div class="trip-history-item">
+                            <div class="trip-history-icon">🏖️</div>
+                            <div class="trip-history-info">
+                                <div class="trip-history-title">서울-부산 2박 3일 미식 여행</div>
+                                <div class="trip-history-date">2024.12.15 - 2024.12.17</div>
+                            </div>
+                            <div class="trip-history-stats">
+                                <span>💰 ₩523,000</span>
+                                <span>📍 5개 장소</span>
+                            </div>
+                        </div>
+                        <div class="trip-history-item">
+                            <div class="trip-history-icon">🏔️</div>
+                            <div class="trip-history-info">
+                                <div class="trip-history-title">강원도 겨울 여행</div>
+                                <div class="trip-history-date">2024.12.20 - 2024.12.22</div>
+                            </div>
+                            <div class="trip-history-stats">
+                                <span>💰 ₩350,000</span>
+                                <span>📍 8개 장소</span>
+                            </div>
+                        </div>
+                        <div class="trip-history-item">
+                            <div class="trip-history-icon">🌸</div>
+                            <div class="trip-history-info">
+                                <div class="trip-history-title">경주 벚꽃 여행</div>
+                                <div class="trip-history-date">2024.04.05 - 2024.04.07</div>
+                            </div>
+                            <div class="trip-history-stats">
+                                <span>💰 ₩280,000</span>
+                                <span>📍 6개 장소</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // 탭 전환
+            document.querySelectorAll(".tab-btn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const tabName = btn.dataset.tab;
+
+                    document.querySelectorAll(".tab-btn").forEach((b) => {
+                        b.classList.remove("active");
+                    });
+                    btn.classList.add("active");
+
+                    document.querySelectorAll(".tab-content").forEach((content) => {
+                        content.style.display = "none";
+                    });
+
+                    document.getElementById(tabName + "Tab").style.display = "block";
+                });
+            });
+
+            // 프로필 이미지 업로드
+            document.getElementById("avatarUpload").addEventListener("change", function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        document.querySelector(".profile-avatar-large").innerHTML = `
+                        <img src="${e.target.result}" alt="Profile">
+                        <label class="avatar-upload" for="avatarUpload">✓</label>
+                    `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // 폼 제출
+            document.querySelectorAll("form").forEach((form) => {
+                form.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    alert("저장되었습니다! ✅");
+                });
+            });
+
+            function goHome() {
+                alert("대시보드로 이동합니다!");
+            }
+        </script>
+    </body>
+</html>
