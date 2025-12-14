@@ -27,7 +27,8 @@
             }
 
             body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    sans-serif;
                 /* 배경 그라디언트를 파란색으로 변경 */
                 background: var(--primary);
                 min-height: 100vh;
@@ -72,7 +73,11 @@
                 font-size: 32px;
                 font-weight: bold;
                 /* 로고 그라디언트를 파란색으로 변경 */
-                background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+                background: linear-gradient(
+                    135deg,
+                    var(--primary-light) 0%,
+                    var(--secondary) 100%
+                );
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
@@ -156,7 +161,11 @@
                 width: 100%;
                 padding: 16px;
                 /* 로그인 버튼 그라디언트를 파란색으로 변경 */
-                background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+                background: linear-gradient(
+                    135deg,
+                    var(--primary-light) 0%,
+                    var(--secondary) 100%
+                );
                 color: white;
                 border: none;
                 border-radius: 12px;
@@ -342,17 +351,29 @@
                 <div class="subtitle">나만의 여행을 캔버스에 그려보세요</div>
             </div>
 
-            <div class="error-message" id="errorMessage">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+            <div class="error-message" id="errorMessage">
+                아이디 또는 비밀번호가 올바르지 않습니다.
+            </div>
 
             <form id="loginForm">
                 <div class="form-group">
                     <label>아이디 또는 이메일</label>
-                    <input type="text" id="username" placeholder="아이디 또는 이메일을 입력하세요" required />
+                    <input
+                        type="text"
+                        id="username"
+                        placeholder="아이디 또는 이메일을 입력하세요"
+                        required
+                    />
                 </div>
 
                 <div class="form-group">
                     <label>비밀번호</label>
-                    <input type="password" id="password" placeholder="비밀번호를 입력하세요" required />
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="비밀번호를 입력하세요"
+                        required
+                    />
                 </div>
 
                 <div class="form-options">
@@ -366,12 +387,20 @@
                 <button type="submit" class="btn-login">로그인</button>
             </form>
 
-            <div class="signup-link">아직 계정이 없으신가요? <a href="#" onclick="goToSignup()">회원가입</a></div>
+            <div class="signup-link">
+                아직 계정이 없으신가요?
+                <a href="#" onclick="goToSignup()">회원가입</a>
+            </div>
 
             <div class="divider">소개 페이지로 이동하기</div>
 
             <div class="social-login">
-                <button class="social-btn" onclick="socialLogin('google')">🔍</button>
+                <button
+                    class="social-btn"
+                    onclick="location.href='./intro.html'"
+                >
+                    🔍
+                </button>
             </div>
         </div>
 
