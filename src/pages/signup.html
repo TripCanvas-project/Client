@@ -27,7 +27,8 @@
             }
 
             body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    sans-serif;
                 background: var(--primary);
                 min-height: 100vh;
                 display: flex;
@@ -70,7 +71,11 @@
             .logo-text {
                 font-size: 32px;
                 font-weight: bold;
-                background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+                background: linear-gradient(
+                    135deg,
+                    var(--primary-light) 0%,
+                    var(--secondary) 100%
+                );
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
@@ -239,7 +244,11 @@
             .btn-signup {
                 width: 100%;
                 padding: 16px;
-                background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
+                background: linear-gradient(
+                    135deg,
+                    var(--primary-light) 0%,
+                    var(--secondary) 100%
+                );
                 color: white;
                 border: none;
                 border-radius: 12px;
@@ -373,7 +382,9 @@
                             👤
                             <div class="upload-icon">📷</div>
                         </div>
-                        <div class="upload-label">프로필 사진 업로드 (선택)</div>
+                        <div class="upload-label">
+                            프로필 사진 업로드 (선택)
+                        </div>
                     </label>
                     <input type="file" id="profileImage" accept="image/*" />
                 </div>
@@ -381,42 +392,82 @@
                 <!-- 아이디 -->
                 <div class="form-group">
                     <label> 아이디<span class="required">*</span> </label>
-                    <input type="text" id="username" placeholder="영문, 숫자 조합 4-20자" required />
-                    <div class="validation-check" id="usernameCheck">4-20자의 영문, 숫자 조합</div>
+                    <input
+                        type="text"
+                        id="username"
+                        placeholder="영문, 숫자 조합 4-20자"
+                        required
+                    />
+                    <div class="validation-check" id="usernameCheck">
+                        4-20자의 영문, 숫자 조합
+                    </div>
                     <div class="error-message" id="usernameError"></div>
                 </div>
 
                 <!-- 이메일 -->
                 <div class="form-group">
                     <label> 이메일<span class="required">*</span> </label>
-                    <input type="email" id="email" placeholder="example@email.com" required />
-                    <div class="validation-check" id="emailCheck">올바른 이메일 형식</div>
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="example@email.com"
+                        required
+                    />
+                    <div class="validation-check" id="emailCheck">
+                        올바른 이메일 형식
+                    </div>
                     <div class="error-message" id="emailError"></div>
                 </div>
 
                 <!-- 닉네임 -->
                 <div class="form-group">
                     <label> 닉네임<span class="required">*</span> </label>
-                    <input type="text" id="nickname" placeholder="2-10자 닉네임" required />
-                    <div class="validation-check" id="nicknameCheck">2-10자 이내</div>
+                    <input
+                        type="text"
+                        id="nickname"
+                        placeholder="2-10자 닉네임"
+                        required
+                    />
+                    <div class="validation-check" id="nicknameCheck">
+                        2-10자 이내
+                    </div>
                     <div class="error-message" id="nicknameError"></div>
                 </div>
 
                 <!-- 비밀번호 -->
                 <div class="form-group">
                     <label> 비밀번호<span class="required">*</span> </label>
-                    <input type="password" id="password" placeholder="8자 이상, 영문/숫자/특수문자 포함" required />
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="8자 이상, 영문/숫자/특수문자 포함"
+                        required
+                    />
                     <div class="password-strength">
-                        <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                        <div
+                            class="password-strength-bar"
+                            id="passwordStrengthBar"
+                        ></div>
                     </div>
-                    <div class="password-hint" id="passwordHint">비밀번호 강도: 없음</div>
+                    <div class="password-hint" id="passwordHint">
+                        비밀번호 강도: 없음
+                    </div>
                 </div>
 
                 <!-- 비밀번호 확인 -->
                 <div class="form-group">
-                    <label> 비밀번호 확인<span class="required">*</span> </label>
-                    <input type="password" id="passwordConfirm" placeholder="비밀번호를 다시 입력하세요" required />
-                    <div class="validation-check" id="passwordMatchCheck">비밀번호가 일치합니다</div>
+                    <label>
+                        비밀번호 확인<span class="required">*</span>
+                    </label>
+                    <input
+                        type="password"
+                        id="passwordConfirm"
+                        placeholder="비밀번호를 다시 입력하세요"
+                        required
+                    />
+                    <div class="validation-check" id="passwordMatchCheck">
+                        비밀번호가 일치합니다
+                    </div>
                     <div class="error-message" id="passwordConfirmError"></div>
                 </div>
 
@@ -431,133 +482,148 @@
                 <button type="submit" class="btn-signup">회원가입</button>
             </form>
 
-            <div class="login-link">이미 계정이 있으신가요? <a href="#" onclick="showLogin()">로그인</a></div>
+            <div class="login-link">
+                이미 계정이 있으신가요? <a href="./login.html">로그인</a>
+            </div>
         </div>
 
         <script>
             // 프로필 이미지 미리보기
-            document.getElementById("profileImage").addEventListener("change", function (e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const preview = document.getElementById("profilePreview");
-                        preview.innerHTML = `
+            document
+                .getElementById("profileImage")
+                .addEventListener("change", function (e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const preview =
+                                document.getElementById("profilePreview");
+                            preview.innerHTML = `
                         <img src="${e.target.result}" alt="Profile">
                         <div class="upload-icon">✓</div>
                     `;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
 
             // 아이디 유효성 검사
-            document.getElementById("username").addEventListener("input", function (e) {
-                const value = e.target.value;
-                const check = document.getElementById("usernameCheck");
-                const regex = /^[a-zA-Z0-9]{4,20}$/;
+            document
+                .getElementById("username")
+                .addEventListener("input", function (e) {
+                    const value = e.target.value;
+                    const check = document.getElementById("usernameCheck");
+                    const regex = /^[a-zA-Z0-9]{4,20}$/;
 
-                if (regex.test(value)) {
-                    check.classList.add("valid");
-                    check.classList.remove("invalid");
-                    e.target.classList.remove("error");
-                } else {
-                    check.classList.add("invalid");
-                    check.classList.remove("valid");
-                    if (value.length > 0) {
-                        e.target.classList.add("error");
+                    if (regex.test(value)) {
+                        check.classList.add("valid");
+                        check.classList.remove("invalid");
+                        e.target.classList.remove("error");
+                    } else {
+                        check.classList.add("invalid");
+                        check.classList.remove("valid");
+                        if (value.length > 0) {
+                            e.target.classList.add("error");
+                        }
                     }
-                }
-            });
+                });
 
             // 이메일 유효성 검사
-            document.getElementById("email").addEventListener("input", function (e) {
-                const value = e.target.value;
-                const check = document.getElementById("emailCheck");
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            document
+                .getElementById("email")
+                .addEventListener("input", function (e) {
+                    const value = e.target.value;
+                    const check = document.getElementById("emailCheck");
+                    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-                if (regex.test(value)) {
-                    check.classList.add("valid");
-                    check.classList.remove("invalid");
-                    e.target.classList.remove("error");
-                } else {
-                    check.classList.add("invalid");
-                    check.classList.remove("valid");
-                    if (value.length > 0) {
-                        e.target.classList.add("error");
+                    if (regex.test(value)) {
+                        check.classList.add("valid");
+                        check.classList.remove("invalid");
+                        e.target.classList.remove("error");
+                    } else {
+                        check.classList.add("invalid");
+                        check.classList.remove("valid");
+                        if (value.length > 0) {
+                            e.target.classList.add("error");
+                        }
                     }
-                }
-            });
+                });
 
             // 닉네임 유효성 검사
-            document.getElementById("nickname").addEventListener("input", function (e) {
-                const value = e.target.value;
-                const check = document.getElementById("nicknameCheck");
+            document
+                .getElementById("nickname")
+                .addEventListener("input", function (e) {
+                    const value = e.target.value;
+                    const check = document.getElementById("nicknameCheck");
 
-                if (value.length >= 2 && value.length <= 10) {
-                    check.classList.add("valid");
-                    check.classList.remove("invalid");
-                    e.target.classList.remove("error");
-                } else {
-                    check.classList.add("invalid");
-                    check.classList.remove("valid");
-                    if (value.length > 0) {
-                        e.target.classList.add("error");
+                    if (value.length >= 2 && value.length <= 10) {
+                        check.classList.add("valid");
+                        check.classList.remove("invalid");
+                        e.target.classList.remove("error");
+                    } else {
+                        check.classList.add("invalid");
+                        check.classList.remove("valid");
+                        if (value.length > 0) {
+                            e.target.classList.add("error");
+                        }
                     }
-                }
-            });
+                });
 
             // 비밀번호 강도 체크
-            document.getElementById("password").addEventListener("input", function (e) {
-                const value = e.target.value;
-                const bar = document.getElementById("passwordStrengthBar");
-                const hint = document.getElementById("passwordHint");
+            document
+                .getElementById("password")
+                .addEventListener("input", function (e) {
+                    const value = e.target.value;
+                    const bar = document.getElementById("passwordStrengthBar");
+                    const hint = document.getElementById("passwordHint");
 
-                let strength = 0;
-                if (value.length >= 8) strength++;
-                if (/[a-z]/.test(value) && /[A-Z]/.test(value)) strength++;
-                if (/\d/.test(value)) strength++;
-                if (/[^a-zA-Z0-9]/.test(value)) strength++;
+                    let strength = 0;
+                    if (value.length >= 8) strength++;
+                    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) strength++;
+                    if (/\d/.test(value)) strength++;
+                    if (/[^a-zA-Z0-9]/.test(value)) strength++;
 
-                bar.className = "password-strength-bar";
-                if (strength === 0) {
-                    hint.textContent = "비밀번호 강도: 없음";
-                } else if (strength <= 2) {
-                    bar.classList.add("weak");
-                    hint.textContent = "비밀번호 강도: 약함";
-                    hint.style.color = "#ef4444";
-                } else if (strength === 3) {
-                    bar.classList.add("medium");
-                    hint.textContent = "비밀번호 강도: 보통";
-                    hint.style.color = "#f59e0b";
-                } else {
-                    bar.classList.add("strong");
-                    hint.textContent = "비밀번호 강도: 강함";
-                    hint.style.color = "#10b981";
-                }
-            });
+                    bar.className = "password-strength-bar";
+                    if (strength === 0) {
+                        hint.textContent = "비밀번호 강도: 없음";
+                    } else if (strength <= 2) {
+                        bar.classList.add("weak");
+                        hint.textContent = "비밀번호 강도: 약함";
+                        hint.style.color = "#ef4444";
+                    } else if (strength === 3) {
+                        bar.classList.add("medium");
+                        hint.textContent = "비밀번호 강도: 보통";
+                        hint.style.color = "#f59e0b";
+                    } else {
+                        bar.classList.add("strong");
+                        hint.textContent = "비밀번호 강도: 강함";
+                        hint.style.color = "#10b981";
+                    }
+                });
 
             // 비밀번호 확인
-            document.getElementById("passwordConfirm").addEventListener("input", function (e) {
-                const password = document.getElementById("password").value;
-                const confirm = e.target.value;
-                const check = document.getElementById("passwordMatchCheck");
+            document
+                .getElementById("passwordConfirm")
+                .addEventListener("input", function (e) {
+                    const password = document.getElementById("password").value;
+                    const confirm = e.target.value;
+                    const check = document.getElementById("passwordMatchCheck");
 
-                if (confirm.length === 0) {
-                    check.classList.remove("valid", "invalid");
-                    return;
-                }
+                    if (confirm.length === 0) {
+                        check.classList.remove("valid", "invalid");
+                        return;
+                    }
 
-                if (password === confirm) {
-                    check.classList.add("valid");
-                    check.classList.remove("invalid");
-                    e.target.classList.remove("error");
-                } else {
-                    check.classList.add("invalid");
-                    check.classList.remove("valid");
-                    e.target.classList.add("error");
-                }
-            });
+                    if (password === confirm) {
+                        check.classList.add("valid");
+                        check.classList.remove("invalid");
+                        e.target.classList.remove("error");
+                    } else {
+                        check.classList.add("invalid");
+                        check.classList.remove("valid");
+                        e.target.classList.add("error");
+                    }
+                });
         </script>
     </body>
 </html>
