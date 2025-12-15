@@ -1,0 +1,587 @@
+:root {
+  --primary: #87ceeb;
+  --primary-dark: #1e40af;
+  --bg: #f0f9ff;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-light: #475569;
+  --border: #bfdbfe;
+  --hover: #dbeafe;
+  --success: #10b981;
+  --warning: #f59e0b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+}
+
+/* 네비게이션 */
+.navbar {
+  background: var(--primary);
+  color: white;
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+  opacity: 0.9;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* 컨테이너 */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}
+
+/* 헤더 */
+.trip-header {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.trip-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.trip-title-section {
+  flex: 1;
+}
+
+.trip-status-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.status-planning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-completed {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.trip-title {
+  font-size: 36px;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.trip-meta {
+  display: flex;
+  gap: 24px;
+  font-size: 15px;
+  color: var(--text-light);
+}
+
+.trip-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trip-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+}
+
+/* 진행도 바 */
+.progress-section {
+  background: var(--hover);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.progress-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-value {
+  font-weight: bold;
+  color: var(--primary);
+  font-size: 18px;
+}
+
+.progress-bar {
+  height: 12px;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+  transition: width 0.3s;
+  border-radius: 6px;
+}
+
+/* 그리드 레이아웃 */
+.content-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+/* 카드 */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 경로 목록 */
+.route-timeline {
+  position: relative;
+  padding-left: 32px;
+}
+
+.route-timeline::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.route-item {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  transition: all 0.3s;
+}
+
+.route-item:hover {
+  border-color: var(--primary);
+  transform: translateX(4px);
+}
+
+.route-item.visited {
+  background: #d1fae5;
+  border-color: var(--success);
+}
+
+.route-marker {
+  position: absolute;
+  left: -28px;
+  top: 20px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border: 3px solid var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.route-item.visited .route-marker {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.route-item.visited .route-marker::after {
+  content: "✓";
+}
+
+.route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.route-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.route-time {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+.route-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.route-status.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.route-status.visited {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.route-description {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+
+.route-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 4px 10px;
+  background: white;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+/* 통계 카드 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-box {
+  background: var(--hover);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.stat-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-light);
+}
+
+/* 예산 섹션 */
+.budget-summary {
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.budget-amount {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.budget-progress {
+  background: rgba(255, 255, 255, 0.3);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.budget-progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 4px;
+}
+
+.budget-label {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.expense-list {
+  margin-top: 20px;
+}
+
+.expense-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.expense-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.expense-category {
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+.expense-amount {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* 협업자 */
+.collaborators-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.collaborator-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--hover);
+  border-radius: 20px;
+}
+
+.collaborator-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.collaborator-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.collaborator-role {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: white;
+  border-radius: 10px;
+  color: var(--primary);
+}
+
+/* 버킷리스트 */
+.bucketlist-item {
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.bucketlist-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.bucketlist-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bucketlist-progress {
+  font-weight: bold;
+  color: var(--primary);
+}
+
+.bucketlist-bar {
+  height: 6px;
+  background: white;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bucketlist-bar-fill {
+  height: 100%;
+  background: var(--success);
+  transition: width 0.3s;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 16px 20px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .container {
+    padding: 24px 16px;
+  }
+
+  .trip-header {
+    padding: 24px;
+  }
+
+  .trip-title {
+    font-size: 28px;
+  }
+
+  .trip-header-top {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

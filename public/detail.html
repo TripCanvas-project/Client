@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>서울-부산 미식 여행 - TripCanvas</title>
+    <link rel="stylesheet" href="../src/styles/detail.css" />
+  </head>
+  <body>
+    <!-- 네비게이션 -->
+    <nav class="navbar">
+      <div class="navbar-left">
+        <div class="logo" onclick="goHome()">🗺️ TripCanvas</div>
+        <div class="nav-links">
+          <a href="#" class="nav-link">대시보드</a>
+          <a href="#" class="nav-link">내 여행</a>
+          <a href="#" class="nav-link">버킷리스트</a>
+        </div>
+      </div>
+      <div class="user-avatar">🧑</div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="container">
+      <!-- 여행 헤더 -->
+      <div class="trip-header">
+        <div class="trip-header-top">
+          <div class="trip-title-section">
+            <span class="trip-status-badge status-active">● 진행 중</span>
+            <h1 class="trip-title">서울-부산 2박 3일 미식 여행</h1>
+            <div class="trip-meta">
+              <span>📅 2024.12.15 - 2024.12.17 (3일)</span>
+              <span>👥 3명</span>
+              <span>🍜 맛집 투어</span>
+            </div>
+          </div>
+          <div class="trip-actions">
+            <button class="btn btn-primary" onclick="editTrip()">
+              ✏️ 편집
+            </button>
+            <button class="btn btn-secondary" onclick="shareTrip()">
+              🔗 공유
+            </button>
+            <button class="btn btn-secondary" onclick="deleteTrip()">
+              🗑️ 삭제
+            </button>
+          </div>
+        </div>
+
+        <!-- 진행도 -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-label">전체 진행도</span>
+            <span class="progress-value">60% 완료</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 60%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 컨텐츠 그리드 -->
+      <div class="content-grid">
+        <!-- 왼쪽: 경로 & 일정 -->
+        <div>
+          <div class="card">
+            <h2 class="card-title">📍 여행 경로</h2>
+
+            <div class="route-timeline">
+              <div class="route-item visited">
+                <div class="route-marker">1</div>
+                <div class="route-header">
+                  <div>
+                    <div class="route-name">광안리 해변</div>
+                    <div class="route-time">⏰ 10:00 AM - 12:00 PM</div>
+                  </div>
+                  <span class="route-status visited">✓ 방문 완료</span>
+                </div>
+                <div class="route-description">
+                  해운대와 함께 부산의 대표 해변. 광안대교 야경이 유명합니다.
+                </div>
+                <div class="route-tags">
+                  <span class="tag">#사진스팟</span>
+                  <span class="tag">#야경</span>
+                  <span class="tag">#해변</span>
+                </div>
+              </div>
+
+              <div class="route-item visited">
+                <div class="route-marker">2</div>
+                <div class="route-header">
+                  <div>
+                    <div class="route-name">자갈치 시장</div>
+                    <div class="route-time">⏰ 12:30 PM - 3:00 PM</div>
+                  </div>
+                  <span class="route-status visited">✓ 방문 완료</span>
+                </div>
+                <div class="route-description">
+                  신선한 해산물을 직접 고르고 바로 조리해서 먹을 수 있는 전통
+                  시장
+                </div>
+                <div class="route-tags">
+                  <span class="tag">#맛집</span>
+                  <span class="tag">#해산물</span>
+                </div>
+              </div>
+
+              <div class="route-item">
+                <div class="route-marker">3</div>
+                <div class="route-header">
+                  <div>
+                    <div class="route-name">감천문화마을</div>
+                    <div class="route-time">⏰ 3:30 PM - 5:30 PM</div>
+                  </div>
+                  <span class="route-status pending">예정</span>
+                </div>
+                <div class="route-description">
+                  알록달록한 집들이 층층이 쌓인 한국의 산토리니
+                </div>
+                <div class="route-tags">
+                  <span class="tag">#사진스팟</span>
+                  <span class="tag">#예술</span>
+                </div>
+              </div>
+
+              <div class="route-item">
+                <div class="route-marker">4</div>
+                <div class="route-header">
+                  <div>
+                    <div class="route-name">해운대 해수욕장</div>
+                    <div class="route-time">⏰ 6:00 PM - 8:00 PM</div>
+                  </div>
+                  <span class="route-status pending">예정</span>
+                </div>
+                <div class="route-description">
+                  한국에서 가장 유명한 해수욕장. 주변에 맛집과 카페가 많습니다.
+                </div>
+                <div class="route-tags">
+                  <span class="tag">#해변</span>
+                  <span class="tag">#휴양</span>
+                </div>
+              </div>
+
+              <div class="route-item">
+                <div class="route-marker">5</div>
+                <div class="route-header">
+                  <div>
+                    <div class="route-name">태종대</div>
+                    <div class="route-time">⏰ 9:00 AM - 12:00 PM (Day 2)</div>
+                  </div>
+                  <span class="route-status pending">예정</span>
+                </div>
+                <div class="route-description">
+                  부산의 남단 절벽. 등대와 함께 탁 트인 바다 전망 감상
+                </div>
+                <div class="route-tags">
+                  <span class="tag">#자연</span>
+                  <span class="tag">#전망</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 오른쪽: 통계 & 예산 -->
+        <div>
+          <!-- 통계 -->
+          <div class="card">
+            <h2 class="card-title">📊 여행 통계</h2>
+
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-icon">📍</div>
+                <div class="stat-value">5</div>
+                <div class="stat-label">총 장소</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value">2</div>
+                <div class="stat-label">방문 완료</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-icon">🚗</div>
+                <div class="stat-value">47km</div>
+                <div class="stat-label">이동 거리</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-value">12h</div>
+                <div class="stat-label">예상 시간</div>
+              </div>
+            </div>
+
+            <!-- 협업자 -->
+            <div style="margin-top: 24px">
+              <h3
+                style="font-size: 16px; font-weight: 600; margin-bottom: 12px"
+              >
+                👥 협업자
+              </h3>
+              <div class="collaborators-list">
+                <div class="collaborator-item">
+                  <div class="collaborator-avatar">나</div>
+                  <span class="collaborator-name">김여행</span>
+                  <span class="collaborator-role">소유자</span>
+                </div>
+                <div class="collaborator-item">
+                  <div class="collaborator-avatar">김</div>
+                  <span class="collaborator-name">김민수</span>
+                  <span class="collaborator-role">편집자</span>
+                </div>
+                <div class="collaborator-item">
+                  <div class="collaborator-avatar">이</div>
+                  <span class="collaborator-name">이지은</span>
+                  <span class="collaborator-role">편집자</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 예산 -->
+          <div class="card" style="margin-top: 24px">
+            <h2 class="card-title">💰 예산 관리</h2>
+
+            <div class="budget-summary">
+              <div class="budget-amount">₩523,000</div>
+              <div class="budget-progress">
+                <div class="budget-progress-fill" style="width: 65%"></div>
+              </div>
+              <div class="budget-label">총 사용 금액 / ₩800,000 (65%)</div>
+            </div>
+
+            <div class="expense-list">
+              <div class="expense-item">
+                <div>
+                  <div class="expense-name">KTX 왕복 티켓</div>
+                  <div class="expense-category">#교통비</div>
+                </div>
+                <div class="expense-amount">₩120,000</div>
+              </div>
+              <div class="expense-item">
+                <div>
+                  <div class="expense-name">호텔 2박</div>
+                  <div class="expense-category">#숙박비</div>
+                </div>
+                <div class="expense-amount">₩280,000</div>
+              </div>
+              <div class="expense-item">
+                <div>
+                  <div class="expense-name">자갈치 시장 회</div>
+                  <div class="expense-category">#식비</div>
+                </div>
+                <div class="expense-amount">₩89,000</div>
+              </div>
+              <div class="expense-item">
+                <div>
+                  <div class="expense-name">광안리 카페</div>
+                  <div class="expense-category">#식비</div>
+                </div>
+                <div class="expense-amount">₩34,000</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 버킷리스트 -->
+          <div class="card" style="margin-top: 24px">
+            <h2 class="card-title">🎯 연결된 버킷리스트</h2>
+
+            <div class="bucketlist-item">
+              <div class="bucketlist-header">
+                <span class="bucketlist-name">☕ 카페 탐방가</span>
+                <span class="bucketlist-progress">3/5</span>
+              </div>
+              <div class="bucketlist-bar">
+                <div class="bucketlist-bar-fill" style="width: 60%"></div>
+              </div>
+            </div>
+
+            <div class="bucketlist-item">
+              <div class="bucketlist-header">
+                <span class="bucketlist-name">🍽️ 미식가</span>
+                <span class="bucketlist-progress">4/10</span>
+              </div>
+              <div class="bucketlist-bar">
+                <div class="bucketlist-bar-fill" style="width: 40%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function goHome() {
+        alert("대시보드로 이동합니다!");
+      }
+
+      function editTrip() {
+        alert("여행 편집 페이지로 이동합니다!");
+        // window.location.href = '/trip/edit/123';
+      }
+
+      function shareTrip() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        alert("여행 링크가 클립보드에 복사되었습니다! 🔗");
+      }
+
+      function deleteTrip() {
+        if (confirm("정말 이 여행을 삭제하시겠습니까?")) {
+          alert("여행이 삭제되었습니다.");
+          // API 호출
+        }
+      }
+    </script>
+  </body>
+</html>
