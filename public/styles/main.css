@@ -24,6 +24,74 @@ body {
   overflow: hidden;
 }
 
+/* 추천 장소 */
+.day-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.day-tab {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.day-tab.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ===== 로딩 오버레이 ===== */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 👉 클릭 완전 차단 */
+  pointer-events: all;
+}
+
+.loading-overlay.hidden {
+  display: none;
+}
+
+.loading-box {
+  text-align: center;
+  background: white;
+  padding: 40px 50px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 6px solid #dbeafe;
+  border-top: 6px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .header {
   background: var(--primary);
   color: white;
