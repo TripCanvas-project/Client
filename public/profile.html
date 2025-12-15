@@ -8,18 +8,13 @@
   </head>
   <body>
     <!-- 네비게이션 -->
-    <nav class="navbar">
-      <div class="navbar-left">
-        <div class="logo" onclick="goHome()">🗺️ TripCanvas</div>
-        <div class="nav-links">
-          <a href="#" class="nav-link">대시보드</a>
-          <a href="#" class="nav-link">내 여행</a>
-          <a href="#" class="nav-link">버킷리스트</a>
-          <a href="#" class="nav-link">커뮤니티</a>
-        </div>
-      </div>
-      <div class="user-avatar">🧑</div>
-    </nav>
+    <div id="navbar"></div>
+
+    <script type="module">
+        import { loadNavbar } from "./js/navbar.js";
+        loadNavbar();
+    </script>
+
 
     <!-- 메인 컨텐츠 -->
     <div class="container">
@@ -93,6 +88,17 @@
                 placeholder="나를 소개하는 글을 작성해주세요"
               ></textarea>
             </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary">취소</button>
+              <button type="submit" class="btn btn-primary">저장</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <h2 class="card-title">🔒 비밀번호 변경</h2>
+          <form>
+            <div class="form-group">
             <div class="form-actions">
               <button type="button" class="btn btn-secondary">취소</button>
               <button type="submit" class="btn btn-primary">저장</button>
@@ -302,6 +308,14 @@
       </div>
     </div>
     <script type="module" src="../src/pages/Profile.mjs"></script>
+    <script>
+      // navbar.html 동적 삽입
+      fetch('navbar.html')
+        .then(res => res.text())
+        .then(html => {
+          document.getElementById('navbar').innerHTML = html;
+        });
+    </script>
     <script>
       function goHome() {
         alert("대시보드로 이동합니다!");
