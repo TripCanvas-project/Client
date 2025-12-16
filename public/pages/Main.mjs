@@ -1,5 +1,4 @@
 // client/public/pages/Main.mjs
-
 const API_BASE_URL = "http://localhost:8080";
 
 // ✅ 0) 토큰 가져오기 (통일: token)
@@ -40,12 +39,9 @@ async function checkMe() {
     alert("서버 통신 중 오류가 발생했습니다.");
   }
 }
-
 checkMe();
 
 // -------------------- 지역(도착지) 옵션 데이터 --------------------
-
-// 특별시 및 광역시 (일반적으로 1차 행정구역)
 const subOptionsData = {
   서울특별시: [
     "강남구",
@@ -85,9 +81,8 @@ const subOptionsData = {
     "연수구",
     "옹진군",
     "중구",
-    "태백시",
   ],
-  대전광역시: ["대덕구", "동구", "서구", "속초시", "유성구", "중구"],
+  대전광역시: ["대덕구", "동구", "서구", "유성구", "중구"],
   대구광역시: [
     "군위군",
     "남구",
@@ -118,12 +113,9 @@ const subOptionsData = {
     "영도구",
     "중구",
     "해운대구",
-    "해운대구광역시",
   ],
   울산광역시: ["남구", "동구", "북구", "울주군", "중구"],
   세종특별자치시: ["세종특별자치시"],
-
-  // 도 및 특별자치도 (일반적으로 1차 행정구역)
   경기도: [
     "가평군",
     "고양시",
@@ -151,7 +143,6 @@ const subOptionsData = {
     "의왕시",
     "의정부시",
     "이천시",
-    "종로구",
     "파주시",
     "평택시",
     "포천시",
@@ -186,7 +177,6 @@ const subOptionsData = {
     "옥천군",
     "음성군",
     "제천시",
-    "제천시봉양읍",
     "증평군",
     "진천군",
     "청주시",
@@ -204,7 +194,6 @@ const subOptionsData = {
     "서천군",
     "아산시",
     "예산군",
-    "천안",
     "천안시",
     "청양군",
     "태안군",
@@ -227,7 +216,6 @@ const subOptionsData = {
     "영천시",
     "예천군",
     "울릉군",
-    "울주군",
     "울진군",
     "의성군",
     "청도군",
@@ -246,7 +234,6 @@ const subOptionsData = {
     "산청군",
     "양산시",
     "의령군",
-    "진도군",
     "진주시",
     "창녕군",
     "창원시",
@@ -255,7 +242,6 @@ const subOptionsData = {
     "함안군",
     "함양군",
     "합천군",
-    "홍천군",
   ],
   전북특별자치도: [
     "고창군",
@@ -305,7 +291,6 @@ const subOptionsData = {
 const mainSelection = document.getElementById("destination");
 const subSelection = document.getElementById("sub-destination");
 
-// 메인 선택이 변경되었을 때 실행될 서브 선택지
 if (mainSelection && subSelection) {
   mainSelection.addEventListener("change", function () {
     const selectedCategory = this.value;
@@ -315,7 +300,7 @@ if (mainSelection && subSelection) {
     const options = subOptionsData[selectedCategory];
 
     if (options && options.length > 0) {
-      options.forEach(function (item) {
+      options.forEach((item) => {
         const newOption = document.createElement("option");
         newOption.value = item;
         newOption.textContent = item;
@@ -328,7 +313,7 @@ if (mainSelection && subSelection) {
   });
 }
 
-// -------------------- 여행 스타일 칩 선택 --------------------
+// ---------- 여행 스타일 칩 선택 ---------
 document.addEventListener("DOMContentLoaded", () => {
   const chipsContainer = document.getElementById("travel-style-chips");
   const hiddenInput = document.getElementById("selected-styles");
@@ -356,9 +341,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resultString = selectedValues.join(", ");
 
-    if (hiddenInput) {
-      hiddenInput.value = resultString;
-    }
+    if (hiddenInput) hiddenInput.value = resultString;
+
     console.log("현재 선택된 여행 스타일:", resultString);
   }
 });
@@ -381,7 +365,6 @@ if (generatePlanButton) {
   generatePlanButton.addEventListener("click", async () => {
     showLoading();
 
-    // ✅ 입력값 검증
     const departure = document.getElementById("departure")?.value.trim();
     const destination = document.getElementById("destination")?.value.trim();
     const startDate = document.getElementById("start-date")?.value;
@@ -393,13 +376,12 @@ if (generatePlanButton) {
       return;
     }
 
-    // ✅ 토큰 키 통일
     const token = localStorage.getItem("token");
 
     const tripData = {
       start_loc: departure,
       end_area: destination,
-      detail_addr: document.getElementById("sub-destination")?.value,
+      detail_addr: document.getElementById("sub-destination")?.value || "",
       start_date: startDate,
       end_date: endDate,
       budget_per_person: parseInt(
@@ -428,6 +410,7 @@ if (generatePlanButton) {
 
       if (response.ok) {
         console.log("여행 계획 생성 성공:", data);
+        await loadLatestRouteAndRenderTabs(); // ✅ 생성 직후 최신 route 다시 렌더
       } else {
         alert(`계획 생성 실패: ${data.message || "오류"}`);
       }
@@ -440,7 +423,7 @@ if (generatePlanButton) {
   });
 }
 
-// -------------------- 사이드바 탭 전환 --------------------
+// ------------- 사이드바 탭 전환 --------------
 document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
   tab.addEventListener("click", () => {
     const tabName = tab.dataset.tab;
@@ -453,7 +436,7 @@ document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
       .forEach((content) => content.classList.remove("active"));
 
     tab.classList.add("active");
-    document.getElementById(tabName + "-content")?.classList.add("active");
+    document.getElementById(`${tabName}-content`)?.classList.add("active");
   });
 });
 
@@ -470,7 +453,7 @@ document.querySelectorAll(".panel-tabs .tab").forEach((tab) => {
       .forEach((content) => content.classList.remove("active"));
 
     tab.classList.add("active");
-    document.getElementById(panelName + "-content")?.classList.add("active");
+    document.getElementById(`${panelName}-content`)?.classList.add("active");
 
     const chatInput = document.querySelector(".chat-input");
     if (chatInput)
@@ -478,7 +461,7 @@ document.querySelectorAll(".panel-tabs .tab").forEach((tab) => {
   });
 });
 
-// -------------------- 일정 추가/취소/저장 --------------------
+// ------------ 일정 추가/취소/저장 -------------
 document.getElementById("add-schedule-btn")?.addEventListener("click", () => {
   document.getElementById("schedule-form").style.display = "block";
   document.getElementById("add-schedule-btn").style.display = "none";
@@ -510,9 +493,9 @@ document.getElementById("save-schedule-btn")?.addEventListener("click", () => {
   newSchedule.className = "schedule-item";
   newSchedule.innerHTML = `
     <div class="schedule-info">
-      <div class="schedule-time">⏰ ${time}</div>
-      <div class="schedule-title">${title}</div>
-      <div class="schedule-location">📍 ${location}</div>
+      <div class="schedule-time">⏰ ${escapeHtml(time)}</div>
+      <div class="schedule-title">${escapeHtml(title)}</div>
+      <div class="schedule-location">📍 ${escapeHtml(location)}</div>
     </div>
     <div class="schedule-actions">
       <button class="btn-icon" title="수정" onclick="alert('수정 기능')">✏️</button>
@@ -541,7 +524,7 @@ document.getElementById("chat-send-btn")?.addEventListener("click", () => {
     newMessage.className = "message";
     newMessage.innerHTML = `
       <div class="message-author">나</div>
-      <div class="message-text">${message}</div>
+      <div class="message-text">${escapeHtml(message)}</div>
       <div class="message-time">방금</div>
     `;
     chatMessages.appendChild(newMessage);
@@ -551,12 +534,10 @@ document.getElementById("chat-send-btn")?.addEventListener("click", () => {
 });
 
 document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    document.getElementById("chat-send-btn").click();
-  }
+  if (e.key === "Enter") document.getElementById("chat-send-btn")?.click();
 });
 
-// 총 예산 계산해서 id="total-budget"에 보여주기
+// -------------------- 총 예산 표시 --------------------
 function calculateTotalBudget() {
   const personalBudget =
     parseFloat(document.getElementById("personal-budget")?.value) || 0;
@@ -564,31 +545,34 @@ function calculateTotalBudget() {
     parseInt(document.getElementById("people-count")?.value, 10) || 0;
 
   const totalBudget = personalBudget * peopleCount;
-  document.getElementById("total-budget").textContent =
-    totalBudget.toLocaleString("ko-KR") + "원";
+  const el = document.getElementById("total-budget");
+  if (el) el.textContent = totalBudget.toLocaleString("ko-KR") + "원";
 }
 
-// ✅ DOM 로드 후 이벤트 연결 + 초기 계산
 document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("personal-budget")
-    .addEventListener("input", calculateTotalBudget);
-
+    ?.addEventListener("input", calculateTotalBudget);
   document
     .getElementById("people-count")
-    .addEventListener("input", calculateTotalBudget);
-
-  calculateTotalBudget(); // 초기 표시
+    ?.addEventListener("input", calculateTotalBudget);
+  calculateTotalBudget();
 });
 
-// -------------------- 최신 루트 하나 가져와서 추천 장소 표시 ---------------------
-function escapeHtml(s = "") {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+// -- 최신 루트 하나 가져와서 추천 장소 표시 --
+async function loadLatestRouteAndRenderTabs() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const res = await fetch(`${API_BASE_URL}/route/latest`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) return;
+
+  const data = await res.json();
+  renderDayTabs(data.route);
 }
 
 function renderPlacesList(dayPlan) {
@@ -604,8 +588,8 @@ function renderPlacesList(dayPlan) {
   }
 
   places.forEach((p, idx) => {
-    const x = p.coordinates?.lng ?? "-"; // x = lng
-    const y = p.coordinates?.lat ?? "-"; // y = lat
+    const x = p.coordinates?.lng ?? "-";
+    const y = p.coordinates?.lat ?? "-";
 
     const card = document.createElement("div");
     card.className = "place-item";
@@ -630,11 +614,9 @@ function renderDayTabs(route) {
 
   tabsEl.innerHTML = "";
 
-  // ✅ dailyPlans 기준으로 day 정렬
   const plans = (route.dailyPlans || []).slice().sort((a, b) => a.day - b.day);
   if (plans.length === 0) return;
 
-  // 기본 선택 day = 1 있으면 1, 없으면 첫 번째
   let activeDay = plans.find((p) => p.day === 1)?.day ?? plans[0].day;
 
   const setActive = (day) => {
@@ -646,7 +628,6 @@ function renderDayTabs(route) {
     renderPlacesList(dp);
   };
 
-  // 탭 생성
   plans.forEach((dp) => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -657,26 +638,63 @@ function renderDayTabs(route) {
     tabsEl.appendChild(btn);
   });
 
-  // 최초 렌더
   setActive(activeDay);
 }
 
-async function loadLatestRouteAndRenderTabs() {
-  const token = localStorage.getItem("token");
-  if (!token) return;
+document.addEventListener("DOMContentLoaded", () => {
+  loadLatestRouteAndRenderTabs();
+});
 
-  const res = await fetch(`${API_BASE_URL}/route/latest`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// ----------- 카카오 지도 초기화 ----------
+function initKakaoMap() {
+  const mapContainer = document.getElementById("kakao-map");
 
-  if (!res.ok) return;
+  if (!mapContainer) {
+    console.error("카카오 지도를 표시할 요소를 찾을 수 없습니다: #kakao-map");
+    return;
+  }
 
-  const data = await res.json();
-  renderDayTabs(data.route);
+  // 지도를 표시할 중심 좌표 (예: 서울 시청)
+  const mapOption = {
+    center: new kakao.maps.LatLng(37.566826, 126.9786567), // 기본 중심 좌표 (위도, 경도)
+    level: 3, // 지도 확대 레벨 (작을수록 확대)
+  };
+
+  // 지도를 생성합니다.
+  const map = new kakao.maps.Map(mapContainer, mapOption);
+
+  // 지도 플레이스홀더 숨기기 (선택 사항: 지도가 로드되면)
+  const mapPlaceholder = document.querySelector(".map-placeholder");
+  if (mapPlaceholder) {
+    mapPlaceholder.style.display = "none";
+  }
+
+  console.log("✅ 카카오 지도가 성공적으로 초기화되었습니다.");
+
+  // 이후 지도를 조작할 필요가 있다면 전역 변수로 map을 저장할 수 있습니다.
+  // window.currentMap = map;
 }
 
+// -------------------- 전역 콜백 함수 정의 --------------------
+// 카카오 지도 스크립트 로드가 완료되면 이 함수가 호출됩니다.
+function mapScriptLoaded() {
+  // kakao 객체가 정의된 상태에서만 initKakaoMap을 실행합니다.
+  initKakaoMap();
+
+  // 이미 DOMContentLoaded가 발생했을 수 있으므로, 초기 로직을 다시 실행합니다.
+  // (예: 총 예산 계산)
+  calculateTotalBudget();
+  loadLatestRouteAndRenderTabs();
+}
+
+// ⭐ 중요: 모듈 환경에서 전역 콜백 함수를 window 객체에 연결합니다.
+window.mapScriptLoaded = mapScriptLoaded;
+
+// -------------------- DOMContentLoaded 수정 --------------------
+// 기존에 DOMContentLoaded에 있던 initKakaoMap() 호출은 제거해야 합니다.
 document.addEventListener("DOMContentLoaded", () => {
+  // initKakaoMap(); // ❌ 이제 여기서 호출하지 않습니다. 콜백으로 처리합니다.
+
   loadLatestRouteAndRenderTabs();
 });
 
@@ -689,3 +707,12 @@ document.getElementById("logout-button")?.addEventListener("click", () => {
     window.location.href = "login.html";
   }
 });
+
+function escapeHtml(s = "") {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}

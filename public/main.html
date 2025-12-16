@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TripCanvas - AI 기반 여행 플래너</title>
+    <script
+      type="text/javascript"
+      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services&callback=mapScriptLoaded"
+    ></script>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
@@ -319,6 +323,7 @@
         </div>
 
         <div class="map-canvas">
+          <div id="kakao-map" style="width: 100%; height: 100%"></div>
           <div class="map-placeholder">
             <div class="map-placeholder-icon">🗺️</div>
             <div>AI로 경로를 생성하면 여기에 지도가 표시됩니다</div>
