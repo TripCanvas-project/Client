@@ -11,10 +11,9 @@
     <div id="navbar"></div>
 
     <script type="module">
-        import { loadNavbar } from "./js/navbar.js";
-        loadNavbar();
+      import { loadNavbar } from "./js/navbar.js";
+      loadNavbar();
     </script>
-
 
     <!-- 메인 컨텐츠 -->
     <div class="container">
@@ -99,9 +98,10 @@
           <h2 class="card-title">🔒 비밀번호 변경</h2>
           <form>
             <div class="form-group">
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary">취소</button>
-              <button type="submit" class="btn btn-primary">저장</button>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary">취소</button>
+                <button type="submit" class="btn btn-primary">저장</button>
+              </div>
             </div>
           </form>
         </div>
@@ -307,13 +307,13 @@
         </div>
       </div>
     </div>
-    <script type="module" src="../src/pages/Profile.mjs"></script>
+    <script type="module" src="./pages/Profile.mjs"></script>
     <script>
       // navbar.html 동적 삽입
-      fetch('navbar.html')
-        .then(res => res.text())
-        .then(html => {
-          document.getElementById('navbar').innerHTML = html;
+      fetch("navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
         });
     </script>
     <script>
