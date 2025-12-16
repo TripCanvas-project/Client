@@ -1,23 +1,33 @@
 // client/public/pages/Main.mjs
 const API_BASE_URL = "http://localhost:8080";
 
-// ✅ 0) 토큰 가져오기 (통일: token)
+// ✅ 토큰 가져오기 (통일: token)
 const token = localStorage.getItem("token");
 
-// ✅ 1) 로그인 안 했으면 튕기기
+// ✅ 로그인 안 했으면 튕기기
 if (!token) {
   alert("로그인이 필요합니다.");
   window.location.href = "login.html";
 }
 
-// ✅ 2) 서버에 로그인 유지 확인 (/user/me)
+// ✅ HTML Escape (XSS 방지)
+function escapeHtml(s = "") {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// ✅ 서버에 로그인 유지 확인 (/user/me)
 async function checkMe() {
   try {
     const res = await fetch(`${API_BASE_URL}/user/me`, {
-      method: "POST",
+      method: "POST", // 서버가 GET이면 GET으로 바꾸세요
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 
@@ -287,255 +297,14 @@ const subOptionsData = {
   제주특별자치도: ["서귀포시", "제주시"],
 };
 
-// 도착지 선택(세부사항)
-const mainSelection = document.getElementById("destination");
-const subSelection = document.getElementById("sub-destination");
-
-if (mainSelection && subSelection) {
-  mainSelection.addEventListener("change", function () {
-    const selectedCategory = this.value;
-
-    subSelection.innerHTML = '<option value="">세부 항목을 선택하세요</option>';
-
-    const options = subOptionsData[selectedCategory];
-
-    if (options && options.length > 0) {
-      options.forEach((item) => {
-        const newOption = document.createElement("option");
-        newOption.value = item;
-        newOption.textContent = item;
-        subSelection.appendChild(newOption);
-      });
-    } else {
-      subSelection.innerHTML =
-        '<option value="">선택 가능한 항목이 없습니다</option>';
-    }
-  });
-}
-
-// ---------- 여행 스타일 칩 선택 ---------
-document.addEventListener("DOMContentLoaded", () => {
-  const chipsContainer = document.getElementById("travel-style-chips");
-  const hiddenInput = document.getElementById("selected-styles");
-
-  if (!chipsContainer) return;
-
-  chipsContainer.addEventListener("click", (e) => {
-    const clickedChip = e.target.closest(".chip");
-    if (clickedChip) {
-      clickedChip.classList.toggle("selected");
-      updateSelectedStyles();
-    }
-  });
-
-  updateSelectedStyles();
-
-  function updateSelectedStyles() {
-    const selectedChips = chipsContainer.querySelectorAll(".chip.selected");
-    const selectedValues = [];
-
-    selectedChips.forEach((chip) => {
-      const value = chip.getAttribute("data-value") || chip.textContent.trim();
-      selectedValues.push(value);
-    });
-
-    const resultString = selectedValues.join(", ");
-
-    if (hiddenInput) hiddenInput.value = resultString;
-
-    console.log("현재 선택된 여행 스타일:", resultString);
-  }
-});
-
 // -------------------- 로딩 오버레이 --------------------
 const loadingOverlay = document.getElementById("loading-overlay");
-
 function showLoading() {
   if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 }
-
 function hideLoading() {
   if (loadingOverlay) loadingOverlay.classList.add("hidden");
 }
-
-// -------------------- 여행 계획 생성 --------------------
-const generatePlanButton = document.getElementById("btn-generate");
-
-if (generatePlanButton) {
-  generatePlanButton.addEventListener("click", async () => {
-    showLoading();
-
-    const departure = document.getElementById("departure")?.value.trim();
-    const destination = document.getElementById("destination")?.value.trim();
-    const startDate = document.getElementById("start-date")?.value;
-    const endDate = document.getElementById("end-date")?.value;
-
-    if (!departure || !destination || !startDate || !endDate) {
-      hideLoading();
-      alert("출발지, 도착지, 여행 날짜를 모두 입력해주세요!");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-
-    const tripData = {
-      start_loc: departure,
-      end_area: destination,
-      detail_addr: document.getElementById("sub-destination")?.value || "",
-      start_date: startDate,
-      end_date: endDate,
-      budget_per_person: parseInt(
-        document.getElementById("personal-budget")?.value || "0",
-        10
-      ),
-      total_people: parseInt(
-        document.getElementById("people-count")?.value || "0",
-        10
-      ),
-      place_themes: document.getElementById("selected-styles")?.value || "",
-      accommodation_theme: "숙소",
-    };
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/plan/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(tripData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log("여행 계획 생성 성공:", data);
-        await loadLatestRouteAndRenderTabs(); // ✅ 생성 직후 최신 route 다시 렌더
-      } else {
-        alert(`계획 생성 실패: ${data.message || "오류"}`);
-      }
-    } catch (error) {
-      console.error("통신 오류:", error);
-      alert("서버 통신 중 오류가 발생했습니다.");
-    } finally {
-      hideLoading();
-    }
-  });
-}
-
-// ------------- 사이드바 탭 전환 --------------
-document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const tabName = tab.dataset.tab;
-
-    document
-      .querySelectorAll(".sidebar-tabs .tab")
-      .forEach((t) => t.classList.remove("active"));
-    document
-      .querySelectorAll(".tab-content")
-      .forEach((content) => content.classList.remove("active"));
-
-    tab.classList.add("active");
-    document.getElementById(`${tabName}-content`)?.classList.add("active");
-  });
-});
-
-// -------------------- 패널 탭 전환 --------------------
-document.querySelectorAll(".panel-tabs .tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const panelName = tab.dataset.panel;
-
-    document
-      .querySelectorAll(".panel-tabs .tab")
-      .forEach((t) => t.classList.remove("active"));
-    document
-      .querySelectorAll(".panel-tab-content")
-      .forEach((content) => content.classList.remove("active"));
-
-    tab.classList.add("active");
-    document.getElementById(`${panelName}-content`)?.classList.add("active");
-
-    const chatInput = document.querySelector(".chat-input");
-    if (chatInput)
-      chatInput.style.display = panelName === "chat" ? "flex" : "none";
-  });
-});
-
-// ------------ 일정 추가/취소/저장 -------------
-document.getElementById("add-schedule-btn")?.addEventListener("click", () => {
-  document.getElementById("schedule-form").style.display = "block";
-  document.getElementById("add-schedule-btn").style.display = "none";
-});
-
-document
-  .getElementById("cancel-schedule-btn")
-  ?.addEventListener("click", () => {
-    document.getElementById("schedule-form").style.display = "none";
-    document.getElementById("add-schedule-btn").style.display = "block";
-
-    document.getElementById("schedule-time").value = "";
-    document.getElementById("schedule-title").value = "";
-    document.getElementById("schedule-location").value = "";
-  });
-
-document.getElementById("save-schedule-btn")?.addEventListener("click", () => {
-  const time = document.getElementById("schedule-time").value;
-  const title = document.getElementById("schedule-title").value;
-  const location = document.getElementById("schedule-location").value;
-
-  if (!time || !title || !location) {
-    alert("모든 필드를 입력해주세요!");
-    return;
-  }
-
-  const scheduleList = document.getElementById("schedule-list");
-  const newSchedule = document.createElement("div");
-  newSchedule.className = "schedule-item";
-  newSchedule.innerHTML = `
-    <div class="schedule-info">
-      <div class="schedule-time">⏰ ${escapeHtml(time)}</div>
-      <div class="schedule-title">${escapeHtml(title)}</div>
-      <div class="schedule-location">📍 ${escapeHtml(location)}</div>
-    </div>
-    <div class="schedule-actions">
-      <button class="btn-icon" title="수정" onclick="alert('수정 기능')">✏️</button>
-      <button class="btn-icon" title="삭제" onclick="this.closest('.schedule-item').remove()">🗑️</button>
-    </div>
-  `;
-  scheduleList.appendChild(newSchedule);
-
-  document.getElementById("schedule-form").style.display = "none";
-  document.getElementById("add-schedule-btn").style.display = "block";
-  document.getElementById("schedule-time").value = "";
-  document.getElementById("schedule-title").value = "";
-  document.getElementById("schedule-location").value = "";
-
-  alert("일정이 추가되었습니다! ✅");
-});
-
-// -------------------- 채팅 전송 --------------------
-document.getElementById("chat-send-btn")?.addEventListener("click", () => {
-  const input = document.getElementById("chat-input");
-  const message = input.value.trim();
-
-  if (message) {
-    const chatMessages = document.getElementById("chat-messages");
-    const newMessage = document.createElement("div");
-    newMessage.className = "message";
-    newMessage.innerHTML = `
-      <div class="message-author">나</div>
-      <div class="message-text">${escapeHtml(message)}</div>
-      <div class="message-time">방금</div>
-    `;
-    chatMessages.appendChild(newMessage);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    input.value = "";
-  }
-});
-
-document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") document.getElementById("chat-send-btn")?.click();
-});
 
 // -------------------- 총 예산 표시 --------------------
 function calculateTotalBudget() {
@@ -549,17 +318,7 @@ function calculateTotalBudget() {
   if (el) el.textContent = totalBudget.toLocaleString("ko-KR") + "원";
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document
-    .getElementById("personal-budget")
-    ?.addEventListener("input", calculateTotalBudget);
-  document
-    .getElementById("people-count")
-    ?.addEventListener("input", calculateTotalBudget);
-  calculateTotalBudget();
-});
-
-// -- 최신 루트 하나 가져와서 추천 장소 표시 --
+// -------------------- 추천 장소/탭 렌더링 --------------------
 async function loadLatestRouteAndRenderTabs() {
   const token = localStorage.getItem("token");
   if (!token) return;
@@ -641,11 +400,7 @@ function renderDayTabs(route) {
   setActive(activeDay);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadLatestRouteAndRenderTabs();
-});
-
-// ----------- 카카오 지도 초기화 ----------
+// -------------------- 카카오 지도 초기화 --------------------
 function initKakaoMap() {
   const mapContainer = document.getElementById("kakao-map");
 
@@ -654,65 +409,289 @@ function initKakaoMap() {
     return;
   }
 
-  // 지도를 표시할 중심 좌표 (예: 서울 시청)
   const mapOption = {
-    center: new kakao.maps.LatLng(37.566826, 126.9786567), // 기본 중심 좌표 (위도, 경도)
-    level: 3, // 지도 확대 레벨 (작을수록 확대)
+    center: new kakao.maps.LatLng(37.566826, 126.9786567),
+    level: 3,
   };
 
-  // 지도를 생성합니다.
   const map = new kakao.maps.Map(mapContainer, mapOption);
 
-  // 지도 플레이스홀더 숨기기 (선택 사항: 지도가 로드되면)
   const mapPlaceholder = document.querySelector(".map-placeholder");
-  if (mapPlaceholder) {
-    mapPlaceholder.style.display = "none";
-  }
+  if (mapPlaceholder) mapPlaceholder.style.display = "none";
 
   console.log("✅ 카카오 지도가 성공적으로 초기화되었습니다.");
-
-  // 이후 지도를 조작할 필요가 있다면 전역 변수로 map을 저장할 수 있습니다.
   // window.currentMap = map;
 }
 
-// -------------------- 전역 콜백 함수 정의 --------------------
-// 카카오 지도 스크립트 로드가 완료되면 이 함수가 호출됩니다.
-function mapScriptLoaded() {
-  // kakao 객체가 정의된 상태에서만 initKakaoMap을 실행합니다.
-  initKakaoMap();
-
-  // 이미 DOMContentLoaded가 발생했을 수 있으므로, 초기 로직을 다시 실행합니다.
-  // (예: 총 예산 계산)
-  calculateTotalBudget();
-  loadLatestRouteAndRenderTabs();
-}
-
-// ⭐ 중요: 모듈 환경에서 전역 콜백 함수를 window 객체에 연결합니다.
-window.mapScriptLoaded = mapScriptLoaded;
-
-// -------------------- DOMContentLoaded 수정 --------------------
-// 기존에 DOMContentLoaded에 있던 initKakaoMap() 호출은 제거해야 합니다.
+// -------------------- DOMContentLoaded (✅ 딱 1번만) --------------------
 document.addEventListener("DOMContentLoaded", () => {
-  // initKakaoMap(); // ❌ 이제 여기서 호출하지 않습니다. 콜백으로 처리합니다.
+  // ✅ 도착지 선택(세부사항)
+  const mainSelection = document.getElementById("destination");
+  const subSelection = document.getElementById("sub-destination");
 
-  loadLatestRouteAndRenderTabs();
-});
+  if (mainSelection && subSelection) {
+    mainSelection.addEventListener("change", function () {
+      const selectedCategory = this.value;
 
-// -------------------- 로그아웃 --------------------
-document.getElementById("logout-button")?.addEventListener("click", () => {
-  if (confirm("로그아웃 하시겠습니까?")) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    alert("로그아웃 되었습니다!");
-    window.location.href = "login.html";
+      subSelection.innerHTML =
+        '<option value="">세부 항목을 선택하세요</option>';
+
+      const options = subOptionsData[selectedCategory];
+
+      if (options && options.length > 0) {
+        options.forEach((item) => {
+          const newOption = document.createElement("option");
+          newOption.value = item;
+          newOption.textContent = item;
+          subSelection.appendChild(newOption);
+        });
+      } else {
+        subSelection.innerHTML =
+          '<option value="">선택 가능한 항목이 없습니다</option>';
+      }
+    });
   }
-});
 
-function escapeHtml(s = "") {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+  // ✅ 여행 스타일 칩 선택
+  const chipsContainer = document.getElementById("travel-style-chips");
+  const hiddenInput = document.getElementById("selected-styles");
+
+  function updateSelectedStyles() {
+    if (!chipsContainer) return;
+
+    const selectedChips = chipsContainer.querySelectorAll(".chip.selected");
+    const selectedValues = [];
+
+    selectedChips.forEach((chip) => {
+      const value = chip.getAttribute("data-value") || chip.textContent.trim();
+      selectedValues.push(value);
+    });
+
+    const resultString = selectedValues.join(", ");
+    if (hiddenInput) hiddenInput.value = resultString;
+    console.log("현재 선택된 여행 스타일:", resultString);
+  }
+
+  if (chipsContainer) {
+    chipsContainer.addEventListener("click", (e) => {
+      const clickedChip = e.target.closest(".chip");
+      if (!clickedChip) return;
+      clickedChip.classList.toggle("selected");
+      updateSelectedStyles();
+    });
+    updateSelectedStyles();
+  }
+
+  // ✅ 총 예산 이벤트 + 초기 계산
+  document
+    .getElementById("personal-budget")
+    ?.addEventListener("input", calculateTotalBudget);
+  document
+    .getElementById("people-count")
+    ?.addEventListener("input", calculateTotalBudget);
+  calculateTotalBudget();
+
+  // ✅ 여행 계획 생성 버튼
+  const generatePlanButton = document.getElementById("btn-generate");
+  if (generatePlanButton) {
+    generatePlanButton.addEventListener("click", async () => {
+      showLoading();
+
+      const departure = document.getElementById("departure")?.value.trim();
+      const destination = document.getElementById("destination")?.value.trim();
+      const startDate = document.getElementById("start-date")?.value;
+      const endDate = document.getElementById("end-date")?.value;
+
+      if (!departure || !destination || !startDate || !endDate) {
+        hideLoading();
+        alert("출발지, 도착지, 여행 날짜를 모두 입력해주세요!");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+
+      const tripData = {
+        start_loc: departure,
+        end_area: destination,
+        detail_addr: document.getElementById("sub-destination")?.value || "",
+        start_date: startDate,
+        end_date: endDate,
+        budget_per_person: parseInt(
+          document.getElementById("personal-budget")?.value || "0",
+          10
+        ),
+        total_people: parseInt(
+          document.getElementById("people-count")?.value || "0",
+          10
+        ),
+        place_themes: document.getElementById("selected-styles")?.value || "",
+        accommodation_theme: "숙소",
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/plan/generate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(tripData),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log("여행 계획 생성 성공:", data);
+          await loadLatestRouteAndRenderTabs();
+        } else {
+          alert(`계획 생성 실패: ${data.message || "오류"}`);
+        }
+      } catch (error) {
+        console.error("통신 오류:", error);
+        alert("서버 통신 중 오류가 발생했습니다.");
+      } finally {
+        hideLoading();
+      }
+    });
+  }
+
+  // ✅ 사이드바 탭 전환
+  document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const tabName = tab.dataset.tab;
+
+      document
+        .querySelectorAll(".sidebar-tabs .tab")
+        .forEach((t) => t.classList.remove("active"));
+      document
+        .querySelectorAll(".tab-content")
+        .forEach((content) => content.classList.remove("active"));
+
+      tab.classList.add("active");
+      document.getElementById(`${tabName}-content`)?.classList.add("active");
+    });
+  });
+
+  // ✅ 패널 탭 전환
+  document.querySelectorAll(".panel-tabs .tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const panelName = tab.dataset.panel;
+
+      document
+        .querySelectorAll(".panel-tabs .tab")
+        .forEach((t) => t.classList.remove("active"));
+      document
+        .querySelectorAll(".panel-tab-content")
+        .forEach((content) => content.classList.remove("active"));
+
+      tab.classList.add("active");
+      document.getElementById(`${panelName}-content`)?.classList.add("active");
+
+      const chatInput = document.querySelector(".chat-input");
+      if (chatInput)
+        chatInput.style.display = panelName === "chat" ? "flex" : "none";
+    });
+  });
+
+  // ✅ 일정 추가/취소/저장
+  document.getElementById("add-schedule-btn")?.addEventListener("click", () => {
+    document.getElementById("schedule-form").style.display = "block";
+    document.getElementById("add-schedule-btn").style.display = "none";
+  });
+
+  document
+    .getElementById("cancel-schedule-btn")
+    ?.addEventListener("click", () => {
+      document.getElementById("schedule-form").style.display = "none";
+      document.getElementById("add-schedule-btn").style.display = "block";
+
+      document.getElementById("schedule-time").value = "";
+      document.getElementById("schedule-title").value = "";
+      document.getElementById("schedule-location").value = "";
+    });
+
+  document
+    .getElementById("save-schedule-btn")
+    ?.addEventListener("click", () => {
+      const time = document.getElementById("schedule-time").value;
+      const title = document.getElementById("schedule-title").value;
+      const location = document.getElementById("schedule-location").value;
+
+      if (!time || !title || !location) {
+        alert("모든 필드를 입력해주세요!");
+        return;
+      }
+
+      const scheduleList = document.getElementById("schedule-list");
+      const newSchedule = document.createElement("div");
+      newSchedule.className = "schedule-item";
+      newSchedule.innerHTML = `
+      <div class="schedule-info">
+        <div class="schedule-time">⏰ ${escapeHtml(time)}</div>
+        <div class="schedule-title">${escapeHtml(title)}</div>
+        <div class="schedule-location">📍 ${escapeHtml(location)}</div>
+      </div>
+      <div class="schedule-actions">
+        <button class="btn-icon" title="수정" onclick="alert('수정 기능')">✏️</button>
+        <button class="btn-icon" title="삭제" onclick="this.closest('.schedule-item').remove()">🗑️</button>
+      </div>
+    `;
+      scheduleList.appendChild(newSchedule);
+
+      document.getElementById("schedule-form").style.display = "none";
+      document.getElementById("add-schedule-btn").style.display = "block";
+      document.getElementById("schedule-time").value = "";
+      document.getElementById("schedule-title").value = "";
+      document.getElementById("schedule-location").value = "";
+
+      alert("일정이 추가되었습니다! ✅");
+    });
+
+  // ✅ 채팅 전송
+  document.getElementById("chat-send-btn")?.addEventListener("click", () => {
+    const input = document.getElementById("chat-input");
+    const message = input.value.trim();
+
+    if (message) {
+      const chatMessages = document.getElementById("chat-messages");
+      const newMessage = document.createElement("div");
+      newMessage.className = "message";
+      newMessage.innerHTML = `
+        <div class="message-author">나</div>
+        <div class="message-text">${escapeHtml(message)}</div>
+        <div class="message-time">방금</div>
+      `;
+      chatMessages.appendChild(newMessage);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      input.value = "";
+    }
+  });
+
+  document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") document.getElementById("chat-send-btn")?.click();
+  });
+
+  // ✅ 초기 루트 로드
+  loadLatestRouteAndRenderTabs();
+
+  // ✅ 카카오 지도 로드/초기화
+  if (window.kakao && window.kakao.maps) {
+    if (typeof kakao.maps.load === "function") {
+      kakao.maps.load(() => initKakaoMap());
+    } else {
+      initKakaoMap();
+    }
+  } else {
+    console.error("Kakao 지도 스크립트가 로드되지 않았습니다.");
+  }
+
+  // ✅ 로그아웃
+  document.getElementById("logout-button")?.addEventListener("click", () => {
+    if (confirm("로그아웃 하시겠습니까?")) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      alert("로그아웃 되었습니다!");
+      window.location.href = "login.html";
+    }
+  });
+});
