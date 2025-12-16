@@ -380,11 +380,18 @@ function renderDayTabs(route) {
 
   const setActive = (day) => {
     activeDay = day;
+
     tabsEl.querySelectorAll(".day-tab").forEach((btn) => {
       btn.classList.toggle("active", Number(btn.dataset.day) === day);
     });
+
     const dp = plans.find((p) => p.day === day);
+
+    // 1) 오른쪽 추천 장소 리스트 갱신
     renderPlacesList(dp);
+
+    // 2) ✅ 지도 마커도 해당 Day로 갱신
+    renderMarkersForDay(dp, day);
   };
 
   plans.forEach((dp) => {
@@ -401,6 +408,128 @@ function renderDayTabs(route) {
 }
 
 // -------------------- 카카오 지도 초기화 --------------------
+let currentMap = null;
+let currentMarkers = [];
+let isMapReady = false;
+
+// 지도 준비되기 전에 Day 선택이 먼저 일어날 수 있어서 "대기"용
+let pendingDayToRender = null;
+
+// 마커 지우기
+function clearMarkers() {
+  currentMarkers.forEach((m) => m.setMap(null));
+  currentMarkers = [];
+}
+
+// Day의 장소들을 지도에 "커스텀 오버레이 마커"로 표시
+function extractLatLng(p) {
+  // 1) 객체 형태 (너가 쓰던 구조)
+  const lat1 = p.coordinates?.lat ?? p.lat ?? p.y ?? p.latitude;
+  const lng1 = p.coordinates?.lng ?? p.lng ?? p.x ?? p.longitude;
+
+  if (lat1 != null && lng1 != null) {
+    const lat = Number(lat1);
+    const lng = Number(lng1);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+
+  // 2) 문자열 형태: "37.56, 126.97" 같은 경우
+  const s = p.coords ?? p.coord;
+  if (typeof s === "string") {
+    const parts = s.split(",").map((v) => v.trim());
+    if (parts.length >= 2) {
+      const a = Number(parts[0]);
+      const b = Number(parts[1]);
+      if (Number.isFinite(a) && Number.isFinite(b)) {
+        // 휴리스틱: -90~90이면 위도 가능성
+        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
+        if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderMarkersForDay(dayPlan, day) {
+  if (!dayPlan) return;
+
+  if (!isMapReady || !currentMap) {
+    pendingDayToRender = { dayPlan, day };
+    return;
+  }
+
+  clearMarkers();
+
+  const places = dayPlan.places || [];
+  if (places.length === 0) return;
+
+  const bounds = new kakao.maps.LatLngBounds();
+  let count = 0;
+
+  places.forEach((p, idx) => {
+    const ll = extractLatLng(p);
+    if (!ll) return; // 좌표 없으면 스킵
+
+    const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
+    bounds.extend(pos);
+    count++;
+
+    const title = escapeHtml(p.placeName || p.name || "장소");
+
+    // ✅ CSS 없어도 보이게 인라인 스타일로 표시
+    const bg = day === 1 ? "#ff5a5f" : day === 2 ? "#1e90ff" : "#22c55e";
+    const content = `
+      <div 
+        title="${title}"
+        style="
+          width:28px;height:28px;border-radius:999px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:700;color:#fff;
+          background:${bg};
+          border:2px solid #fff;
+          box-shadow:0 2px 6px rgba(0,0,0,0.25);
+          user-select:none;
+        "
+      >${idx + 1}</div>
+    `;
+
+    const overlay = new kakao.maps.CustomOverlay({
+      position: pos,
+      content,
+      yAnchor: 1,
+      xAnchor: 0.5,
+      zIndex: 10, // ✅ 위로
+      clickable: true, // ✅ 클릭 가능
+    });
+
+    overlay.setMap(currentMap);
+    currentMarkers.push(overlay);
+  });
+
+  console.log(
+    `✅ Day${day} 마커 생성 개수:`,
+    count,
+    " / places:",
+    places.length
+  );
+
+  if (count === 0) {
+    console.warn(
+      "⚠️ 좌표가 있는 place가 하나도 없어서 마커를 못 찍었어요. place 데이터 확인 필요!"
+    );
+    return;
+  }
+
+  // 1개면 setCenter가 보기 편함, 여러개면 bounds
+  if (count === 1) {
+    currentMap.setCenter(bounds.getSouthWest()); // bounds에 1개면 SW=NE=그 점
+    currentMap.setLevel(5);
+  } else {
+    currentMap.setBounds(bounds);
+  }
+}
+
 function initKakaoMap() {
   const mapContainer = document.getElementById("kakao-map");
 
@@ -414,13 +543,23 @@ function initKakaoMap() {
     level: 3,
   };
 
+  // ✅ 1) 먼저 map 생성
   const map = new kakao.maps.Map(mapContainer, mapOption);
+
+  // ✅ 2) 생성된 map을 전역에 저장
+  currentMap = map;
+  isMapReady = true;
+
+  // ✅ 3) 지도 준비 전 요청된 Day 마커 렌더가 있으면 처리
+  if (pendingDayToRender) {
+    renderMarkersForDay(pendingDayToRender.dayPlan, pendingDayToRender.day);
+    pendingDayToRender = null;
+  }
 
   const mapPlaceholder = document.querySelector(".map-placeholder");
   if (mapPlaceholder) mapPlaceholder.style.display = "none";
 
   console.log("✅ 카카오 지도가 성공적으로 초기화되었습니다.");
-  // window.currentMap = map;
 }
 
 // -------------------- DOMContentLoaded (✅ 딱 1번만) --------------------
