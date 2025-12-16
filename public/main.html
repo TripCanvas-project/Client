@@ -398,8 +398,10 @@
           <!-- 예산 탭 -->
           <div class="panel-tab-content" id="budget-content">
             <div class="budget-summary">
-              <div class="budget-amount">₩523,000</div>
-              <div class="budget-label">총 사용 금액 / ₩800,000</div>
+              <div class="budget-amount" id="remaining-budget">₩0</div>
+              <div class="budget-label" id="total-spent-label">
+                총 사용 금액
+              </div>
             </div>
 
             <div class="section-title">최근 지출 내역</div>
@@ -426,6 +428,54 @@
                 <div class="expense-category">#식비</div>
               </div>
               <div class="expense-amount">₩89,000</div>
+            </div>
+
+            <!-- 지출 추가 폼 -->
+            <div
+              style="
+                margin-top: 20px;
+                background: var(--bg);
+                padding: 16px;
+                border-radius: 12px;
+              "
+            >
+              <div class="section-title">➕ 지출 추가</div>
+
+              <div class="input-group">
+                <label>지출 항목</label>
+                <input
+                  type="text"
+                  id="expense-name"
+                  placeholder="예: 바다 앞 카페"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>카테고리</label>
+                <input
+                  type="text"
+                  id="expense-category"
+                  placeholder="예: 식비"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>금액 (원)</label>
+                <input
+                  type="number"
+                  id="expense-amount"
+                  placeholder="예: 15000"
+                  min="0"
+                />
+              </div>
+
+              <button
+                class="btn-generate"
+                id="add-expense-btn"
+                style="margin-top: 0"
+              >
+                📝 지출 추가하기
+              </button>
             </div>
           </div>
         </div>

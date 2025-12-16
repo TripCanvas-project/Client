@@ -566,7 +566,101 @@ function calculateTotalBudget() {
   const totalBudget = personalBudget * peopleCount;
   document.getElementById("total-budget").textContent =
     totalBudget.toLocaleString("ko-KR") + "원";
+
+  // 예산이 바뀌면 budget-summary도 업데이트
+  updateBudgetSummary();
 }
+
+// -------- 예산 ----------
+document.getElementById("add-expense-btn")?.addEventListener("click", () => {
+  const name = document.getElementById("expense-name").value.trim();
+  const category = document.getElementById("expense-category").value.trim();
+  const amount = document.getElementById("expense-amount").value;
+
+  if (!name || !category || !amount) {
+    alert("모든 필드를 입력해주세요!");
+    return;
+  }
+
+  // 새로운 지출 항목 생성
+  const expenseItem = document.createElement("div");
+  expenseItem.className = "expense-item";
+  expenseItem.innerHTML = `
+    <div class="expense-info">
+      <div class="expense-name">${name}</div>
+      <div class="expense-category">#${category}</div>
+    </div>
+    <div class="expense-amount">₩${parseInt(amount).toLocaleString(
+      "ko-KR"
+    )}</div>
+  `;
+
+  // 지출 추가 폼 바로 앞에 삽입
+  const expenseForm = document.querySelector(
+    "#budget-content > div:last-child"
+  );
+  expenseForm.parentNode.insertBefore(expenseItem, expenseForm);
+
+  // 입력 필드 초기화
+  document.getElementById("expense-name").value = "";
+  document.getElementById("expense-category").value = "";
+  document.getElementById("expense-amount").value = "";
+
+  // budget-summary 업데이트
+  updateBudgetSummary();
+
+  alert("지출이 추가되었습니다! ✅");
+});
+
+// 모든 expense-amount 합계 계산
+function calculateTotalExpenses() {
+  const expenseItems = document.querySelectorAll(".expense-amount");
+  let total = 0;
+
+  expenseItems.forEach((item) => {
+    // "₩123,000" 형태에서 숫자만 추출
+    const text = item.textContent.replace(/[₩,]/g, "").trim();
+    const amount = parseInt(text) || 0;
+    total += amount;
+  });
+
+  return total;
+}
+
+// budget-summary 업데이트
+function updateBudgetSummary() {
+  const totalExpenses = calculateTotalExpenses();
+
+  // total-budget 요소에서 총 예산 가져오기
+  const totalBudgetText =
+    document.getElementById("total-budget")?.textContent || "0원";
+  const totalBudget = parseInt(totalBudgetText.replace(/[^0-9]/g, "")) || 0;
+
+  // 남은 예산 계산
+  const remainingBudget = totalBudget - totalExpenses;
+
+  // UI 업데이트
+  document.getElementById(
+    "remaining-budget"
+  ).textContent = `₩${remainingBudget.toLocaleString("ko-KR")}`;
+
+  document.getElementById(
+    "total-spent-label"
+  ).textContent = `총 사용 금액 / ₩${totalExpenses.toLocaleString("ko-KR")}`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document
+    .getElementById("personal-budget")
+    .addEventListener("input", calculateTotalBudget);
+
+  document
+    .getElementById("people-count")
+    .addEventListener("input", calculateTotalBudget);
+
+  calculateTotalBudget(); // 초기 표시
+  updateBudgetSummary(); // 초기 budget-summary 표시
+});
 
 // ✅ DOM 로드 후 이벤트 연결 + 초기 계산
 document.addEventListener("DOMContentLoaded", () => {
