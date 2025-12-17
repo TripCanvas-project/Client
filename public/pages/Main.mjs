@@ -1,10 +1,11 @@
 // client/public/pages/Main.mjs
 // =====================================================
-// TripCanvas Main Page Script (Refactored)
+// TripCanvas Main Page Script (Cleaned)
 // - Day 탭별 장소 리스트 + 지도 마커 표시
 // - 리스트/마커 클릭 시 "정보 카드(이름+주소)" 표시
-// - "다음구간 보기 / directions 폴리라인" 기능 제거
-// - NN + 2-opt로 장소 순서 최적화(클라이언트에서만 UI 순서)
+// - 숙소 → 1번 / (현재→다음) 구간 폴리라인 + 거리/시간 표시
+// - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
+// - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
 
 const API_BASE_URL = "http://localhost:8080";
@@ -12,13 +13,10 @@ const API_BASE_URL = "http://localhost:8080";
 // =====================================================
 // ✅ Auth / Token helpers
 // =====================================================
-
-/** 로컬스토리지에서 token 가져오기 */
 function getToken() {
   return localStorage.getItem("token");
 }
 
-/** 로그인 안 했으면 로그인 페이지로 보냄 */
 function requireLogin() {
   const token = getToken();
   if (!token) {
@@ -34,8 +32,6 @@ requireLogin();
 // =====================================================
 // ✅ Security helpers
 // =====================================================
-
-/** HTML Escape (XSS 방지) */
 function escapeHtml(s = "") {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -48,11 +44,11 @@ function escapeHtml(s = "") {
 // =====================================================
 // ✅ Session 유지 확인 (/user/me)
 // =====================================================
-
-/** 서버에 토큰이 유효한지 확인하고, 만료면 로그아웃 처리 */
 async function checkMe() {
   try {
     const token = getToken();
+    if (!token) return;
+
     const res = await fetch(`${API_BASE_URL}/user/me`, {
       method: "POST", // 서버가 GET이면 GET으로 바꾸기
       headers: {
@@ -82,10 +78,8 @@ async function checkMe() {
 checkMe();
 
 // =====================================================
-// ✅ 지역(도착지) 옵션 데이터
-// (너가 올린 원본 그대로 유지)
+// ✅ 지역(도착지) 옵션 데이터 (원본 유지)
 // =====================================================
-
 const subOptionsData = {
   서울특별시: [
     "강남구",
@@ -334,16 +328,10 @@ const subOptionsData = {
 // =====================================================
 // ✅ Loading overlay
 // =====================================================
-
-/** 로딩 오버레이 엘리먼트 */
 const loadingOverlay = document.getElementById("loading-overlay");
-
-/** 로딩 표시 */
 function showLoading() {
   if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 }
-
-/** 로딩 숨김 */
 function hideLoading() {
   if (loadingOverlay) loadingOverlay.classList.add("hidden");
 }
@@ -351,8 +339,6 @@ function hideLoading() {
 // =====================================================
 // ✅ Budget UI
 // =====================================================
-
-/** 인당 예산 x 인원수 => 총 예산 표시 */
 function calculateTotalBudget() {
   const personalBudget =
     parseFloat(document.getElementById("personal-budget")?.value) || 0;
@@ -365,61 +351,32 @@ function calculateTotalBudget() {
 }
 
 // =====================================================
-// ✅ Route Load + Day Tabs
-// =====================================================
-
-/** 최신 route를 불러와 Day 탭 렌더링 */
-async function loadLatestRouteAndRenderTabs() {
-  const token = getToken();
-  if (!token) return;
-
-  const res = await fetch(`${API_BASE_URL}/route/latest`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) {
-    console.warn("⚠️ /route/latest 실패:", res.status);
-    return;
-  }
-
-  const data = await res.json();
-  renderDayTabs(data.route);
-}
-
-// =====================================================
 // ✅ Map State (Kakao Map)
 // =====================================================
+let currentMap = null;
+let isMapReady = false;
+let currentMarkers = [];
+let currentInfoOverlay = null;
 
-let currentMap = null; // kakao.maps.Map 인스턴스
-let isMapReady = false; // 지도 준비 여부
-let currentMarkers = []; // CustomOverlay 마커들
-let currentInfoOverlay = null; // 현재 열린 정보 카드(Overlay)
+let currentActiveDay = 1;
+let pendingDayToRender = null;
 
-let currentActiveDay = 1; // 현재 활성 Day
-let pendingDayToRender = null; // 지도 준비 전 렌더 요청 임시 저장
+const dayRouteCache = new Map(); // day -> { accLL, orderedPlaces, orderedLLs, acc }
+const daySegmentsCache = new Map(); // day -> { segments, back }
 
-const dayRouteCache = new Map(); // day별 캐시: day -> { accLL, orderedPlaces, orderedLLs, acc }
-
-let currentRoutePolyline = null; // 전역 Polyline 상태
-
-let currentPolylines = []; // ✅ 현재 표시 중인 폴리라인들
-let polylineReqSeq = 0; // ✅ 빠르게 클릭할 때 이전 요청 무시용
+let currentRoutePolyline = null;
+let currentPolylines = [];
+let polylineReqSeq = 0;
 
 // =====================================================
-// ✅ Info Overlay (큰 카드)
+// ✅ Overlay (정보 카드)
 // =====================================================
-
-/** 현재 열린 정보 카드를 닫기 */
 function clearInfoOverlay() {
   if (currentInfoOverlay) currentInfoOverlay.setMap(null);
   currentInfoOverlay = null;
 }
-
-/** 정보 카드 닫기 전역 핸들러(카드 내부 X 버튼에서 사용) */
 window.__tc_closeInfo = () => clearInfoOverlay();
 
-/** 숙소 정보 카드 HTML 생성 */
 function buildAccInfoHtml(acc) {
   const name = escapeHtml(acc?.title || "숙소");
   const addr = escapeHtml(acc?.addressFull || "주소 정보 없음");
@@ -470,7 +427,6 @@ function buildAccInfoHtml(acc) {
   </div>`;
 }
 
-/** 장소 정보 카드 HTML 생성 */
 function buildPlaceInfoHtml(place, idx, total) {
   const name = escapeHtml(place?.placeName || place?.name || "(이름 없음)");
   const addr = escapeHtml(place?.addressFull || "주소 정보 없음");
@@ -543,14 +499,12 @@ function buildPlaceInfoHtml(place, idx, total) {
   </div>`;
 }
 
-/** 숙소 정보 카드 표시 */
 function showAccInfoOverlay() {
   if (!currentMap) return;
 
   const cached = dayRouteCache.get(currentActiveDay);
   const acc = cached?.acc;
   const accLL = cached?.accLL;
-
   if (!acc || !accLL) return;
 
   clearInfoOverlay();
@@ -568,7 +522,6 @@ function showAccInfoOverlay() {
   currentInfoOverlay.setMap(currentMap);
 }
 
-/** 장소 정보 카드 표시 */
 function showPlaceInfoOverlay(posLatLng, place, idx, total) {
   clearInfoOverlay();
 
@@ -585,59 +538,167 @@ function showPlaceInfoOverlay(posLatLng, place, idx, total) {
 }
 
 // =====================================================
-// ✅ Global click handlers (리스트/마커에서 공통 사용)
+// ✅ Coordinates + Optimization (NN + 2-opt)
 // =====================================================
+function extractLatLng(p) {
+  const lat1 = p?.coordinates?.lat ?? p?.lat ?? p?.y ?? p?.latitude;
+  const lng1 = p?.coordinates?.lng ?? p?.lng ?? p?.x ?? p?.longitude;
 
-/** 리스트/마커 클릭 시 해당 idx 장소 카드 표시 */
-window.__tc_onPlaceInfo = (idx) => {
-  const cached = dayRouteCache.get(currentActiveDay);
-  if (!cached) return;
+  if (lat1 != null && lng1 != null) {
+    const lat = Number(lat1);
+    const lng = Number(lng1);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
 
-  const place = cached.orderedPlaces?.[idx];
-  if (!place) return;
-
-  const ll = extractLatLng(place);
-  if (!ll) return;
-
-  const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
-  showPlaceInfoOverlay(pos, place, idx, cached.orderedPlaces.length);
-  showPrevNextPolylines(idx);
-};
-
-/** 숙소 마커 클릭 시 숙소 카드 표시 */
-window.__tc_onAccInfo = () => {
-  showAccInfoOverlay();
-
-  const cached = dayRouteCache.get(currentActiveDay);
-  if (!cached) return;
-
-  clearPolylines();
-  drawAccToFirstPlaceRoute({ places: cached.orderedPlaces }, cached.acc);
-};
-
-// =====================================================
-// ✅ Polyline Draw
-// =====================================================
-
-/** 지도에 있는 경로 지우는 함수 */
-function clearPolylines() {
-  currentPolylines.forEach((pl) => pl.setMap(null));
-  currentPolylines = [];
+  const s = p?.coords ?? p?.coord;
+  if (typeof s === "string") {
+    const parts = s.split(",").map((v) => v.trim());
+    if (parts.length >= 2) {
+      const a = Number(parts[0]);
+      const b = Number(parts[1]);
+      if (Number.isFinite(a) && Number.isFinite(b)) {
+        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
+        if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
+      }
+    }
+  }
+  return null;
 }
 
-/** 숙소->첫장소 폴리라인 지우기 */
-function clearRoutePolyline() {
-  if (currentRoutePolyline) currentRoutePolyline.setMap(null);
-  currentRoutePolyline = null;
+function dist(a, b) {
+  const dx = a.lng - b.lng;
+  const dy = a.lat - b.lat;
+  return Math.sqrt(dx * dx + dy * dy);
 }
 
+function tourLength(originLL, orderedLLs) {
+  if (!originLL || !orderedLLs?.length) return 0;
+
+  let sum = 0;
+  sum += dist(originLL, orderedLLs[0]);
+
+  for (let i = 0; i < orderedLLs.length - 1; i++) {
+    sum += dist(orderedLLs[i], orderedLLs[i + 1]);
+  }
+
+  sum += dist(orderedLLs[orderedLLs.length - 1], originLL);
+  return sum;
+}
+
+function twoOptImprove(originLL, items, maxPasses = 6) {
+  if (!originLL || !items || items.length < 4) return items;
+
+  let best = items.slice();
+  let bestLen = tourLength(
+    originLL,
+    best.map((x) => x.ll)
+  );
+
+  const reverseSegment = (arr, i, k) => {
+    const a = arr.slice(0, i);
+    const b = arr.slice(i, k + 1).reverse();
+    const c = arr.slice(k + 1);
+    return a.concat(b, c);
+  };
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let improved = false;
+
+    for (let i = 1; i < best.length - 2; i++) {
+      for (let k = i + 1; k < best.length - 1; k++) {
+        const candidate = reverseSegment(best, i, k);
+        const candLen = tourLength(
+          originLL,
+          candidate.map((x) => x.ll)
+        );
+
+        if (candLen + 1e-12 < bestLen) {
+          best = candidate;
+          bestLen = candLen;
+          improved = true;
+        }
+      }
+    }
+
+    if (!improved) break;
+  }
+
+  return best;
+}
+
+function optimizePlacesNearest(originLL, places) {
+  const withLL = [];
+  const withoutLL = [];
+
+  for (const p of places || []) {
+    const ll = extractLatLng(p);
+    if (ll) withLL.push({ p, ll });
+    else withoutLL.push(p);
+  }
+
+  if (withLL.length <= 1) return [...withLL.map((x) => x.p), ...withoutLL];
+
+  const remaining = [...withLL];
+  const ordered = [];
+  let cur = originLL;
+
+  while (remaining.length) {
+    let bestIdx = 0;
+    let bestD = Infinity;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const d = dist(cur, remaining[i].ll);
+      if (d < bestD) {
+        bestD = d;
+        bestIdx = i;
+      }
+    }
+
+    const next = remaining.splice(bestIdx, 1)[0];
+    ordered.push(next);
+    cur = next.ll;
+  }
+
+  const improved = twoOptImprove(originLL, ordered, 6);
+  return [...improved.map((x) => x.p), ...withoutLL];
+}
+
+// =====================================================
+// ✅ Day Cache (숙소 기준 최적화 결과 저장)
+// =====================================================
+function buildDayRouteCache(dayPlan, day, effectiveAccommodation) {
+  const accLL = effectiveAccommodation
+    ? extractLatLng(effectiveAccommodation)
+    : null;
+
+  if (!accLL) {
+    dayRouteCache.delete(day);
+    return;
+  }
+
+  const places = dayPlan?.places || [];
+  const orderedPlaces = optimizePlacesNearest(accLL, places);
+  const orderedLLs = orderedPlaces.map(extractLatLng).filter(Boolean);
+
+  dayRouteCache.set(day, {
+    accLL,
+    orderedPlaces,
+    orderedLLs,
+    acc: effectiveAccommodation,
+  });
+}
+
+// =====================================================
+// ✅ Directions (points + distance/time) - 단일 진입점
+// =====================================================
 function toKakaoXY(ll) {
-  // 카카오 directions는 "x,y" = "lng,lat"
-  return `${ll.lng},${ll.lat}`;
+  return `${ll.lng},${ll.lat}`; // "lng,lat"
 }
 
-async function fetchDirectionsPoints(originLL, destLL) {
+async function fetchDirections(originLL, destLL) {
   const token = getToken();
+  if (!token) throw new Error("no token");
+
   const res = await fetch(`${API_BASE_URL}/route/directions`, {
     method: "POST",
     headers: {
@@ -645,72 +706,128 @@ async function fetchDirectionsPoints(originLL, destLL) {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
-      origin: toKakaoXY(originLL), // "lng,lat"
-      destination: toKakaoXY(destLL), // "lng,lat"
+      origin: toKakaoXY(originLL),
+      destination: toKakaoXY(destLL),
       priority: "TIME",
     }),
   });
 
   const data = await res.json();
   if (!res.ok) throw new Error(data?.message || "directions failed");
-  return data?.points || [];
+
+  return {
+    points: data?.points || [],
+    distanceM: Number(data?.distanceM || 0),
+    durationS: Number(data?.durationS || 0),
+  };
 }
 
-// ✅ 숙소 -> (Day의 첫 장소) 카카오 경로 폴리라인
-async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
+// =====================================================
+// ✅ Stats UI elements
+// =====================================================
+function ensureDayStatsEl() {
+  let el = document.getElementById("day-route-stats");
+  if (!el) {
+    const listEl = document.getElementById("ai-day-places");
+    if (!listEl) return null;
+
+    el = document.createElement("div");
+    el.id = "day-route-stats";
+    el.style.margin = "8px 0 12px";
+    el.style.fontWeight = "700";
+    listEl.parentElement?.insertBefore(el, listEl);
+  }
+  return el;
+}
+
+function ensureSegmentStatsEl() {
+  let el = document.getElementById("segment-route-stats");
+  if (!el) {
+    const base =
+      document.getElementById("day-route-stats") ||
+      document.getElementById("ai-day-places");
+    if (!base) return null;
+
+    el = document.createElement("div");
+    el.id = "segment-route-stats";
+    el.style.margin = "6px 0 12px";
+    el.style.fontWeight = "700";
+    el.style.opacity = "0.85";
+
+    base.parentElement?.insertBefore(el, base.nextSibling);
+  }
+  return el;
+}
+
+function fmtKm(m) {
+  return (m / 1000).toFixed(1) + "km";
+}
+
+function fmtMin(sec) {
+  const m = Math.round(sec / 60);
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return h > 0 ? `${h}시간 ${mm}분` : `${mm}분`;
+}
+
+// day의 "직전->현재" 구간들 계산해서 캐시에 저장 + 상단 총합 표시까지 한 번에
+async function computeDaySegments(day) {
+  const cached = dayRouteCache.get(day);
+  if (!cached) return;
+
+  const accLL = cached.accLL;
+  const places = cached.orderedPlaces || [];
+  if (!accLL || places.length === 0) return;
+
+  const dayEl = ensureDayStatsEl();
+  if (dayEl) dayEl.textContent = "총 이동거리/시간 계산 중…";
+
+  const segments = [];
+  let prev = accLL;
+
   try {
-    if (!isMapReady || !currentMap) return;
-
-    // 기존 숙소->첫장소 폴리라인 제거
-    clearRoutePolyline();
-
-    const acc = effectiveAccommodation;
-    const firstPlace = dayPlan?.places?.[0];
-    if (!acc || !firstPlace) return;
-
-    const accLL = extractLatLng(acc);
-    const firstLL = extractLatLng(firstPlace);
-    if (!accLL || !firstLL) return;
-
-    const token = getToken();
-    if (!token) return;
-
-    const res = await fetch(`${API_BASE_URL}/route/directions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        origin: toKakaoXY(accLL), // "lng,lat"
-        destination: toKakaoXY(firstLL), // "lng,lat"
-        priority: "TIME",
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      console.warn("숙소->첫장소 directions 실패:", data);
-      return;
+    for (let i = 0; i < places.length; i++) {
+      const curLL = extractLatLng(places[i]);
+      if (!curLL) {
+        segments.push({ distanceM: 0, durationS: 0 });
+        continue;
+      }
+      const r = await fetchDirections(prev, curLL);
+      segments.push({ distanceM: r.distanceM, durationS: r.durationS });
+      prev = curLL;
     }
 
-    const pts = data?.points || [];
-    if (!pts.length) return;
+    const back = await fetchDirections(prev, accLL);
+    daySegmentsCache.set(day, { segments, back });
 
-    const path = pts.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
+    const totalM =
+      segments.reduce((s, x) => s + (x.distanceM || 0), 0) +
+      (back.distanceM || 0);
+    const totalS =
+      segments.reduce((s, x) => s + (x.durationS || 0), 0) +
+      (back.durationS || 0);
 
-    currentRoutePolyline = new kakao.maps.Polyline({
-      path,
-      strokeWeight: 5,
-      strokeColor: "#7c3aed",
-      strokeOpacity: 0.9,
-      strokeStyle: "solid",
-    });
-
-    currentRoutePolyline.setMap(currentMap);
+    if (dayEl)
+      dayEl.textContent = `총 이동거리 ${fmtKm(
+        totalM
+      )} · 예상 이동시간 ${fmtMin(totalS)}`;
   } catch (e) {
-    console.error("drawAccToFirstPlaceRoute error:", e);
+    console.error("computeDaySegments failed:", e);
+    if (dayEl) dayEl.textContent = "총 이동거리/시간 계산 실패";
   }
+}
+
+// =====================================================
+// ✅ Polyline helpers
+// =====================================================
+function clearPolylines() {
+  currentPolylines.forEach((pl) => pl.setMap(null));
+  currentPolylines = [];
+}
+
+function clearRoutePolyline() {
+  if (currentRoutePolyline) currentRoutePolyline.setMap(null);
+  currentRoutePolyline = null;
 }
 
 function drawPolylineFromPoints(points, opts = {}) {
@@ -739,13 +856,44 @@ function fitMapToTwo(pointsA = [], pointsB = []) {
   currentMap.setBounds(bounds);
 }
 
-// ✅ idx 클릭 시: (전->현재) + (현재->다음) 폴리라인 표시
+async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
+  try {
+    if (!isMapReady || !currentMap) return;
+
+    clearRoutePolyline();
+
+    const acc = effectiveAccommodation;
+    const firstPlace = dayPlan?.places?.[0];
+    if (!acc || !firstPlace) return;
+
+    const accLL = extractLatLng(acc);
+    const firstLL = extractLatLng(firstPlace);
+    if (!accLL || !firstLL) return;
+
+    const r = await fetchDirections(accLL, firstLL);
+    if (!r.points?.length) return;
+
+    currentRoutePolyline = new kakao.maps.Polyline({
+      path: r.points.map((p) => new kakao.maps.LatLng(p.lat, p.lng)),
+      strokeWeight: 5,
+      strokeColor: "#7c3aed",
+      strokeOpacity: 0.9,
+      strokeStyle: "solid",
+    });
+
+    currentRoutePolyline.setMap(currentMap);
+  } catch (e) {
+    console.error("drawAccToFirstPlaceRoute error:", e);
+  }
+}
+
+// ✅ idx 클릭 시: (숙소→1) 또는 (현재→다음) 또는 (마지막→숙소) 구간 표시 + 텍스트 표시
 async function showPrevNextPolylines(idx) {
   const cached = dayRouteCache.get(currentActiveDay);
   if (!cached) return;
 
   const places = cached.orderedPlaces || [];
-  const accLL = cached.accLL; // 숙소 좌표(첫/마지막 fallback용)
+  const accLL = cached.accLL;
 
   const cur = places[idx];
   if (!cur) return;
@@ -753,50 +901,60 @@ async function showPrevNextPolylines(idx) {
   const curLL = extractLatLng(cur);
   if (!curLL) return;
 
-  const prevLL = idx === 0 ? accLL : extractLatLng(places[idx - 1]);
-  const nextLL =
-    idx === places.length - 1 ? accLL : extractLatLng(places[idx + 1]);
+  let fromLL = null;
+  let toLL = null;
+  let label = "";
 
-  // 빠르게 클릭할 때 이전 응답 무시
+  if (idx === 0) {
+    fromLL = accLL;
+    toLL = curLL;
+    label = "다음 이동(숙소 → 1번)";
+  } else if (idx === places.length - 1) {
+    fromLL = curLL;
+    toLL = accLL;
+    label = `다음 이동(${idx + 1} → 숙소)`;
+  } else {
+    fromLL = curLL;
+    toLL = extractLatLng(places[idx + 1]);
+    label = `다음 이동(${idx + 1} → ${idx + 2})`;
+  }
+
   const seq = ++polylineReqSeq;
 
-  // 기존 구간 폴리라인 제거 (숙소->첫장소는 별도 currentRoutePolyline로 유지해도 되고, 같이 지워도 됨)
   clearRoutePolyline();
   clearPolylines();
 
+  const segEl = ensureSegmentStatsEl();
+  if (segEl) segEl.textContent = "다음 구간 계산 중…";
+
   try {
-    let prevPts = [];
-    let nextPts = [];
-
-    if (prevLL) {
-      prevPts = await fetchDirectionsPoints(prevLL, curLL);
-      if (seq !== polylineReqSeq) return;
-      drawPolylineFromPoints(prevPts, {
-        strokeColor: "#6b7280",
-        strokeWeight: 7,
-      });
+    if (!fromLL || !toLL) {
+      if (segEl) segEl.textContent = "";
+      return;
     }
 
-    if (nextLL) {
-      nextPts = await fetchDirectionsPoints(curLL, nextLL);
-      if (seq !== polylineReqSeq) return;
-      drawPolylineFromPoints(nextPts, {
-        strokeColor: "#7c3aed",
-        strokeWeight: 7,
-      });
-    }
+    const r = await fetchDirections(fromLL, toLL);
+    if (seq !== polylineReqSeq) return;
 
-    fitMapToTwo(prevPts, nextPts);
+    drawPolylineFromPoints(r.points, {
+      strokeColor: "#7c3aed",
+      strokeWeight: 7,
+    });
+
+    if (segEl)
+      segEl.textContent = `${label}: ${fmtKm(r.distanceM)} · ${fmtMin(
+        r.durationS
+      )}`;
+    fitMapToTwo(r.points, []);
   } catch (e) {
-    console.warn("prev/next directions 실패:", e);
+    console.warn("next directions 실패:", e);
+    if (segEl) segEl.textContent = "다음 구간 계산 실패";
   }
 }
 
 // =====================================================
 // ✅ Markers
 // =====================================================
-
-/** 지도에 찍힌 마커(오버레이) 전부 제거 */
 function clearMarkers() {
   currentMarkers.forEach((m) => m.setMap(null));
   currentMarkers = [];
@@ -805,16 +963,11 @@ function clearMarkers() {
   clearRoutePolyline();
 }
 
-/**
- * Day의 places + 숙소 마커를 지도에 표시
- * - 마커 클릭 시: 정보 카드 표시
- */
 function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   if (!dayPlan) return;
 
   currentActiveDay = day;
 
-  // 지도 준비 전이면 대기
   if (!isMapReady || !currentMap) {
     pendingDayToRender = { dayPlan, day, effectiveAccommodation };
     return;
@@ -825,7 +978,6 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   const bounds = new kakao.maps.LatLngBounds();
   let count = 0;
 
-  // ---------- 장소 마커 ----------
   const places = dayPlan.places || [];
   places.forEach((p, idx) => {
     const ll = extractLatLng(p);
@@ -868,7 +1020,6 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
     currentMarkers.push(overlay);
   });
 
-  // ---------- 숙소 마커 ----------
   if (effectiveAccommodation) {
     const accLL = extractLatLng(effectiveAccommodation);
     if (accLL) {
@@ -917,7 +1068,6 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   );
 
   if (count === 0) return;
-
   if (count === 1) {
     currentMap.setCenter(bounds.getSouthWest());
     currentMap.setLevel(5);
@@ -927,182 +1077,37 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
 }
 
 // =====================================================
-// ✅ Coordinates + Optimization (NN + 2-opt)
+// ✅ Global click handlers (리스트/마커 공용)
 // =====================================================
+window.__tc_onPlaceInfo = (idx) => {
+  const cached = dayRouteCache.get(currentActiveDay);
+  if (!cached) return;
 
-/** place/accommodation 객체에서 lat/lng 추출 */
-function extractLatLng(p) {
-  // coordinates: { lat, lng } 형태 우선
-  const lat1 = p?.coordinates?.lat ?? p?.lat ?? p?.y ?? p?.latitude;
-  const lng1 = p?.coordinates?.lng ?? p?.lng ?? p?.x ?? p?.longitude;
+  const place = cached.orderedPlaces?.[idx];
+  if (!place) return;
 
-  if (lat1 != null && lng1 != null) {
-    const lat = Number(lat1);
-    const lng = Number(lng1);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
+  const ll = extractLatLng(place);
+  if (!ll) return;
 
-  // coords: "lat,lng" 또는 "lng,lat" 문자열
-  const s = p?.coords ?? p?.coord;
-  if (typeof s === "string") {
-    const parts = s.split(",").map((v) => v.trim());
-    if (parts.length >= 2) {
-      const a = Number(parts[0]);
-      const b = Number(parts[1]);
-      if (Number.isFinite(a) && Number.isFinite(b)) {
-        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
-        if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
-      }
-    }
-  }
-  return null;
-}
+  const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
+  showPlaceInfoOverlay(pos, place, idx, cached.orderedPlaces.length);
 
-/** (근사) 거리 계산 */
-function dist(a, b) {
-  const dx = a.lng - b.lng;
-  const dy = a.lat - b.lat;
-  return Math.sqrt(dx * dx + dy * dy);
-}
+  showPrevNextPolylines(idx);
+};
 
-/** 순회 길이: 숙소(origin) -> places... -> 숙소(origin) */
-function tourLength(originLL, orderedLLs) {
-  if (!originLL || !orderedLLs?.length) return 0;
+window.__tc_onAccInfo = () => {
+  showAccInfoOverlay();
 
-  let sum = 0;
-  sum += dist(originLL, orderedLLs[0]);
+  const cached = dayRouteCache.get(currentActiveDay);
+  if (!cached) return;
 
-  for (let i = 0; i < orderedLLs.length - 1; i++) {
-    sum += dist(orderedLLs[i], orderedLLs[i + 1]);
-  }
-
-  sum += dist(orderedLLs[orderedLLs.length - 1], originLL);
-  return sum;
-}
-
-/** 2-opt 개선(숙소 고정, places 순서만 개선) */
-function twoOptImprove(originLL, items, maxPasses = 6) {
-  // items: [{ p, ll }, ...]
-  if (!originLL || !items || items.length < 4) return items;
-
-  let best = items.slice();
-  let bestLen = tourLength(
-    originLL,
-    best.map((x) => x.ll)
-  );
-
-  const reverseSegment = (arr, i, k) => {
-    const a = arr.slice(0, i);
-    const b = arr.slice(i, k + 1).reverse();
-    const c = arr.slice(k + 1);
-    return a.concat(b, c);
-  };
-
-  for (let pass = 0; pass < maxPasses; pass++) {
-    let improved = false;
-
-    for (let i = 1; i < best.length - 2; i++) {
-      for (let k = i + 1; k < best.length - 1; k++) {
-        const candidate = reverseSegment(best, i, k);
-        const candLen = tourLength(
-          originLL,
-          candidate.map((x) => x.ll)
-        );
-
-        if (candLen + 1e-12 < bestLen) {
-          best = candidate;
-          bestLen = candLen;
-          improved = true;
-        }
-      }
-    }
-
-    if (!improved) break;
-  }
-
-  return best;
-}
-
-/** 경로 최적화: Nearest Neighbor 초기해 → 2-opt로 개선 */
-function optimizePlacesNearest(originLL, places) {
-  const withLL = [];
-  const withoutLL = [];
-
-  for (const p of places || []) {
-    const ll = extractLatLng(p);
-    if (ll) withLL.push({ p, ll });
-    else withoutLL.push(p);
-  }
-
-  if (withLL.length <= 1) return [...withLL.map((x) => x.p), ...withoutLL];
-
-  // 1) Nearest Neighbor
-  const remaining = [...withLL];
-  const ordered = [];
-  let cur = originLL;
-
-  while (remaining.length) {
-    let bestIdx = 0;
-    let bestD = Infinity;
-
-    for (let i = 0; i < remaining.length; i++) {
-      const d = dist(cur, remaining[i].ll);
-      if (d < bestD) {
-        bestD = d;
-        bestIdx = i;
-      }
-    }
-
-    const next = remaining.splice(bestIdx, 1)[0];
-    ordered.push(next);
-    cur = next.ll;
-  }
-
-  // 2) 2-opt
-  const improved = twoOptImprove(originLL, ordered, 6);
-
-  return [...improved.map((x) => x.p), ...withoutLL];
-}
-
-// =====================================================
-// ✅ Day Cache (숙소 기준 최적화 결과 저장)
-// =====================================================
-
-/**
- * day별 캐시 만들기
- * - 숙소 좌표 기준으로 places 순서 최적화
- * - UI(리스트/마커) 모두 이 순서를 씀
- */
-function buildDayRouteCache(dayPlan, day, effectiveAccommodation) {
-  const accLL = effectiveAccommodation
-    ? extractLatLng(effectiveAccommodation)
-    : null;
-
-  if (!accLL) {
-    dayRouteCache.delete(day);
-    return;
-  }
-
-  const places = dayPlan?.places || [];
-  const orderedPlaces = optimizePlacesNearest(accLL, places);
-  const orderedLLs = orderedPlaces.map(extractLatLng).filter(Boolean);
-
-  dayRouteCache.set(day, {
-    accLL,
-    orderedPlaces,
-    orderedLLs,
-    acc: effectiveAccommodation, // 숙소 정보 카드용
-  });
-}
+  clearPolylines();
+  drawAccToFirstPlaceRoute({ places: cached.orderedPlaces }, cached.acc);
+};
 
 // =====================================================
 // ✅ Accommodation fallback
 // =====================================================
-
-/**
- * 해당 day 숙소가 없으면 "이전 day의 숙소"를 가져오는 함수
- * - 서버에서 dp.accommodation에 title/addressFull이 들어온 상태 가정
- */
 function getEffectiveAccommodation(plansSorted, activeDay) {
   let lastAcc = null;
 
@@ -1112,7 +1117,6 @@ function getEffectiveAccommodation(plansSorted, activeDay) {
     const a = dp.accommodation;
     const normalized = !a ? null : typeof a === "string" ? { placeId: a } : a;
 
-    // 좌표가 있으면 유효 숙소로 판단
     const hasCoords =
       normalized?.coords ||
       normalized?.coordinates ||
@@ -1122,7 +1126,6 @@ function getEffectiveAccommodation(plansSorted, activeDay) {
     if (normalized && hasCoords) {
       lastAcc = normalized;
     } else if (normalized && (normalized.title || normalized.addressFull)) {
-      // 좌표는 없어도 일단 정보는 보존(주소/이름 카드 목적)
       lastAcc = normalized;
     }
   }
@@ -1133,12 +1136,6 @@ function getEffectiveAccommodation(plansSorted, activeDay) {
 // =====================================================
 // ✅ Places List UI
 // =====================================================
-
-/**
- * 장소 리스트 렌더링
- * - 설명 대신 addressFull(주소) 표시
- * - 클릭 시 정보 카드만 띄우기 (구간 없음)
- */
 function renderPlacesList(dayPlan) {
   const listEl = document.getElementById("ai-day-places");
   if (!listEl) return;
@@ -1159,6 +1156,20 @@ function renderPlacesList(dayPlan) {
     card.className = "place-item";
     card.style.cursor = "pointer";
 
+    const cache = daySegmentsCache.get(currentActiveDay);
+    const segOut =
+      idx === 0
+        ? cache?.segments?.[0] // ✅ 숙소 → 1번
+        : idx < places.length - 1
+        ? cache?.segments?.[idx + 1] // ✅ 현재(idx+1번) → 다음(idx+2번)
+        : cache?.back; // ✅ 마지막 → 숙소
+
+    const segText = segOut
+      ? `예상 이동 : ${fmtKm(segOut.distanceM)} · 예상 시간 : ${fmtMin(
+          segOut.durationS
+        )}`
+      : "이동 계산 전";
+
     card.innerHTML = `
       <div class="place-name">
         <span class="place-number">${idx + 1}</span>
@@ -1169,6 +1180,8 @@ function renderPlacesList(dayPlan) {
         ${addr ? escapeHtml(addr) : "주소 정보 없음"}
       </div>
 
+      <div class="place-move">${segText}</div>
+
       <div class="place-tags">
         ${
           category
@@ -1178,11 +1191,9 @@ function renderPlacesList(dayPlan) {
       </div>
     `;
 
-    // ✅ 리스트 클릭 시: 정보 카드 표시
     card.addEventListener("click", () => {
       window.__tc_onPlaceInfo?.(idx);
 
-      // UI 강조(선택)
       listEl
         .querySelectorAll(".place-item")
         .forEach((el) => el.classList.remove("active"));
@@ -1194,13 +1205,26 @@ function renderPlacesList(dayPlan) {
 }
 
 // =====================================================
-// ✅ Day Tabs UI
+// ✅ Route Load + Day Tabs
 // =====================================================
+async function loadLatestRouteAndRenderTabs() {
+  const token = getToken();
+  if (!token) return;
 
-/**
- * Day 탭 렌더링 및 클릭 핸들
- * - 탭 클릭 시: (숙소추정)->최적화캐시->리스트/마커 렌더
- */
+  const res = await fetch(`${API_BASE_URL}/route/latest`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    console.warn("⚠️ /route/latest 실패:", res.status);
+    return;
+  }
+
+  const data = await res.json();
+  renderDayTabs(data.route);
+}
+
 function renderDayTabs(route) {
   const tabsEl = document.getElementById("ai-day-tabs");
   if (!tabsEl) return;
@@ -1212,8 +1236,7 @@ function renderDayTabs(route) {
 
   let activeDay = plans.find((p) => p.day === 1)?.day ?? plans[0].day;
 
-  /** 특정 day 활성화 */
-  const setActive = (day) => {
+  const setActive = async (day) => {
     activeDay = day;
     currentActiveDay = day;
 
@@ -1224,22 +1247,24 @@ function renderDayTabs(route) {
     const dp = plans.find((p) => p.day === day);
     if (!dp) return;
 
-    // ✅ 숙소(없으면 이전 숙소)
     const effectiveAcc = getEffectiveAccommodation(plans, day);
 
-    // ✅ 캐시(최적화 순서 만들기)
     buildDayRouteCache(dp, day, effectiveAcc);
 
-    // ✅ UI는 최적화 순서로 보여주기
     const cached = dayRouteCache.get(day);
     const dpForUI = cached ? { ...dp, places: cached.orderedPlaces } : dp;
 
+    // 1) 먼저 화면 뿌리기
     renderPlacesList(dpForUI);
     renderMarkersForDay(dpForUI, day, effectiveAcc);
     drawAccToFirstPlaceRoute(dpForUI, effectiveAcc);
 
-    // ✅ 탭 바뀔 때 카드 닫기
-    clearInfoOverlay();
+    // 2) 총합 + 구간 계산(캐시 저장) → 리스트 다시 렌더
+    await computeDaySegments(day);
+    renderPlacesList(dpForUI);
+
+    // 3) 첫 구간 자동 표시
+    showPrevNextPolylines(0);
   };
 
   plans.forEach((dp) => {
@@ -1258,14 +1283,8 @@ function renderDayTabs(route) {
 // =====================================================
 // ✅ Kakao Map init
 // =====================================================
-
-/**
- * 카카오 지도 초기화
- * - 지도 준비 전 pendingDayToRender가 있으면 처리
- */
 function initKakaoMap() {
   const mapContainer = document.getElementById("kakao-map");
-
   if (!mapContainer) {
     console.error("카카오 지도를 표시할 요소를 찾을 수 없습니다: #kakao-map");
     return;
@@ -1279,7 +1298,6 @@ function initKakaoMap() {
   currentMap = new kakao.maps.Map(mapContainer, mapOption);
   isMapReady = true;
 
-  // 지도 준비 전 요청 처리
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
@@ -1298,7 +1316,6 @@ function initKakaoMap() {
 // =====================================================
 // ✅ DOMContentLoaded (Main Wiring)
 // =====================================================
-
 document.addEventListener("DOMContentLoaded", () => {
   // -----------------------------
   // 도착지 선택(세부사항)
@@ -1309,7 +1326,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (mainSelection && subSelection) {
     mainSelection.addEventListener("change", function () {
       const selectedCategory = this.value;
-
       subSelection.innerHTML =
         '<option value="">세부 항목을 선택하세요</option>';
 

@@ -46,6 +46,16 @@ body {
   border-color: var(--primary);
 }
 
+.day-route-stats {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(124, 58, 237, 0.12);
+  color: rgba(17, 24, 39, 0.85);
+  font-weight: 800;
+  font-size: 13px;
+}
+
 /* ===== 로딩 오버레이 ===== */
 .loading-overlay {
   position: fixed;
@@ -379,6 +389,13 @@ body {
 .place-item.active {
   outline: 2px solid rgba(139, 92, 246, 0.6);
   border-radius: 12px;
+}
+
+.place-move {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.75;
 }
 
 .tag {
