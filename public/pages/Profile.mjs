@@ -2,6 +2,7 @@
 async function loadMyProfile() {
     const token = localStorage.getItem("token");
     if (!token) {
+        // token 없으면 로그인 페이지로 이동시킴
         location.href = "/login.html";
         return;
     }
