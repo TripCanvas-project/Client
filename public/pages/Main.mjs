@@ -347,7 +347,6 @@ function renderPlacesList(dayPlan) {
   }
 
   places.forEach((p, idx) => {
-    // ✅ category는 서버에서 붙여준 p.category 우선, 없으면 populate 형태도 대응
     const category = p.category ?? p.placeId?.category ?? null;
 
     const card = document.createElement("div");
@@ -370,6 +369,31 @@ function renderPlacesList(dayPlan) {
     `;
     listEl.appendChild(card);
   });
+}
+
+// ✅ (추가) 해당 day가 숙소 없으면 전날 숙소를 찾아주는 함수
+function getEffectiveAccommodation(plansSorted, activeDay) {
+  let lastAcc = null;
+
+  for (const dp of plansSorted) {
+    if (dp.day > activeDay) break;
+
+    const a = dp.accommodation;
+    // accommodation이 string(placeId)일 수도 있고, 객체일 수도 있음
+    const normalized = !a ? null : typeof a === "string" ? { placeId: a } : a;
+
+    // coords가 있으면 "숙소 존재"로 판단(가장 실사용에 맞음)
+    if (
+      normalized?.coords ||
+      normalized?.coordinates ||
+      normalized?.lat ||
+      normalized?.lng
+    ) {
+      lastAcc = normalized;
+    }
+  }
+
+  return lastAcc; // 없으면 null
 }
 
 function renderDayTabs(route) {
@@ -395,8 +419,11 @@ function renderDayTabs(route) {
     // 1) 오른쪽 추천 장소 리스트 갱신
     renderPlacesList(dp);
 
-    // 2) ✅ 지도 마커도 해당 Day로 갱신
-    renderMarkersForDay(dp, day);
+    // ✅ 2) 숙소(없으면 전날 숙소) 계산해서 지도에 같이 렌더
+    const effectiveAcc = getEffectiveAccommodation(plans, day);
+
+    // 3) 지도 마커 갱신 (장소 + 숙소)
+    renderMarkersForDay(dp, day, effectiveAcc);
   };
 
   plans.forEach((dp) => {
@@ -420,17 +447,17 @@ let isMapReady = false;
 // 지도 준비되기 전에 Day 선택이 먼저 일어날 수 있어서 "대기"용
 let pendingDayToRender = null;
 
-// 마커 지우기
+// ✅ 마커 지우기 (중복 정의 제거하고 이거 하나만)
 function clearMarkers() {
   currentMarkers.forEach((m) => m.setMap(null));
   currentMarkers = [];
 }
 
-// Day의 장소들을 지도에 "커스텀 오버레이 마커"로 표시
+// Day의 장소들을 지도에 표시
 function extractLatLng(p) {
-  // 1) 객체 형태 (너가 쓰던 구조)
-  const lat1 = p.coordinates?.lat ?? p.lat ?? p.y ?? p.latitude;
-  const lng1 = p.coordinates?.lng ?? p.lng ?? p.x ?? p.longitude;
+  // 1) 객체 형태
+  const lat1 = p?.coordinates?.lat ?? p?.lat ?? p?.y ?? p?.latitude;
+  const lng1 = p?.coordinates?.lng ?? p?.lng ?? p?.x ?? p?.longitude;
 
   if (lat1 != null && lng1 != null) {
     const lat = Number(lat1);
@@ -438,15 +465,14 @@ function extractLatLng(p) {
     if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
   }
 
-  // 2) 문자열 형태: "37.56, 126.97" 같은 경우
-  const s = p.coords ?? p.coord;
+  // 2) 문자열 형태: "37.56, 126.97"
+  const s = p?.coords ?? p?.coord;
   if (typeof s === "string") {
     const parts = s.split(",").map((v) => v.trim());
     if (parts.length >= 2) {
       const a = Number(parts[0]);
       const b = Number(parts[1]);
       if (Number.isFinite(a) && Number.isFinite(b)) {
-        // 휴리스틱: -90~90이면 위도 가능성
         if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
         if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
       }
@@ -456,25 +482,25 @@ function extractLatLng(p) {
   return null;
 }
 
-function renderMarkersForDay(dayPlan, day) {
+// ✅ (수정) places 마커 + 숙소 마커까지 같이 찍기
+function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   if (!dayPlan) return;
 
   if (!isMapReady || !currentMap) {
-    pendingDayToRender = { dayPlan, day };
+    pendingDayToRender = { dayPlan, day, effectiveAccommodation };
     return;
   }
 
   clearMarkers();
 
-  const places = dayPlan.places || [];
-  if (places.length === 0) return;
-
   const bounds = new kakao.maps.LatLngBounds();
   let count = 0;
 
+  // ---------------- 장소 마커 ----------------
+  const places = dayPlan.places || [];
   places.forEach((p, idx) => {
     const ll = extractLatLng(p);
-    if (!ll) return; // 좌표 없으면 스킵
+    if (!ll) return;
 
     const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
     bounds.extend(pos);
@@ -482,7 +508,6 @@ function renderMarkersForDay(dayPlan, day) {
 
     const title = escapeHtml(p.placeName || p.name || "장소");
 
-    // ✅ CSS 없어도 보이게 인라인 스타일로 표시
     const bg = day === 1 ? "#ff5a5f" : day === 2 ? "#1e90ff" : "#22c55e";
     const content = `
       <div 
@@ -504,31 +529,70 @@ function renderMarkersForDay(dayPlan, day) {
       content,
       yAnchor: 1,
       xAnchor: 0.5,
-      zIndex: 10, // ✅ 위로
-      clickable: true, // ✅ 클릭 가능
+      zIndex: 10,
+      clickable: true,
     });
 
     overlay.setMap(currentMap);
     currentMarkers.push(overlay);
   });
 
+  // ---------------- 숙소 마커 (없으면 전날 숙소) ----------------
+  if (effectiveAccommodation) {
+    const accLL = extractLatLng(effectiveAccommodation);
+    if (accLL) {
+      const pos = new kakao.maps.LatLng(accLL.lat, accLL.lng);
+      bounds.extend(pos);
+      count++;
+
+      const accTitle = escapeHtml(
+        effectiveAccommodation.name || "숙소(전날 숙소 포함)"
+      );
+
+      const accContent = `
+        <div
+          title="${accTitle}"
+          style="
+            width:32px;height:32px;border-radius:999px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:14px;font-weight:900;color:#fff;
+            background:#8b5cf6;
+            border:2px solid #fff;
+            box-shadow:0 2px 8px rgba(0,0,0,0.28);
+            user-select:none;
+          "
+        >🏨</div>
+      `;
+
+      const accOverlay = new kakao.maps.CustomOverlay({
+        position: pos,
+        content: accContent,
+        yAnchor: 1,
+        xAnchor: 0.5,
+        zIndex: 20, // ✅ 숙소는 더 위로
+        clickable: true,
+      });
+
+      accOverlay.setMap(currentMap);
+      currentMarkers.push(accOverlay);
+    }
+  }
+
   console.log(
     `✅ Day${day} 마커 생성 개수:`,
     count,
-    " / places:",
+    "/ places:",
     places.length
   );
 
   if (count === 0) {
-    console.warn(
-      "⚠️ 좌표가 있는 place가 하나도 없어서 마커를 못 찍었어요. place 데이터 확인 필요!"
-    );
+    console.warn("⚠️ 좌표가 있는 데이터가 없어서 마커를 못 찍었어요.");
     return;
   }
 
   // 1개면 setCenter가 보기 편함, 여러개면 bounds
   if (count === 1) {
-    currentMap.setCenter(bounds.getSouthWest()); // bounds에 1개면 SW=NE=그 점
+    currentMap.setCenter(bounds.getSouthWest());
     currentMap.setLevel(5);
   } else {
     currentMap.setBounds(bounds);
@@ -548,16 +612,18 @@ function initKakaoMap() {
     level: 3,
   };
 
-  // ✅ 1) 먼저 map 생성
   const map = new kakao.maps.Map(mapContainer, mapOption);
 
-  // ✅ 2) 생성된 map을 전역에 저장
   currentMap = map;
   isMapReady = true;
 
-  // ✅ 3) 지도 준비 전 요청된 Day 마커 렌더가 있으면 처리
+  // ✅ 지도 준비 전 요청된 Day 마커 렌더가 있으면 처리
   if (pendingDayToRender) {
-    renderMarkersForDay(pendingDayToRender.dayPlan, pendingDayToRender.day);
+    renderMarkersForDay(
+      pendingDayToRender.dayPlan,
+      pendingDayToRender.day,
+      pendingDayToRender.effectiveAccommodation
+    );
     pendingDayToRender = null;
   }
 
