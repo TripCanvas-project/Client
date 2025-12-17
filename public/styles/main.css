@@ -504,10 +504,18 @@ body {
   flex: 1;
 }
 
+/* 지도 CSS */
+
 .map-container {
   flex: 1;
   position: relative;
   background: #e5e7eb;
+}
+
+.kakao-map {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
 }
 
 .map-canvas {
