@@ -376,6 +376,11 @@ body {
   flex-wrap: wrap;
 }
 
+.place-item.active {
+  outline: 2px solid rgba(139, 92, 246, 0.6);
+  border-radius: 12px;
+}
+
 .tag {
   padding: 4px 10px;
   background: white;

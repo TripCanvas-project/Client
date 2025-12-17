@@ -1,16 +1,41 @@
 // client/public/pages/Main.mjs
+// =====================================================
+// TripCanvas Main Page Script (Refactored)
+// - Day 탭별 장소 리스트 + 지도 마커 표시
+// - 리스트/마커 클릭 시 "정보 카드(이름+주소)" 표시
+// - "다음구간 보기 / directions 폴리라인" 기능 제거
+// - NN + 2-opt로 장소 순서 최적화(클라이언트에서만 UI 순서)
+// =====================================================
+
 const API_BASE_URL = "http://localhost:8080";
 
-// ✅ 토큰 가져오기 (통일: token)
-const token = localStorage.getItem("token");
+// =====================================================
+// ✅ Auth / Token helpers
+// =====================================================
 
-// ✅ 로그인 안 했으면 튕기기
-if (!token) {
-  alert("로그인이 필요합니다.");
-  window.location.href = "login.html";
+/** 로컬스토리지에서 token 가져오기 */
+function getToken() {
+  return localStorage.getItem("token");
 }
 
-// ✅ HTML Escape (XSS 방지)
+/** 로그인 안 했으면 로그인 페이지로 보냄 */
+function requireLogin() {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    window.location.href = "login.html";
+    return false;
+  }
+  return true;
+}
+
+requireLogin();
+
+// =====================================================
+// ✅ Security helpers
+// =====================================================
+
+/** HTML Escape (XSS 방지) */
 function escapeHtml(s = "") {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -20,14 +45,19 @@ function escapeHtml(s = "") {
     .replaceAll("'", "&#039;");
 }
 
-// ✅ 서버에 로그인 유지 확인 (/user/me)
+// =====================================================
+// ✅ Session 유지 확인 (/user/me)
+// =====================================================
+
+/** 서버에 토큰이 유효한지 확인하고, 만료면 로그아웃 처리 */
 async function checkMe() {
   try {
+    const token = getToken();
     const res = await fetch(`${API_BASE_URL}/user/me`, {
-      method: "POST", // 서버가 GET이면 GET으로 바꾸세요
+      method: "POST", // 서버가 GET이면 GET으로 바꾸기
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -51,7 +81,11 @@ async function checkMe() {
 }
 checkMe();
 
-// -------------------- 지역(도착지) 옵션 데이터 --------------------
+// =====================================================
+// ✅ 지역(도착지) 옵션 데이터
+// (너가 올린 원본 그대로 유지)
+// =====================================================
+
 const subOptionsData = {
   서울특별시: [
     "강남구",
@@ -297,16 +331,28 @@ const subOptionsData = {
   제주특별자치도: ["서귀포시", "제주시"],
 };
 
-// -------------------- 로딩 오버레이 --------------------
+// =====================================================
+// ✅ Loading overlay
+// =====================================================
+
+/** 로딩 오버레이 엘리먼트 */
 const loadingOverlay = document.getElementById("loading-overlay");
+
+/** 로딩 표시 */
 function showLoading() {
   if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 }
+
+/** 로딩 숨김 */
 function hideLoading() {
   if (loadingOverlay) loadingOverlay.classList.add("hidden");
 }
 
-// -------------------- 총 예산 표시 --------------------
+// =====================================================
+// ✅ Budget UI
+// =====================================================
+
+/** 인당 예산 x 인원수 => 총 예산 표시 */
 function calculateTotalBudget() {
   const personalBudget =
     parseFloat(document.getElementById("personal-budget")?.value) || 0;
@@ -318,9 +364,13 @@ function calculateTotalBudget() {
   if (el) el.textContent = totalBudget.toLocaleString("ko-KR") + "원";
 }
 
-// -------------------- 추천 장소/탭 렌더링 --------------------
+// =====================================================
+// ✅ Route Load + Day Tabs
+// =====================================================
+
+/** 최신 route를 불러와 Day 탭 렌더링 */
 async function loadLatestRouteAndRenderTabs() {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) return;
 
   const res = await fetch(`${API_BASE_URL}/route/latest`, {
@@ -328,164 +378,443 @@ async function loadLatestRouteAndRenderTabs() {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (!res.ok) return;
+  if (!res.ok) {
+    console.warn("⚠️ /route/latest 실패:", res.status);
+    return;
+  }
 
   const data = await res.json();
   renderDayTabs(data.route);
 }
 
-function renderPlacesList(dayPlan) {
-  const listEl = document.getElementById("ai-day-places");
-  if (!listEl) return;
+// =====================================================
+// ✅ Map State (Kakao Map)
+// =====================================================
 
-  listEl.innerHTML = "";
+let currentMap = null; // kakao.maps.Map 인스턴스
+let isMapReady = false; // 지도 준비 여부
+let currentMarkers = []; // CustomOverlay 마커들
+let currentInfoOverlay = null; // 현재 열린 정보 카드(Overlay)
 
-  const places = dayPlan?.places || [];
-  if (places.length === 0) {
-    listEl.innerHTML = `<div class="place-description">장소가 없습니다.</div>`;
-    return;
-  }
+let currentActiveDay = 1; // 현재 활성 Day
+let pendingDayToRender = null; // 지도 준비 전 렌더 요청 임시 저장
 
-  places.forEach((p, idx) => {
-    const category = p.category ?? p.placeId?.category ?? null;
+const dayRouteCache = new Map(); // day별 캐시: day -> { accLL, orderedPlaces, orderedLLs, acc }
 
-    const card = document.createElement("div");
-    card.className = "place-item";
-    card.innerHTML = `
-      <div class="place-name">
-        <span class="place-number">${idx + 1}</span>
-        ${escapeHtml(p.placeName || p.name || "(이름 없음)")}
+let currentRoutePolyline = null; // 전역 Polyline 상태
+
+let currentPolylines = []; // ✅ 현재 표시 중인 폴리라인들
+let polylineReqSeq = 0; // ✅ 빠르게 클릭할 때 이전 요청 무시용
+
+// =====================================================
+// ✅ Info Overlay (큰 카드)
+// =====================================================
+
+/** 현재 열린 정보 카드를 닫기 */
+function clearInfoOverlay() {
+  if (currentInfoOverlay) currentInfoOverlay.setMap(null);
+  currentInfoOverlay = null;
+}
+
+/** 정보 카드 닫기 전역 핸들러(카드 내부 X 버튼에서 사용) */
+window.__tc_closeInfo = () => clearInfoOverlay();
+
+/** 숙소 정보 카드 HTML 생성 */
+function buildAccInfoHtml(acc) {
+  const name = escapeHtml(acc?.title || "숙소");
+  const addr = escapeHtml(acc?.addressFull || "주소 정보 없음");
+
+  return `
+  <div onclick="event.cancelBubble=true;" style="
+    width:380px; max-width:420px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:18px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.22);
+    overflow:hidden;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  ">
+    <div style="
+      padding:16px 16px;
+      display:flex; gap:12px; align-items:flex-start;
+      background:linear-gradient(180deg, rgba(139,92,246,0.16), rgba(255,255,255,1));
+      border-bottom:1px solid rgba(0,0,0,0.06);
+    ">
+      <div style="
+        width:38px;height:38px;border-radius:999px;
+        display:flex;align-items:center;justify-content:center;
+        background:#8b5cf6;color:#fff;font-weight:900;
+      ">🏨</div>
+
+      <div style="min-width:0; flex:1;">
+        <div style="
+          font-size:16px;font-weight:900;line-height:1.2;
+          white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        ">${name}</div>
+        <div style="margin-top:6px; font-size:12px; color:rgba(0,0,0,0.55);">
+          숙소
+        </div>
       </div>
 
-      <div class="place-description">${escapeHtml(p.description || "")}</div>
+      <button onclick="window.__tc_closeInfo(); event.preventDefault(); event.stopPropagation();" style="
+        border:0; background:rgba(0,0,0,0.05);
+        width:32px;height:32px;border-radius:10px;
+        cursor:pointer; font-size:18px; line-height:32px;
+      ">x</button>
+    </div>
 
-      <div class="place-tags">
-        ${
-          category
-            ? `<span class="tag">#${escapeHtml(String(category))}</span>`
-            : `<span class="tag">#카테고리없음</span>`
-        }
+    <div style="padding:16px; font-size:13px; line-height:1.55; color:rgba(0,0,0,0.78);">
+      <div style="font-weight:900; margin-bottom:8px; color:rgba(0,0,0,0.55);">주소</div>
+      ${addr}
+    </div>
+  </div>`;
+}
+
+/** 장소 정보 카드 HTML 생성 */
+function buildPlaceInfoHtml(place, idx, total) {
+  const name = escapeHtml(place?.placeName || place?.name || "(이름 없음)");
+  const addr = escapeHtml(place?.addressFull || "주소 정보 없음");
+  const category = place?.category ?? place?.placeId?.category ?? null;
+
+  return `
+  <div onclick="event.cancelBubble=true;" style="
+    width:380px; max-width:420px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,0.08);
+    border-radius:18px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.22);
+    overflow:hidden;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+  ">
+    <div style="
+      padding:16px 16px;
+      display:flex; gap:12px; align-items:flex-start;
+      background:linear-gradient(180deg, rgba(139,92,246,0.14), rgba(255,255,255,1));
+      border-bottom:1px solid rgba(0,0,0,0.06);
+    ">
+      <div style="
+        width:38px;height:38px;border-radius:999px;
+        display:flex;align-items:center;justify-content:center;
+        font-weight:900;color:#fff;
+        background:#8b5cf6;
+        box-shadow:0 8px 18px rgba(139,92,246,0.35);
+        flex:0 0 auto;
+      ">${idx + 1}</div>
+
+      <div style="flex:1; min-width:0;">
+        <div style="
+          font-size:16px;font-weight:900;line-height:1.2;
+          white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        ">${name}</div>
+
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <span style="
+            font-size:11px;
+            padding:5px 10px;
+            border-radius:999px;
+            background:rgba(0,0,0,0.05);
+            color:rgba(0,0,0,0.72);
+          ">${
+            category ? `#${escapeHtml(String(category))}` : "#카테고리없음"
+          }</span>
+
+          <span style="
+            font-size:11px;
+            padding:5px 10px;
+            border-radius:999px;
+            background:rgba(139,92,246,0.12);
+            color:#6d28d9;
+            font-weight:900;
+          ">${idx + 1}/${total}</span>
+        </div>
       </div>
-    `;
-    listEl.appendChild(card);
+
+      <button onclick="window.__tc_closeInfo();" style="
+        border:0;background:rgba(0,0,0,0.05);
+        width:32px;height:32px;border-radius:10px;
+        cursor:pointer; font-size:18px; line-height:32px;
+      ">x</button>
+    </div>
+
+    <div style="padding:16px; font-size:13px; line-height:1.55; color:rgba(0,0,0,0.78);">
+      <div style="font-weight:900; margin-bottom:8px; color:rgba(0,0,0,0.55);">주소</div>
+      ${addr}
+    </div>
+  </div>`;
+}
+
+/** 숙소 정보 카드 표시 */
+function showAccInfoOverlay() {
+  if (!currentMap) return;
+
+  const cached = dayRouteCache.get(currentActiveDay);
+  const acc = cached?.acc;
+  const accLL = cached?.accLL;
+
+  if (!acc || !accLL) return;
+
+  clearInfoOverlay();
+
+  const pos = new kakao.maps.LatLng(accLL.lat, accLL.lng);
+  currentInfoOverlay = new kakao.maps.CustomOverlay({
+    position: pos,
+    content: buildAccInfoHtml(acc),
+    yAnchor: 1.2,
+    xAnchor: 0.5,
+    zIndex: 999,
+    clickable: true,
   });
+
+  currentInfoOverlay.setMap(currentMap);
 }
 
-// ✅ (추가) 해당 day가 숙소 없으면 전날 숙소를 찾아주는 함수
-function getEffectiveAccommodation(plansSorted, activeDay) {
-  let lastAcc = null;
+/** 장소 정보 카드 표시 */
+function showPlaceInfoOverlay(posLatLng, place, idx, total) {
+  clearInfoOverlay();
 
-  for (const dp of plansSorted) {
-    if (dp.day > activeDay) break;
+  currentInfoOverlay = new kakao.maps.CustomOverlay({
+    position: posLatLng,
+    content: buildPlaceInfoHtml(place, idx, total),
+    yAnchor: 1.2,
+    xAnchor: 0.5,
+    zIndex: 999,
+    clickable: true,
+  });
 
-    const a = dp.accommodation;
-    // accommodation이 string(placeId)일 수도 있고, 객체일 수도 있음
-    const normalized = !a ? null : typeof a === "string" ? { placeId: a } : a;
-
-    // coords가 있으면 "숙소 존재"로 판단(가장 실사용에 맞음)
-    if (
-      normalized?.coords ||
-      normalized?.coordinates ||
-      normalized?.lat ||
-      normalized?.lng
-    ) {
-      lastAcc = normalized;
-    }
-  }
-
-  return lastAcc; // 없으면 null
+  currentInfoOverlay.setMap(currentMap);
 }
 
-function renderDayTabs(route) {
-  const tabsEl = document.getElementById("ai-day-tabs");
-  if (!tabsEl) return;
+// =====================================================
+// ✅ Global click handlers (리스트/마커에서 공통 사용)
+// =====================================================
 
-  tabsEl.innerHTML = "";
+/** 리스트/마커 클릭 시 해당 idx 장소 카드 표시 */
+window.__tc_onPlaceInfo = (idx) => {
+  const cached = dayRouteCache.get(currentActiveDay);
+  if (!cached) return;
 
-  const plans = (route.dailyPlans || []).slice().sort((a, b) => a.day - b.day);
-  if (plans.length === 0) return;
+  const place = cached.orderedPlaces?.[idx];
+  if (!place) return;
 
-  let activeDay = plans.find((p) => p.day === 1)?.day ?? plans[0].day;
+  const ll = extractLatLng(place);
+  if (!ll) return;
 
-  const setActive = (day) => {
-    activeDay = day;
+  const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
+  showPlaceInfoOverlay(pos, place, idx, cached.orderedPlaces.length);
+  showPrevNextPolylines(idx);
+};
 
-    tabsEl.querySelectorAll(".day-tab").forEach((btn) => {
-      btn.classList.toggle("active", Number(btn.dataset.day) === day);
+/** 숙소 마커 클릭 시 숙소 카드 표시 */
+window.__tc_onAccInfo = () => {
+  showAccInfoOverlay();
+
+  const cached = dayRouteCache.get(currentActiveDay);
+  if (!cached) return;
+
+  clearPolylines();
+  drawAccToFirstPlaceRoute({ places: cached.orderedPlaces }, cached.acc);
+};
+
+// =====================================================
+// ✅ Polyline Draw
+// =====================================================
+
+/** 지도에 있는 경로 지우는 함수 */
+function clearPolylines() {
+  currentPolylines.forEach((pl) => pl.setMap(null));
+  currentPolylines = [];
+}
+
+/** 숙소->첫장소 폴리라인 지우기 */
+function clearRoutePolyline() {
+  if (currentRoutePolyline) currentRoutePolyline.setMap(null);
+  currentRoutePolyline = null;
+}
+
+function toKakaoXY(ll) {
+  // 카카오 directions는 "x,y" = "lng,lat"
+  return `${ll.lng},${ll.lat}`;
+}
+
+async function fetchDirectionsPoints(originLL, destLL) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE_URL}/route/directions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      origin: toKakaoXY(originLL), // "lng,lat"
+      destination: toKakaoXY(destLL), // "lng,lat"
+      priority: "TIME",
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || "directions failed");
+  return data?.points || [];
+}
+
+// ✅ 숙소 -> (Day의 첫 장소) 카카오 경로 폴리라인
+async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
+  try {
+    if (!isMapReady || !currentMap) return;
+
+    // 기존 숙소->첫장소 폴리라인 제거
+    clearRoutePolyline();
+
+    const acc = effectiveAccommodation;
+    const firstPlace = dayPlan?.places?.[0];
+    if (!acc || !firstPlace) return;
+
+    const accLL = extractLatLng(acc);
+    const firstLL = extractLatLng(firstPlace);
+    if (!accLL || !firstLL) return;
+
+    const token = getToken();
+    if (!token) return;
+
+    const res = await fetch(`${API_BASE_URL}/route/directions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        origin: toKakaoXY(accLL), // "lng,lat"
+        destination: toKakaoXY(firstLL), // "lng,lat"
+        priority: "TIME",
+      }),
     });
 
-    const dp = plans.find((p) => p.day === day);
+    const data = await res.json();
+    if (!res.ok) {
+      console.warn("숙소->첫장소 directions 실패:", data);
+      return;
+    }
 
-    // 1) 오른쪽 추천 장소 리스트 갱신
-    renderPlacesList(dp);
+    const pts = data?.points || [];
+    if (!pts.length) return;
 
-    // ✅ 2) 숙소(없으면 전날 숙소) 계산해서 지도에 같이 렌더
-    const effectiveAcc = getEffectiveAccommodation(plans, day);
+    const path = pts.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
 
-    // 3) 지도 마커 갱신 (장소 + 숙소)
-    renderMarkersForDay(dp, day, effectiveAcc);
-  };
+    currentRoutePolyline = new kakao.maps.Polyline({
+      path,
+      strokeWeight: 5,
+      strokeColor: "#7c3aed",
+      strokeOpacity: 0.9,
+      strokeStyle: "solid",
+    });
 
-  plans.forEach((dp) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "day-tab";
-    btn.dataset.day = dp.day;
-    btn.textContent = `Day ${dp.day}`;
-    btn.addEventListener("click", () => setActive(dp.day));
-    tabsEl.appendChild(btn);
-  });
-
-  setActive(activeDay);
+    currentRoutePolyline.setMap(currentMap);
+  } catch (e) {
+    console.error("drawAccToFirstPlaceRoute error:", e);
+  }
 }
 
-// -------------------- 카카오 지도 초기화 --------------------
-let currentMap = null;
-let currentMarkers = [];
-let isMapReady = false;
+function drawPolylineFromPoints(points, opts = {}) {
+  if (!currentMap || !points?.length) return null;
 
-// 지도 준비되기 전에 Day 선택이 먼저 일어날 수 있어서 "대기"용
-let pendingDayToRender = null;
+  const path = points.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
+  const pl = new kakao.maps.Polyline({
+    path,
+    strokeWeight: opts.strokeWeight ?? 6,
+    strokeColor: opts.strokeColor ?? "#111827",
+    strokeOpacity: opts.strokeOpacity ?? 0.9,
+    strokeStyle: opts.strokeStyle ?? "solid",
+  });
 
-// ✅ 마커 지우기 (중복 정의 제거하고 이거 하나만)
+  pl.setMap(currentMap);
+  currentPolylines.push(pl);
+  return pl;
+}
+
+function fitMapToTwo(pointsA = [], pointsB = []) {
+  const all = [...pointsA, ...pointsB];
+  if (!all.length || !currentMap) return;
+
+  const bounds = new kakao.maps.LatLngBounds();
+  all.forEach((p) => bounds.extend(new kakao.maps.LatLng(p.lat, p.lng)));
+  currentMap.setBounds(bounds);
+}
+
+// ✅ idx 클릭 시: (전->현재) + (현재->다음) 폴리라인 표시
+async function showPrevNextPolylines(idx) {
+  const cached = dayRouteCache.get(currentActiveDay);
+  if (!cached) return;
+
+  const places = cached.orderedPlaces || [];
+  const accLL = cached.accLL; // 숙소 좌표(첫/마지막 fallback용)
+
+  const cur = places[idx];
+  if (!cur) return;
+
+  const curLL = extractLatLng(cur);
+  if (!curLL) return;
+
+  const prevLL = idx === 0 ? accLL : extractLatLng(places[idx - 1]);
+  const nextLL =
+    idx === places.length - 1 ? accLL : extractLatLng(places[idx + 1]);
+
+  // 빠르게 클릭할 때 이전 응답 무시
+  const seq = ++polylineReqSeq;
+
+  // 기존 구간 폴리라인 제거 (숙소->첫장소는 별도 currentRoutePolyline로 유지해도 되고, 같이 지워도 됨)
+  clearRoutePolyline();
+  clearPolylines();
+
+  try {
+    let prevPts = [];
+    let nextPts = [];
+
+    if (prevLL) {
+      prevPts = await fetchDirectionsPoints(prevLL, curLL);
+      if (seq !== polylineReqSeq) return;
+      drawPolylineFromPoints(prevPts, {
+        strokeColor: "#6b7280",
+        strokeWeight: 7,
+      });
+    }
+
+    if (nextLL) {
+      nextPts = await fetchDirectionsPoints(curLL, nextLL);
+      if (seq !== polylineReqSeq) return;
+      drawPolylineFromPoints(nextPts, {
+        strokeColor: "#7c3aed",
+        strokeWeight: 7,
+      });
+    }
+
+    fitMapToTwo(prevPts, nextPts);
+  } catch (e) {
+    console.warn("prev/next directions 실패:", e);
+  }
+}
+
+// =====================================================
+// ✅ Markers
+// =====================================================
+
+/** 지도에 찍힌 마커(오버레이) 전부 제거 */
 function clearMarkers() {
   currentMarkers.forEach((m) => m.setMap(null));
   currentMarkers = [];
+  clearInfoOverlay();
+  clearPolylines();
+  clearRoutePolyline();
 }
 
-// Day의 장소들을 지도에 표시
-function extractLatLng(p) {
-  // 1) 객체 형태
-  const lat1 = p?.coordinates?.lat ?? p?.lat ?? p?.y ?? p?.latitude;
-  const lng1 = p?.coordinates?.lng ?? p?.lng ?? p?.x ?? p?.longitude;
-
-  if (lat1 != null && lng1 != null) {
-    const lat = Number(lat1);
-    const lng = Number(lng1);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-
-  // 2) 문자열 형태: "37.56, 126.97"
-  const s = p?.coords ?? p?.coord;
-  if (typeof s === "string") {
-    const parts = s.split(",").map((v) => v.trim());
-    if (parts.length >= 2) {
-      const a = Number(parts[0]);
-      const b = Number(parts[1]);
-      if (Number.isFinite(a) && Number.isFinite(b)) {
-        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
-        if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
-      }
-    }
-  }
-
-  return null;
-}
-
-// ✅ (수정) places 마커 + 숙소 마커까지 같이 찍기
+/**
+ * Day의 places + 숙소 마커를 지도에 표시
+ * - 마커 클릭 시: 정보 카드 표시
+ */
 function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   if (!dayPlan) return;
 
+  currentActiveDay = day;
+
+  // 지도 준비 전이면 대기
   if (!isMapReady || !currentMap) {
     pendingDayToRender = { dayPlan, day, effectiveAccommodation };
     return;
@@ -496,7 +825,7 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   const bounds = new kakao.maps.LatLngBounds();
   let count = 0;
 
-  // ---------------- 장소 마커 ----------------
+  // ---------- 장소 마커 ----------
   const places = dayPlan.places || [];
   places.forEach((p, idx) => {
     const ll = extractLatLng(p);
@@ -507,19 +836,21 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
     count++;
 
     const title = escapeHtml(p.placeName || p.name || "장소");
-
     const bg = day === 1 ? "#ff5a5f" : day === 2 ? "#1e90ff" : "#22c55e";
+
     const content = `
-      <div 
+      <div
+        onclick="window.__tc_onPlaceInfo(${idx})"
         title="${title}"
         style="
           width:28px;height:28px;border-radius:999px;
           display:flex;align-items:center;justify-content:center;
-          font-size:12px;font-weight:700;color:#fff;
+          font-size:12px;font-weight:900;color:#fff;
           background:${bg};
           border:2px solid #fff;
           box-shadow:0 2px 6px rgba(0,0,0,0.25);
           user-select:none;
+          cursor:pointer;
         "
       >${idx + 1}</div>
     `;
@@ -537,7 +868,7 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
     currentMarkers.push(overlay);
   });
 
-  // ---------------- 숙소 마커 (없으면 전날 숙소) ----------------
+  // ---------- 숙소 마커 ----------
   if (effectiveAccommodation) {
     const accLL = extractLatLng(effectiveAccommodation);
     if (accLL) {
@@ -545,21 +876,21 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
       bounds.extend(pos);
       count++;
 
-      const accTitle = escapeHtml(
-        effectiveAccommodation.name || "숙소(전날 숙소 포함)"
-      );
+      const accTitle = escapeHtml(effectiveAccommodation.title || "숙소");
 
       const accContent = `
         <div
+          onclick="window.__tc_onAccInfo()"
           title="${accTitle}"
           style="
-            width:32px;height:32px;border-radius:999px;
+            width:34px;height:34px;border-radius:999px;
             display:flex;align-items:center;justify-content:center;
             font-size:14px;font-weight:900;color:#fff;
             background:#8b5cf6;
             border:2px solid #fff;
             box-shadow:0 2px 8px rgba(0,0,0,0.28);
             user-select:none;
+            cursor:pointer;
           "
         >🏨</div>
       `;
@@ -569,7 +900,7 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
         content: accContent,
         yAnchor: 1,
         xAnchor: 0.5,
-        zIndex: 20, // ✅ 숙소는 더 위로
+        zIndex: 20,
         clickable: true,
       });
 
@@ -585,12 +916,8 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
     places.length
   );
 
-  if (count === 0) {
-    console.warn("⚠️ 좌표가 있는 데이터가 없어서 마커를 못 찍었어요.");
-    return;
-  }
+  if (count === 0) return;
 
-  // 1개면 setCenter가 보기 편함, 여러개면 bounds
   if (count === 1) {
     currentMap.setCenter(bounds.getSouthWest());
     currentMap.setLevel(5);
@@ -599,6 +926,343 @@ function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
   }
 }
 
+// =====================================================
+// ✅ Coordinates + Optimization (NN + 2-opt)
+// =====================================================
+
+/** place/accommodation 객체에서 lat/lng 추출 */
+function extractLatLng(p) {
+  // coordinates: { lat, lng } 형태 우선
+  const lat1 = p?.coordinates?.lat ?? p?.lat ?? p?.y ?? p?.latitude;
+  const lng1 = p?.coordinates?.lng ?? p?.lng ?? p?.x ?? p?.longitude;
+
+  if (lat1 != null && lng1 != null) {
+    const lat = Number(lat1);
+    const lng = Number(lng1);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+
+  // coords: "lat,lng" 또는 "lng,lat" 문자열
+  const s = p?.coords ?? p?.coord;
+  if (typeof s === "string") {
+    const parts = s.split(",").map((v) => v.trim());
+    if (parts.length >= 2) {
+      const a = Number(parts[0]);
+      const b = Number(parts[1]);
+      if (Number.isFinite(a) && Number.isFinite(b)) {
+        if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
+        if (Math.abs(b) <= 90 && Math.abs(a) <= 180) return { lat: b, lng: a };
+      }
+    }
+  }
+  return null;
+}
+
+/** (근사) 거리 계산 */
+function dist(a, b) {
+  const dx = a.lng - b.lng;
+  const dy = a.lat - b.lat;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/** 순회 길이: 숙소(origin) -> places... -> 숙소(origin) */
+function tourLength(originLL, orderedLLs) {
+  if (!originLL || !orderedLLs?.length) return 0;
+
+  let sum = 0;
+  sum += dist(originLL, orderedLLs[0]);
+
+  for (let i = 0; i < orderedLLs.length - 1; i++) {
+    sum += dist(orderedLLs[i], orderedLLs[i + 1]);
+  }
+
+  sum += dist(orderedLLs[orderedLLs.length - 1], originLL);
+  return sum;
+}
+
+/** 2-opt 개선(숙소 고정, places 순서만 개선) */
+function twoOptImprove(originLL, items, maxPasses = 6) {
+  // items: [{ p, ll }, ...]
+  if (!originLL || !items || items.length < 4) return items;
+
+  let best = items.slice();
+  let bestLen = tourLength(
+    originLL,
+    best.map((x) => x.ll)
+  );
+
+  const reverseSegment = (arr, i, k) => {
+    const a = arr.slice(0, i);
+    const b = arr.slice(i, k + 1).reverse();
+    const c = arr.slice(k + 1);
+    return a.concat(b, c);
+  };
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let improved = false;
+
+    for (let i = 1; i < best.length - 2; i++) {
+      for (let k = i + 1; k < best.length - 1; k++) {
+        const candidate = reverseSegment(best, i, k);
+        const candLen = tourLength(
+          originLL,
+          candidate.map((x) => x.ll)
+        );
+
+        if (candLen + 1e-12 < bestLen) {
+          best = candidate;
+          bestLen = candLen;
+          improved = true;
+        }
+      }
+    }
+
+    if (!improved) break;
+  }
+
+  return best;
+}
+
+/** 경로 최적화: Nearest Neighbor 초기해 → 2-opt로 개선 */
+function optimizePlacesNearest(originLL, places) {
+  const withLL = [];
+  const withoutLL = [];
+
+  for (const p of places || []) {
+    const ll = extractLatLng(p);
+    if (ll) withLL.push({ p, ll });
+    else withoutLL.push(p);
+  }
+
+  if (withLL.length <= 1) return [...withLL.map((x) => x.p), ...withoutLL];
+
+  // 1) Nearest Neighbor
+  const remaining = [...withLL];
+  const ordered = [];
+  let cur = originLL;
+
+  while (remaining.length) {
+    let bestIdx = 0;
+    let bestD = Infinity;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const d = dist(cur, remaining[i].ll);
+      if (d < bestD) {
+        bestD = d;
+        bestIdx = i;
+      }
+    }
+
+    const next = remaining.splice(bestIdx, 1)[0];
+    ordered.push(next);
+    cur = next.ll;
+  }
+
+  // 2) 2-opt
+  const improved = twoOptImprove(originLL, ordered, 6);
+
+  return [...improved.map((x) => x.p), ...withoutLL];
+}
+
+// =====================================================
+// ✅ Day Cache (숙소 기준 최적화 결과 저장)
+// =====================================================
+
+/**
+ * day별 캐시 만들기
+ * - 숙소 좌표 기준으로 places 순서 최적화
+ * - UI(리스트/마커) 모두 이 순서를 씀
+ */
+function buildDayRouteCache(dayPlan, day, effectiveAccommodation) {
+  const accLL = effectiveAccommodation
+    ? extractLatLng(effectiveAccommodation)
+    : null;
+
+  if (!accLL) {
+    dayRouteCache.delete(day);
+    return;
+  }
+
+  const places = dayPlan?.places || [];
+  const orderedPlaces = optimizePlacesNearest(accLL, places);
+  const orderedLLs = orderedPlaces.map(extractLatLng).filter(Boolean);
+
+  dayRouteCache.set(day, {
+    accLL,
+    orderedPlaces,
+    orderedLLs,
+    acc: effectiveAccommodation, // 숙소 정보 카드용
+  });
+}
+
+// =====================================================
+// ✅ Accommodation fallback
+// =====================================================
+
+/**
+ * 해당 day 숙소가 없으면 "이전 day의 숙소"를 가져오는 함수
+ * - 서버에서 dp.accommodation에 title/addressFull이 들어온 상태 가정
+ */
+function getEffectiveAccommodation(plansSorted, activeDay) {
+  let lastAcc = null;
+
+  for (const dp of plansSorted) {
+    if (dp.day > activeDay) break;
+
+    const a = dp.accommodation;
+    const normalized = !a ? null : typeof a === "string" ? { placeId: a } : a;
+
+    // 좌표가 있으면 유효 숙소로 판단
+    const hasCoords =
+      normalized?.coords ||
+      normalized?.coordinates ||
+      normalized?.lat ||
+      normalized?.lng;
+
+    if (normalized && hasCoords) {
+      lastAcc = normalized;
+    } else if (normalized && (normalized.title || normalized.addressFull)) {
+      // 좌표는 없어도 일단 정보는 보존(주소/이름 카드 목적)
+      lastAcc = normalized;
+    }
+  }
+
+  return lastAcc;
+}
+
+// =====================================================
+// ✅ Places List UI
+// =====================================================
+
+/**
+ * 장소 리스트 렌더링
+ * - 설명 대신 addressFull(주소) 표시
+ * - 클릭 시 정보 카드만 띄우기 (구간 없음)
+ */
+function renderPlacesList(dayPlan) {
+  const listEl = document.getElementById("ai-day-places");
+  if (!listEl) return;
+
+  listEl.innerHTML = "";
+
+  const places = dayPlan?.places || [];
+  if (places.length === 0) {
+    listEl.innerHTML = `<div class="place-description">장소가 없습니다.</div>`;
+    return;
+  }
+
+  places.forEach((p, idx) => {
+    const category = p.category ?? p.placeId?.category ?? null;
+    const addr = p.addressFull || p.address?.full || "";
+
+    const card = document.createElement("div");
+    card.className = "place-item";
+    card.style.cursor = "pointer";
+
+    card.innerHTML = `
+      <div class="place-name">
+        <span class="place-number">${idx + 1}</span>
+        ${escapeHtml(p.placeName || p.name || "(이름 없음)")}
+      </div>
+
+      <div class="place-description">
+        ${addr ? escapeHtml(addr) : "주소 정보 없음"}
+      </div>
+
+      <div class="place-tags">
+        ${
+          category
+            ? `<span class="tag">#${escapeHtml(String(category))}</span>`
+            : `<span class="tag">#카테고리없음</span>`
+        }
+      </div>
+    `;
+
+    // ✅ 리스트 클릭 시: 정보 카드 표시
+    card.addEventListener("click", () => {
+      window.__tc_onPlaceInfo?.(idx);
+
+      // UI 강조(선택)
+      listEl
+        .querySelectorAll(".place-item")
+        .forEach((el) => el.classList.remove("active"));
+      card.classList.add("active");
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+// =====================================================
+// ✅ Day Tabs UI
+// =====================================================
+
+/**
+ * Day 탭 렌더링 및 클릭 핸들
+ * - 탭 클릭 시: (숙소추정)->최적화캐시->리스트/마커 렌더
+ */
+function renderDayTabs(route) {
+  const tabsEl = document.getElementById("ai-day-tabs");
+  if (!tabsEl) return;
+
+  tabsEl.innerHTML = "";
+
+  const plans = (route.dailyPlans || []).slice().sort((a, b) => a.day - b.day);
+  if (plans.length === 0) return;
+
+  let activeDay = plans.find((p) => p.day === 1)?.day ?? plans[0].day;
+
+  /** 특정 day 활성화 */
+  const setActive = (day) => {
+    activeDay = day;
+    currentActiveDay = day;
+
+    tabsEl.querySelectorAll(".day-tab").forEach((btn) => {
+      btn.classList.toggle("active", Number(btn.dataset.day) === day);
+    });
+
+    const dp = plans.find((p) => p.day === day);
+    if (!dp) return;
+
+    // ✅ 숙소(없으면 이전 숙소)
+    const effectiveAcc = getEffectiveAccommodation(plans, day);
+
+    // ✅ 캐시(최적화 순서 만들기)
+    buildDayRouteCache(dp, day, effectiveAcc);
+
+    // ✅ UI는 최적화 순서로 보여주기
+    const cached = dayRouteCache.get(day);
+    const dpForUI = cached ? { ...dp, places: cached.orderedPlaces } : dp;
+
+    renderPlacesList(dpForUI);
+    renderMarkersForDay(dpForUI, day, effectiveAcc);
+    drawAccToFirstPlaceRoute(dpForUI, effectiveAcc);
+
+    // ✅ 탭 바뀔 때 카드 닫기
+    clearInfoOverlay();
+  };
+
+  plans.forEach((dp) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "day-tab";
+    btn.dataset.day = dp.day;
+    btn.textContent = `Day ${dp.day}`;
+    btn.addEventListener("click", () => setActive(dp.day));
+    tabsEl.appendChild(btn);
+  });
+
+  setActive(activeDay);
+}
+
+// =====================================================
+// ✅ Kakao Map init
+// =====================================================
+
+/**
+ * 카카오 지도 초기화
+ * - 지도 준비 전 pendingDayToRender가 있으면 처리
+ */
 function initKakaoMap() {
   const mapContainer = document.getElementById("kakao-map");
 
@@ -612,12 +1276,10 @@ function initKakaoMap() {
     level: 3,
   };
 
-  const map = new kakao.maps.Map(mapContainer, mapOption);
-
-  currentMap = map;
+  currentMap = new kakao.maps.Map(mapContainer, mapOption);
   isMapReady = true;
 
-  // ✅ 지도 준비 전 요청된 Day 마커 렌더가 있으면 처리
+  // 지도 준비 전 요청 처리
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
@@ -633,9 +1295,14 @@ function initKakaoMap() {
   console.log("✅ 카카오 지도가 성공적으로 초기화되었습니다.");
 }
 
-// -------------------- DOMContentLoaded (✅ 딱 1번만) --------------------
+// =====================================================
+// ✅ DOMContentLoaded (Main Wiring)
+// =====================================================
+
 document.addEventListener("DOMContentLoaded", () => {
-  // ✅ 도착지 선택(세부사항)
+  // -----------------------------
+  // 도착지 선택(세부사항)
+  // -----------------------------
   const mainSelection = document.getElementById("destination");
   const subSelection = document.getElementById("sub-destination");
 
@@ -647,7 +1314,6 @@ document.addEventListener("DOMContentLoaded", () => {
         '<option value="">세부 항목을 선택하세요</option>';
 
       const options = subOptionsData[selectedCategory];
-
       if (options && options.length > 0) {
         options.forEach((item) => {
           const newOption = document.createElement("option");
@@ -662,7 +1328,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ✅ 여행 스타일 칩 선택
+  // -----------------------------
+  // 여행 스타일 칩 선택
+  // -----------------------------
   const chipsContainer = document.getElementById("travel-style-chips");
   const hiddenInput = document.getElementById("selected-styles");
 
@@ -679,6 +1347,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resultString = selectedValues.join(", ");
     if (hiddenInput) hiddenInput.value = resultString;
+
     console.log("현재 선택된 여행 스타일:", resultString);
   }
 
@@ -692,7 +1361,9 @@ document.addEventListener("DOMContentLoaded", () => {
     updateSelectedStyles();
   }
 
-  // ✅ 총 예산 이벤트 + 초기 계산
+  // -----------------------------
+  // 총 예산
+  // -----------------------------
   document
     .getElementById("personal-budget")
     ?.addEventListener("input", calculateTotalBudget);
@@ -701,7 +1372,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("input", calculateTotalBudget);
   calculateTotalBudget();
 
-  // ✅ 여행 계획 생성 버튼
+  // -----------------------------
+  // 여행 계획 생성 버튼
+  // -----------------------------
   const generatePlanButton = document.getElementById("btn-generate");
   if (generatePlanButton) {
     generatePlanButton.addEventListener("click", async () => {
@@ -718,7 +1391,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
       const tripData = {
         start_loc: departure,
@@ -765,7 +1438,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ✅ 사이드바 탭 전환
+  // -----------------------------
+  // 사이드바 탭 전환
+  // -----------------------------
   document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       const tabName = tab.dataset.tab;
@@ -782,7 +1457,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ✅ 패널 탭 전환
+  // -----------------------------
+  // 패널 탭 전환
+  // -----------------------------
   document.querySelectorAll(".panel-tabs .tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       const panelName = tab.dataset.panel;
@@ -803,7 +1480,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ✅ 일정 추가/취소/저장
+  // -----------------------------
+  // 일정 추가/취소/저장
+  // -----------------------------
   document.getElementById("add-schedule-btn")?.addEventListener("click", () => {
     document.getElementById("schedule-form").style.display = "block";
     document.getElementById("add-schedule-btn").style.display = "none";
@@ -857,7 +1536,9 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("일정이 추가되었습니다! ✅");
     });
 
-  // ✅ 채팅 전송
+  // -----------------------------
+  // 채팅 전송
+  // -----------------------------
   document.getElementById("chat-send-btn")?.addEventListener("click", () => {
     const input = document.getElementById("chat-input");
     const message = input.value.trim();
@@ -881,10 +1562,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") document.getElementById("chat-send-btn")?.click();
   });
 
-  // ✅ 초기 루트 로드
+  // -----------------------------
+  // 초기 루트 로드
+  // -----------------------------
   loadLatestRouteAndRenderTabs();
 
-  // ✅ 카카오 지도 로드/초기화
+  // -----------------------------
+  // 카카오 지도 로드/초기화
+  // -----------------------------
   if (window.kakao && window.kakao.maps) {
     if (typeof kakao.maps.load === "function") {
       kakao.maps.load(() => initKakaoMap());
@@ -895,7 +1580,9 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("Kakao 지도 스크립트가 로드되지 않았습니다.");
   }
 
-  // ✅ 로그아웃
+  // -----------------------------
+  // 로그아웃
+  // -----------------------------
   document.getElementById("logout-button")?.addEventListener("click", () => {
     if (confirm("로그아웃 하시겠습니까?")) {
       localStorage.removeItem("token");
