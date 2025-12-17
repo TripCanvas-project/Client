@@ -973,7 +973,7 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
     }
 
     // ✅ 너무 타이트하면 살짝 줌아웃(선택)
-    currentMap.setLevel(currentMap.getLevel() + 1);
+    // currentMap.setLevel(currentMap.getLevel() + 1);
   } catch (e) {
     console.error("drawAccToFirstPlaceRoute error:", e);
     const segEl = ensureSegmentStatsEl();
