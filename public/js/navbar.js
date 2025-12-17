@@ -1,3 +1,5 @@
+import { loadNavbarUser } from "../pages/NavbarUserInfo.js";
+
 export function loadNavbar() {
     fetch("./navbar.html")
         .then((res) => res.text())
@@ -7,6 +9,7 @@ export function loadNavbar() {
 
             container.innerHTML = html;
             setActiveNav();
+            loadNavbarUser();
         });
 }
 
