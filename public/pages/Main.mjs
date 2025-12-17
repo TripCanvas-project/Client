@@ -740,6 +740,75 @@ function ensureDayStatsEl() {
   return el;
 }
 
+function ensureAccToFirstBtn(day) {
+  let btn = document.getElementById("btn-acc-to-first");
+  if (btn) return btn;
+
+  const base = ensureDayStatsEl();
+  if (!base) return null;
+
+  btn = document.createElement("button");
+  btn.id = "btn-acc-to-first";
+  btn.type = "button";
+  btn.textContent = "🏨 숙소 → 1번 경로 보기";
+  btn.style.margin = "10px 0 14px";
+  btn.style.padding = "10px 12px";
+  btn.style.border = "1px solid rgba(0,0,0,0.12)";
+  btn.style.borderRadius = "12px";
+  btn.style.background = "#fff";
+  btn.style.cursor = "pointer";
+  btn.style.fontWeight = "800";
+
+  btn.addEventListener("click", () => {
+    // ✅ 숙소 마커 클릭과 동일한 동작으로
+    window.__tc_onAccInfo?.();
+  });
+
+  // day-route-stats 바로 아래에 버튼 삽입
+  base.parentElement?.insertBefore(btn, base.nextSibling);
+  return btn;
+}
+
+async function showAccToFirstLeg(day) {
+  const cached = dayRouteCache.get(day);
+  if (!cached) return;
+
+  const places = cached.orderedPlaces || [];
+  const accLL = cached.accLL;
+  if (!accLL || places.length === 0) return;
+
+  const firstLL = extractLatLng(places[0]);
+  if (!firstLL) return;
+
+  const seq = ++polylineReqSeq;
+
+  clearPolylines();
+  clearRoutePolyline();
+
+  const segEl = ensureSegmentStatsEl();
+  if (segEl) segEl.textContent = "숙소 → 1번 계산 중…";
+
+  try {
+    const r = await fetchDirections(accLL, firstLL);
+    if (seq !== polylineReqSeq) return;
+
+    // ✅ 숙소->1번 폴리라인 표시
+    drawPolylineFromPoints(r.points, {
+      strokeColor: "#7c3aed",
+      strokeWeight: 7,
+    });
+
+    if (segEl)
+      segEl.textContent = `다음 이동(숙소 → 1번): ${fmtKm(
+        r.distanceM
+      )} · ${fmtMin(r.durationS)}`;
+    fitMapToTwo(r.points, []);
+  } catch (e) {
+    console.warn("acc->first 실패:", e);
+    if (segEl) segEl.textContent = "숙소 → 1번 계산 실패";
+  }
+}
+
 function ensureSegmentStatsEl() {
   let el = document.getElementById("segment-route-stats");
   if (!el) {
@@ -870,25 +939,50 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
     const firstLL = extractLatLng(firstPlace);
     if (!accLL || !firstLL) return;
 
+    // ✅ 표시 엘리먼트
+    const segEl = ensureSegmentStatsEl();
+    if (segEl) segEl.textContent = "숙소 → 1번 계산 중…";
+
     const r = await fetchDirections(accLL, firstLL);
-    if (!r.points?.length) return;
 
-    currentRoutePolyline = new kakao.maps.Polyline({
-      path: r.points.map((p) => new kakao.maps.LatLng(p.lat, p.lng)),
-      strokeWeight: 5,
-      strokeColor: "#7c3aed",
-      strokeOpacity: 0.9,
-      strokeStyle: "solid",
-    });
+    // ✅ 시간/거리 텍스트 표시
+    if (segEl) {
+      segEl.textContent = `다음 이동(숙소 → 1번): ${fmtKm(
+        r.distanceM
+      )} · ${fmtMin(r.durationS)}`;
+    }
 
-    currentRoutePolyline.setMap(currentMap);
+    const pts = Array.isArray(r?.points) ? r.points : [];
+
+    if (pts.length) {
+      currentRoutePolyline = new kakao.maps.Polyline({
+        path: pts.map((p) => new kakao.maps.LatLng(p.lat, p.lng)),
+        strokeWeight: 5,
+        strokeColor: "#7c3aed",
+        strokeOpacity: 0.9,
+        strokeStyle: "solid",
+      });
+
+      currentRoutePolyline.setMap(currentMap);
+
+      // ✅ 경로가 화면에 다 들어오게
+      fitMapToTwo(pts, []);
+    } else {
+      // ✅ points가 없으면 숙소/1번 좌표로 bounds
+      fitMapToTwo([accLL, firstLL], []);
+    }
+
+    // ✅ 너무 타이트하면 살짝 줌아웃(선택)
+    currentMap.setLevel(currentMap.getLevel() + 1);
   } catch (e) {
     console.error("drawAccToFirstPlaceRoute error:", e);
+    const segEl = ensureSegmentStatsEl();
+    if (segEl) segEl.textContent = "숙소 → 1번 계산 실패";
   }
 }
 
 // ✅ idx 클릭 시: (숙소→1) 또는 (현재→다음) 또는 (마지막→숙소) 구간 표시 + 텍스트 표시
-async function showPrevNextPolylines(idx) {
+async function showNextLegFromPlaceIdx(idx) {
   const cached = dayRouteCache.get(currentActiveDay);
   if (!cached) return;
 
@@ -901,20 +995,16 @@ async function showPrevNextPolylines(idx) {
   const curLL = extractLatLng(cur);
   if (!curLL) return;
 
-  let fromLL = null;
+  // ✅ 규칙: idx 클릭이면 (idx+1번 장소) → (idx+2번 장소)
+  // 단, 마지막이면 마지막 → 숙소
+  let fromLL = curLL;
   let toLL = null;
   let label = "";
 
-  if (idx === 0) {
-    fromLL = accLL;
-    toLL = curLL;
-    label = "다음 이동(숙소 → 1번)";
-  } else if (idx === places.length - 1) {
-    fromLL = curLL;
+  if (idx === places.length - 1) {
     toLL = accLL;
     label = `다음 이동(${idx + 1} → 숙소)`;
   } else {
-    fromLL = curLL;
     toLL = extractLatLng(places[idx + 1]);
     label = `다음 이동(${idx + 1} → ${idx + 2})`;
   }
@@ -928,7 +1018,7 @@ async function showPrevNextPolylines(idx) {
   if (segEl) segEl.textContent = "다음 구간 계산 중…";
 
   try {
-    if (!fromLL || !toLL) {
+    if (!toLL) {
       if (segEl) segEl.textContent = "";
       return;
     }
@@ -951,7 +1041,6 @@ async function showPrevNextPolylines(idx) {
     if (segEl) segEl.textContent = "다음 구간 계산 실패";
   }
 }
-
 // =====================================================
 // ✅ Markers
 // =====================================================
@@ -1092,7 +1181,7 @@ window.__tc_onPlaceInfo = (idx) => {
   const pos = new kakao.maps.LatLng(ll.lat, ll.lng);
   showPlaceInfoOverlay(pos, place, idx, cached.orderedPlaces.length);
 
-  showPrevNextPolylines(idx);
+  showNextLegFromPlaceIdx(idx);
 };
 
 window.__tc_onAccInfo = () => {
@@ -1100,6 +1189,14 @@ window.__tc_onAccInfo = () => {
 
   const cached = dayRouteCache.get(currentActiveDay);
   if (!cached) return;
+
+  // ✅ 지도 중심을 숙소로 이동
+  if (currentMap && cached.accLL) {
+    const pos = new kakao.maps.LatLng(cached.accLL.lat, cached.accLL.lng);
+    currentMap.panTo(pos); // 부드럽게 이동
+    // currentMap.setCenter(pos); // 즉시 이동을 원하면 이걸 사용
+    // currentMap.setLevel(4);    // 원하면 줌 레벨도 고정
+  }
 
   clearPolylines();
   drawAccToFirstPlaceRoute({ places: cached.orderedPlaces }, cached.acc);
@@ -1159,10 +1256,8 @@ function renderPlacesList(dayPlan) {
 
     const cache = daySegmentsCache.get(currentActiveDay);
     const segOut =
-      idx === 0
-        ? cache?.segments?.[0] // ✅ 숙소 → 1번
-        : idx < places.length - 1
-        ? cache?.segments?.[idx + 1] // ✅ 현재(idx+1번) → 다음(idx+2번)
+      idx < places.length - 1
+        ? cache?.segments?.[idx + 1] // ✅ idx=0이면 1→2, idx=1이면 2→3 ...
         : cache?.back; // ✅ 마지막 → 숙소
 
     const segText = segOut
@@ -1264,8 +1359,10 @@ function renderDayTabs(route) {
     await computeDaySegments(day);
     renderPlacesList(dpForUI);
 
-    // 3) 첫 구간 자동 표시
-    showPrevNextPolylines(0);
+    ensureAccToFirstBtn(day);
+
+    // ✅ 기본값: 예상 경로를 "숙소 → 1번"으로 설정
+    window.__tc_onAccInfo?.();
   };
 
   plans.forEach((dp) => {
