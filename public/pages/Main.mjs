@@ -347,8 +347,8 @@ function renderPlacesList(dayPlan) {
   }
 
   places.forEach((p, idx) => {
-    const x = p.coordinates?.lng ?? "-";
-    const y = p.coordinates?.lat ?? "-";
+    // ✅ category는 서버에서 붙여준 p.category 우선, 없으면 populate 형태도 대응
+    const category = p.category ?? p.placeId?.category ?? null;
 
     const card = document.createElement("div");
     card.className = "place-item";
@@ -357,10 +357,15 @@ function renderPlacesList(dayPlan) {
         <span class="place-number">${idx + 1}</span>
         ${escapeHtml(p.placeName || p.name || "(이름 없음)")}
       </div>
+
       <div class="place-description">${escapeHtml(p.description || "")}</div>
+
       <div class="place-tags">
-        <span class="tag">x(lng): ${x}</span>
-        <span class="tag">y(lat): ${y}</span>
+        ${
+          category
+            ? `<span class="tag">#${escapeHtml(String(category))}</span>`
+            : `<span class="tag">#카테고리없음</span>`
+        }
       </div>
     `;
     listEl.appendChild(card);
