@@ -22,8 +22,6 @@ async function loadMyTrips() {
         ".welcome-title"
     ).innerText = `안녕하세요, ${user.nickname}님! 👋`;
 
-    console.log(user.stats);
-
     document.querySelector(".allTrips").innerText = user.stats.totalTrips;
     document.querySelector(".completedTrips").innerText =
         user.stats.completedTrips;

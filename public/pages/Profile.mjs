@@ -36,6 +36,11 @@ async function loadMyProfile() {
             <label class="avatar-upload" for="avatarUpload">📷</label>
         `;
     }
+
+    const statElements = document.querySelectorAll(".profile-stat-value");
+    statElements[0].innerText = user.stats.totalTrips;
+    statElements[1].innerText = user.stats.totalPlaces;
+    statElements[2].innerText = user.stats.totalBucketlists;
 }
 
 loadMyProfile();
@@ -155,6 +160,35 @@ passwordForm.addEventListener("submit", async (e) => {
 
         alert("비밀번호가 변경되었습니다");
         passwordForm.reset();
+    } catch (err) {
+        console.error(err);
+        alert("서버 오류");
+    }
+});
+
+document.querySelector(".delBtn").addEventListener("click", async () => {
+    if (!confirm("정말로 회원탈퇴를 진행하시겠습니까?")) return;
+
+    try {
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        const res = await fetch(`http://localhost:8080/user/${user.id}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.message);
+            return;
+        }
+
+        alert("계정이 삭제되었습니다");
+        localStorage.removeItem("token");
+        location.href = "/login.html";
     } catch (err) {
         console.error(err);
         alert("서버 오류");
