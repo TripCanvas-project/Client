@@ -1151,6 +1151,7 @@ function renderPlacesList(dayPlan) {
   places.forEach((p, idx) => {
     const category = p.category ?? p.placeId?.category ?? null;
     const addr = p.addressFull || p.address?.full || "";
+    const description = p.description;
 
     const card = document.createElement("div");
     card.className = "place-item";
@@ -1177,7 +1178,7 @@ function renderPlacesList(dayPlan) {
       </div>
 
       <div class="place-description">
-        ${addr ? escapeHtml(addr) : "주소 정보 없음"}
+        ${addr ? escapeHtml(description) : "설명 정보 없음"}
       </div>
 
       <div class="place-move">${segText}</div>
