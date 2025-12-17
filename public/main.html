@@ -457,11 +457,16 @@
 
               <div class="input-group">
                 <label>카테고리</label>
-                <input
-                  type="text"
-                  id="expense-category"
-                  placeholder="예: 식비"
-                />
+                <select id="expense-category" required>
+                  <option value="">카테고리 선택</option>
+                  <option value="식비">🍽️ 식비</option>
+                  <option value="교통비">🚗 교통비</option>
+                  <option value="숙박비">🏨 숙박비</option>
+                  <option value="액티비티">🎢 액티비티</option>
+                  <option value="쇼핑">🛍️ 쇼핑</option>
+                  <option value="입장권">🎫 입장권</option>
+                  <option value="기타">📌 기타</option>
+                </select>
               </div>
 
               <div class="input-group">

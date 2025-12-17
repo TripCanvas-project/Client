@@ -4,6 +4,8 @@ const API_BASE_URL = "http://localhost:8080";
 // ✅ 토큰 가져오기 (통일: token)
 const token = localStorage.getItem("token");
 
+let currentTripId = localStorage.getItem("currentTripId") || null;
+
 // ✅ 로그인 안 했으면 튕기기
 if (!token) {
   alert("로그인이 필요합니다.");
@@ -362,6 +364,61 @@ function updateBudgetSummary() {
   }
 }
 
+async function loadMyExpenses() {
+  if (!currentTripId) {
+    console.log("여행 ID가 없습니다.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget/my/${currentTripId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error("지출 조회 실패");
+      return;
+    }
+
+    const data = await response.json();
+    const expenses = data.expenses || [];
+
+    // 기존 지출 항목 제거
+    const budgetContent = document.getElementById("budget-content");
+    const existingExpenses = budgetContent?.querySelectorAll(".expense-item");
+    existingExpenses?.forEach((item) => item.remove());
+
+    // 불러온 지출 내역 표시
+    const expenseForm = document.querySelector(
+      "#budget-content > div:last-child"
+    );
+
+    expenses.forEach((expense) => {
+      const expenseItem = document.createElement("div");
+      expenseItem.className = "expense-item";
+      expenseItem.innerHTML = `
+        <div class="expense-info">
+          <div class="expense-name">${escapeHtml(expense.name)}</div>
+          <div class="expense-category">#${escapeHtml(expense.category)}</div>
+        </div>
+        <div class="expense-amount">₩${expense.amount.toLocaleString(
+          "ko-KR"
+        )}</div>
+      `;
+
+      if (expenseForm) {
+        expenseForm.parentNode.insertBefore(expenseItem, expenseForm);
+      }
+    });
+
+    updateBudgetSummary();
+    console.log(`✅ ${expenses.length}개의 지출 내역을 불러왔습니다.`);
+  } catch (error) {
+    console.error("지출 불러오기 오류:", error);
+  }
+}
 // -------------------- 추천 장소/탭 렌더링 --------------------
 async function loadLatestRouteAndRenderTabs() {
   const token = localStorage.getItem("token");
@@ -674,48 +731,83 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("input", calculateTotalBudget);
   calculateTotalBudget();
 
-  // -------- 예산 지출 추가 (추가된 부분) ----------
-  document.getElementById("add-expense-btn")?.addEventListener("click", () => {
-    const name = document.getElementById("expense-name")?.value.trim();
-    const category = document.getElementById("expense-category")?.value.trim();
-    const amount = document.getElementById("expense-amount")?.value;
+  // -------- 예산 지출 추가 ----------
+  document
+    .getElementById("add-expense-btn")
+    ?.addEventListener("click", async () => {
+      // ✅ async 추가!
+      const name = document.getElementById("expense-name")?.value.trim();
+      const category = document.getElementById("expense-category")?.value; // ✅ trim 제거 (select)
+      const amount = document.getElementById("expense-amount")?.value;
 
-    if (!name || !category || !amount) {
-      alert("모든 필드를 입력해주세요!");
-      return;
-    }
+      if (!name || !category || !amount) {
+        alert("모든 필드를 입력해주세요!");
+        return;
+      }
 
-    // 새로운 지출 항목 생성
-    const expenseItem = document.createElement("div");
-    expenseItem.className = "expense-item";
-    expenseItem.innerHTML = `
-      <div class="expense-info">
-        <div class="expense-name">${name}</div>
-        <div class="expense-category">#${category}</div>
-      </div>
-      <div class="expense-amount">₩${parseInt(amount).toLocaleString(
-        "ko-KR"
-      )}</div>
-    `;
+      // ✅ tripId 체크 추가!
+      if (!currentTripId) {
+        alert("여행을 먼저 생성해주세요!");
+        return;
+      }
 
-    // 지출 추가 폼 바로 앞에 삽입
-    const expenseForm = document.querySelector(
-      "#budget-content > div:last-child"
-    );
-    if (expenseForm) {
-      expenseForm.parentNode.insertBefore(expenseItem, expenseForm);
-    }
+      // ✅ 서버로 전송 (MongoDB에 저장)
+      try {
+        const response = await fetch(`${API_BASE_URL}/budget`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tripId: currentTripId, // ✅ 여행 ID 전송
+            name,
+            category,
+            amount: Number(amount),
+          }),
+        });
 
-    // 입력 필드 초기화
-    document.getElementById("expense-name").value = "";
-    document.getElementById("expense-category").value = "";
-    document.getElementById("expense-amount").value = "";
+        const data = await response.json();
 
-    // budget-summary 업데이트
-    updateBudgetSummary();
+        if (!response.ok) {
+          alert(data.message || "지출 추가에 실패했습니다.");
+          return;
+        }
 
-    alert("지출이 추가되었습니다! ✅");
-  });
+        // ✅ 서버 저장 성공 후 UI 업데이트
+        const expenseItem = document.createElement("div");
+        expenseItem.className = "expense-item";
+        expenseItem.innerHTML = `
+        <div class="expense-info">
+          <div class="expense-name">${escapeHtml(name)}</div>
+          <div class="expense-category">#${escapeHtml(category)}</div>
+        </div>
+        <div class="expense-amount">₩${parseInt(amount).toLocaleString(
+          "ko-KR"
+        )}</div>
+      `;
+
+        const expenseForm = document.querySelector(
+          "#budget-content > div:last-child"
+        );
+        if (expenseForm) {
+          expenseForm.parentNode.insertBefore(expenseItem, expenseForm);
+        }
+
+        // 입력 필드 초기화
+        document.getElementById("expense-name").value = "";
+        document.getElementById("expense-category").value = "";
+        document.getElementById("expense-amount").value = "";
+
+        // budget-summary 업데이트
+        updateBudgetSummary();
+
+        alert("지출이 추가되었습니다! ✅");
+      } catch (error) {
+        console.error("지출 추가 오류:", error);
+        alert("서버 통신 중 오류가 발생했습니다.");
+      }
+    });
 
   // ✅ 여행 계획 생성 버튼
   const generatePlanButton = document.getElementById("btn-generate");
@@ -768,6 +860,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (response.ok) {
           console.log("여행 계획 생성 성공:", data);
+          // tripId 저장 (localStorage + 전역 변수)
+          if (data.tripId) {
+            currentTripId = data.tripId;
+            localStorage.setItem("currentTripId", data.tripId);
+            console.log("현재 여행 ID 저장:", currentTripId);
+          }
           await loadLatestRouteAndRenderTabs();
         } else {
           alert(`계획 생성 실패: ${data.message || "오류"}`);
@@ -816,6 +914,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const chatInput = document.querySelector(".chat-input");
       if (chatInput)
         chatInput.style.display = panelName === "chat" ? "flex" : "none";
+      // 예산 탭 클릭 시 지출 불러오기
+      if (panelName === "budget") {
+        loadMyExpenses();
+      }
     });
   });
 
@@ -920,4 +1022,9 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "login.html";
     }
   });
+  // 페이지 로드 시 저장된 여행이 있으면 지출 불러오기
+  if (currentTripId) {
+    console.log("저장된 여행 ID:", currentTripId);
+    loadMyExpenses();
+  }
 });
