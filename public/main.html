@@ -307,6 +307,60 @@
                 </button>
               </div>
             </div>
+
+            <!-- 일정 수정 폼 (숨김 상태) -->
+            <div
+              id="schedule-edit-form"
+              style="
+                display: none;
+                margin-top: 20px;
+                background: var(--bg);
+                padding: 16px;
+                border-radius: 12px;
+              "
+            >
+              <div class="section-title">✏️ 일정 수정</div>
+
+              <div class="input-group">
+                <label>시간</label>
+                <input type="time" id="schedule-edit-time" />
+              </div>
+
+              <div class="input-group">
+                <label>일정 제목</label>
+                <input
+                  type="text"
+                  id="schedule-edit-title"
+                  placeholder="예: 광안리 해변 산책"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>위치</label>
+                <input
+                  type="text"
+                  id="schedule-edit-location"
+                  placeholder="예: 부산 광안리"
+                />
+              </div>
+
+              <div style="display: flex; gap: 8px">
+                <button
+                  class="btn-generate"
+                  id="update-schedule-btn"
+                  style="margin-top: 0"
+                >
+                  💾 수정 저장
+                </button>
+                <button
+                  class="btn-secondary"
+                  id="cancel-edit-schedule-btn"
+                  style="width: 100%; padding: 14px; margin-top: 0"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </aside>
@@ -465,7 +519,7 @@
                   <option value="액티비티">🎢 액티비티</option>
                   <option value="쇼핑">🛍️ 쇼핑</option>
                   <option value="입장권">🎫 입장권</option>
-                  <option value="기타">📌 기타</option>
+                  <option value="기타">💡 기타</option>
                 </select>
               </div>
 

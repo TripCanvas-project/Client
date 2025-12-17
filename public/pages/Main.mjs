@@ -295,6 +295,7 @@ const subOptionsData = {
     "해남군",
     "홍성군",
     "화순군",
+  
   ],
   제주특별자치도: ["서귀포시", "제주시"],
 };
@@ -320,6 +321,121 @@ function calculateTotalBudget() {
   if (el) el.textContent = totalBudget.toLocaleString("ko-KR") + "원";
 
   updateBudgetSummary();
+}
+
+// -------- 일정 관련 함수들 ----------
+// 일정 불러오기
+async function loadMySchedules() {
+  if (!currentTripId) {
+    console.log("여행 ID가 없습니다.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/schedule/my/${currentTripId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error("일정 조회 실패");
+      return;
+    }
+
+    const data = await response.json();
+    const schedules = data.schedules || [];
+
+    // 기존 일정 항목 제거 (HTML에 하드코딩된 것들 제외하고 동적으로 추가된 것만)
+    const scheduleList = document.getElementById("schedule-list");
+    const dynamicSchedules = scheduleList?.querySelectorAll(".schedule-item[data-schedule-id]");
+    dynamicSchedules?.forEach((item) => item.remove());
+
+    // 불러온 일정 표시
+    schedules.forEach((schedule) => {
+      addScheduleToUI(schedule);
+    });
+
+    console.log(`✅ ${schedules.length}개의 일정을 불러왔습니다.`);
+  } catch (error) {
+    console.error("일정 불러오기 오류:", error);
+  }
+}
+
+// ✅ 일정 수정 관련 변수 (전역)
+let currentEditingSchedule = null;
+
+// ✅ 일정 수정 폼 열기 함수 (전역)
+function openEditScheduleForm(scheduleItem) {
+  currentEditingSchedule = scheduleItem;
+
+  // 기존 데이터 가져오기
+  const timeText = scheduleItem.querySelector(".schedule-time").textContent.replace("⏰ ", "");
+  const titleText = scheduleItem.querySelector(".schedule-title").textContent;
+  const locationText = scheduleItem.querySelector(".schedule-location").textContent.replace("📍 ", "");
+
+  // 수정 폼에 데이터 채우기
+  document.getElementById("schedule-edit-time").value = timeText;
+  document.getElementById("schedule-edit-title").value = titleText;
+  document.getElementById("schedule-edit-location").value = locationText;
+
+  // 수정 폼 표시, 다른 폼/버튼 숨기기
+  document.getElementById("schedule-edit-form").style.display = "block";
+  document.getElementById("schedule-form").style.display = "none";
+  document.getElementById("add-schedule-btn").style.display = "none";
+}
+
+// UI에 일정 추가하는 함수
+function addScheduleToUI(schedule) {
+  const scheduleList = document.getElementById("schedule-list");
+  if (!scheduleList) return;
+
+  const scheduleItem = document.createElement("div");
+  scheduleItem.className = "schedule-item";
+  scheduleItem.dataset.scheduleId = schedule._id; // MongoDB ID 저장
+
+  scheduleItem.innerHTML = `
+    <div class="schedule-info">
+      <div class="schedule-time">⏰ ${escapeHtml(schedule.time)}</div>
+      <div class="schedule-title">${escapeHtml(schedule.title)}</div>
+      <div class="schedule-location">📍 ${escapeHtml(schedule.location)}</div>
+    </div>
+    <div class="schedule-actions">
+      <button class="btn-icon edit-schedule-btn" title="수정">✏️</button>
+      <button class="btn-icon delete-schedule-btn" title="삭제">🗑️</button>
+    </div>
+  `;
+
+  // 수정 버튼 이벤트
+  const editBtn = scheduleItem.querySelector(".edit-schedule-btn");
+  editBtn.addEventListener("click", () => openEditScheduleForm(scheduleItem));
+
+  // 삭제 버튼 이벤트
+  const deleteBtn = scheduleItem.querySelector(".delete-schedule-btn");
+  deleteBtn.addEventListener("click", async () => {
+    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/schedule/${schedule._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        scheduleItem.remove();
+        alert("일정이 삭제되었습니다! ✅");
+      } else {
+        alert("일정 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("일정 삭제 오류:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
+    }
+  });
+
+  scheduleList.appendChild(scheduleItem);
 }
 
 // -------- 예산 관련 함수들 (추가된 부분) ----------
@@ -358,7 +474,7 @@ function updateBudgetSummary() {
   }
 
   if (totalSpentEl) {
-    totalSpentEl.textContent = `총 사용 금액 / ₩${totalExpenses.toLocaleString(
+    totalSpentEl.textContent = `총 사용 금액 : ₩${totalExpenses.toLocaleString(
       "ko-KR"
     )}`;
   }
@@ -893,6 +1009,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tab.classList.add("active");
       document.getElementById(`${tabName}-content`)?.classList.add("active");
+
+      // 일정 탭 클릭 시 일정 불러오기
+      if (tabName === "schedule") {
+        loadMySchedules();
+      }
     });
   });
 
@@ -921,6 +1042,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ✅ 기존 일정 항목들의 수정 버튼에 이벤트 추가 (페이지 로드 시)
+  document.querySelectorAll(".schedule-item").forEach((scheduleItem) => {
+    const editBtn = scheduleItem.querySelector(".btn-icon[title='수정']");
+    if (editBtn) {
+      editBtn.classList.add("edit-schedule-btn");
+      editBtn.addEventListener("click", () => openEditScheduleForm(scheduleItem));
+    }
+  });
+
   // ✅ 일정 추가/취소/저장
   document.getElementById("add-schedule-btn")?.addEventListener("click", () => {
     document.getElementById("schedule-form").style.display = "block";
@@ -940,7 +1070,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("save-schedule-btn")
-    ?.addEventListener("click", () => {
+    ?.addEventListener("click", async () => {
       const time = document.getElementById("schedule-time").value;
       const title = document.getElementById("schedule-title").value;
       const location = document.getElementById("schedule-location").value;
@@ -950,29 +1080,139 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const scheduleList = document.getElementById("schedule-list");
-      const newSchedule = document.createElement("div");
-      newSchedule.className = "schedule-item";
-      newSchedule.innerHTML = `
-      <div class="schedule-info">
-        <div class="schedule-time">⏰ ${escapeHtml(time)}</div>
-        <div class="schedule-title">${escapeHtml(title)}</div>
-        <div class="schedule-location">📍 ${escapeHtml(location)}</div>
-      </div>
-      <div class="schedule-actions">
-        <button class="btn-icon" title="수정" onclick="alert('수정 기능')">✏️</button>
-        <button class="btn-icon" title="삭제" onclick="this.closest('.schedule-item').remove()">🗑️</button>
-      </div>
-    `;
-      scheduleList.appendChild(newSchedule);
+      // ✅ tripId 체크
+      if (!currentTripId) {
+        alert("여행을 먼저 생성해주세요!");
+        return;
+      }
 
-      document.getElementById("schedule-form").style.display = "none";
+      // ✅ 서버로 전송 (MongoDB에 저장)
+      try {
+        const response = await fetch(`${API_BASE_URL}/schedule`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tripId: currentTripId,
+            time,
+            title,
+            location,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || "일정 추가에 실패했습니다.");
+          return;
+        }
+
+        // ✅ 서버 저장 성공 후 UI 업데이트
+        addScheduleToUI(data.schedule);
+
+        // 입력 필드 초기화
+        document.getElementById("schedule-form").style.display = "none";
+        document.getElementById("add-schedule-btn").style.display = "block";
+        document.getElementById("schedule-time").value = "";
+        document.getElementById("schedule-title").value = "";
+        document.getElementById("schedule-location").value = "";
+
+        alert("일정이 추가되었습니다! ✅");
+      } catch (error) {
+        console.error("일정 추가 오류:", error);
+        alert("서버 통신 중 오류가 발생했습니다.");
+      }
+    });
+
+  // ✅ 일정 수정 저장
+  document
+    .getElementById("update-schedule-btn")
+    ?.addEventListener("click", async () => {
+      if (!currentEditingSchedule) return;
+
+      const time = document.getElementById("schedule-edit-time").value;
+      const title = document.getElementById("schedule-edit-title").value;
+      const location = document.getElementById("schedule-edit-location").value;
+
+      if (!time || !title || !location) {
+        alert("모든 필드를 입력해주세요!");
+        return;
+      }
+
+      // ✅ MongoDB ID 가져오기
+      const scheduleId = currentEditingSchedule.dataset.scheduleId;
+
+      if (!scheduleId) {
+        // HTML에 하드코딩된 일정은 로컬에서만 수정
+        currentEditingSchedule.querySelector(".schedule-time").textContent = `⏰ ${time}`;
+        currentEditingSchedule.querySelector(".schedule-title").textContent = title;
+        currentEditingSchedule.querySelector(".schedule-location").textContent = `📍 ${location}`;
+
+        document.getElementById("schedule-edit-form").style.display = "none";
+        document.getElementById("add-schedule-btn").style.display = "block";
+        document.getElementById("schedule-edit-time").value = "";
+        document.getElementById("schedule-edit-title").value = "";
+        document.getElementById("schedule-edit-location").value = "";
+        currentEditingSchedule = null;
+
+        alert("일정이 수정되었습니다! ✅");
+        return;
+      }
+
+      // ✅ 서버로 수정 요청
+      try {
+        const response = await fetch(`${API_BASE_URL}/schedule/${scheduleId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            time,
+            title,
+            location,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || "일정 수정에 실패했습니다.");
+          return;
+        }
+
+        // ✅ UI 업데이트
+        currentEditingSchedule.querySelector(".schedule-time").textContent = `⏰ ${time}`;
+        currentEditingSchedule.querySelector(".schedule-title").textContent = title;
+        currentEditingSchedule.querySelector(".schedule-location").textContent = `📍 ${location}`;
+
+        // 폼 숨기기 및 초기화
+        document.getElementById("schedule-edit-form").style.display = "none";
+        document.getElementById("add-schedule-btn").style.display = "block";
+        document.getElementById("schedule-edit-time").value = "";
+        document.getElementById("schedule-edit-title").value = "";
+        document.getElementById("schedule-edit-location").value = "";
+        currentEditingSchedule = null;
+
+        alert("일정이 수정되었습니다! ✅");
+      } catch (error) {
+        console.error("일정 수정 오류:", error);
+        alert("서버 통신 중 오류가 발생했습니다.");
+      }
+    });
+
+  // ✅ 일정 수정 취소
+  document
+    .getElementById("cancel-edit-schedule-btn")
+    ?.addEventListener("click", () => {
+      document.getElementById("schedule-edit-form").style.display = "none";
       document.getElementById("add-schedule-btn").style.display = "block";
-      document.getElementById("schedule-time").value = "";
-      document.getElementById("schedule-title").value = "";
-      document.getElementById("schedule-location").value = "";
-
-      alert("일정이 추가되었습니다! ✅");
+      document.getElementById("schedule-edit-time").value = "";
+      document.getElementById("schedule-edit-title").value = "";
+      document.getElementById("schedule-edit-location").value = "";
+      currentEditingSchedule = null;
     });
 
   // ✅ 채팅 전송
@@ -1022,9 +1262,10 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "login.html";
     }
   });
-  // 페이지 로드 시 저장된 여행이 있으면 지출 불러오기
+  // 페이지 로드 시 저장된 여행이 있으면 지출 및 일정 불러오기
   if (currentTripId) {
     console.log("저장된 여행 ID:", currentTripId);
     loadMyExpenses();
+    loadMySchedules();
   }
 });
