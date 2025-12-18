@@ -51,7 +51,7 @@ function renderTrips(trips) {
     container.innerHTML = "";
 
     if (trips.length === 0) {
-        container.innerHTML = "<p style='opacity:0.6'>여행이 없습니다.</p>";
+        container.innerHTML = "<p style='opacity:0.6'>데이터가 없습니다.</p>";
         return;
     }
 
@@ -111,6 +111,7 @@ function renderTrips(trips) {
 async function loadTripsByStatus(status) {
     const trips = await fetchWithAuth(`${API_BASE}/trips?status=${status}`);
     renderTrips(trips);
+    updateTabCount(status, trips.length);
 }
 
 // 탭 이벤트
@@ -128,11 +129,38 @@ function initTabs() {
     });
 }
 
+// 여행 상태 별 카운트 표시
+function updateTabCount(status, count) {
+    const tab = document.querySelector(`.tab-btn[data-tab="${status}"] .count`);
+    if (!tab) return;
+
+    tab.textContent = count;
+}
+
 // 초기 실행
 async function initDashboard() {
     try {
-        await loadMyTrips(); // 유저 + 통계
-        await loadTripsByStatus("active"); // 기본 탭
+        await loadMyTrips();
+
+        // 기본 탭 렌더
+        const activeTrips = await fetchWithAuth(
+            `${API_BASE}/trips?status=active`
+        );
+        renderTrips(activeTrips);
+        updateTabCount("active", activeTrips.length);
+
+        // planning 카운트
+        const planningTrips = await fetchWithAuth(
+            `${API_BASE}/trips?status=planning`
+        );
+        updateTabCount("planning", planningTrips.length);
+
+        // completed 카운트
+        const completedTrips = await fetchWithAuth(
+            `${API_BASE}/trips?status=completed`
+        );
+        updateTabCount("completed", completedTrips.length);
+
         initTabs();
     } catch (err) {
         console.error(err);
