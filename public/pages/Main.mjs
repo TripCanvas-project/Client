@@ -879,7 +879,7 @@ async function computeDaySegments(day) {
       (back.durationS || 0);
 
     if (dayEl)
-      dayEl.textContent = `총 이동거리 ${fmtKm(
+      dayEl.textContent = `여행지 순회 예상 거리 ${fmtKm(
         totalM
       )} · 예상 이동시간 ${fmtMin(totalS)}`;
   } catch (e) {
