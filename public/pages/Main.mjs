@@ -1396,6 +1396,54 @@ function initKakaoMap() {
   currentMap = new kakao.maps.Map(mapContainer, mapOption);
   isMapReady = true;
 
+  // ✅ (추가) 지도 클릭 → 마커 찍기 + 숙소 → 클릭지점 경로
+  kakao.maps.event.addListener(currentMap, "click", async (mouseEvent) => {
+    const latlng = mouseEvent.latLng;
+    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
+
+    // 1) 임시 마커 찍기(기존 제거 후 새로)
+    if (tempClickMarker) tempClickMarker.setMap(null);
+    tempClickMarker = new kakao.maps.Marker({ position: latlng });
+    tempClickMarker.setMap(currentMap);
+
+    // 2) 현재 Day 숙소 좌표 가져오기
+    const cached = dayRouteCache.get(currentActiveDay);
+    const accLL = cached?.accLL;
+    if (!accLL) {
+      console.warn("숙소 좌표가 없어서 경로를 못 그립니다.");
+      return;
+    }
+
+    // 3) 기존 선 지우기 + UI 표시
+    clearPolylines();
+    clearRoutePolyline();
+
+    const segEl = ensureSegmentStatsEl();
+    if (segEl) segEl.textContent = "선택 지점 → 숙소 계산 중…";
+
+    try {
+      // 4) 서버 directions 호출(이미 있는 함수 사용)
+      const r = await fetchDirections(accLL, clickedLL);
+
+      // 5) polyline 표시
+      drawPolylineFromPoints(r.points, {
+        strokeColor: "#ef4444",
+        strokeWeight: 7,
+      });
+
+      if (segEl) {
+        segEl.textContent = `선택 지점 → 숙소: ${fmtKm(r.distanceM)} · ${fmtMin(
+          r.durationS
+        )}`;
+      }
+
+      fitMapToTwo(r.points, []);
+    } catch (e) {
+      console.error("지도 클릭 경로 실패:", e);
+      if (segEl) segEl.textContent = "선택 지점 → 숙소 계산 실패";
+    }
+  });
+
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
