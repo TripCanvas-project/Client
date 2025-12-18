@@ -368,6 +368,8 @@ let currentRoutePolyline = null;
 let currentPolylines = [];
 let polylineReqSeq = 0;
 
+let tempClickMarker = null; // 디버그용 클릭 마커
+
 // =====================================================
 // ✅ Overlay (정보 카드)
 // =====================================================
