@@ -796,8 +796,7 @@ async function showAccToFirstLeg(day) {
 
     // ✅ 숙소->1번 폴리라인 표시
     drawPolylineFromPoints(r.points, {
-      strokeColor: "#7c3aed",
-      strokeWeight: 7,
+      strokeWeight: 10,
     });
 
     if (segEl)
@@ -905,17 +904,33 @@ function drawPolylineFromPoints(points, opts = {}) {
   if (!currentMap || !points?.length) return null;
 
   const path = points.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
-  const pl = new kakao.maps.Polyline({
+
+  // ✅ 겉선(테두리): 불투명 흰색
+  const outer = new kakao.maps.Polyline({
     path,
-    strokeWeight: opts.strokeWeight ?? 6,
-    strokeColor: opts.strokeColor ?? "#111827",
-    strokeOpacity: opts.strokeOpacity ?? 0.9,
+    strokeWeight: (opts.strokeWeight ?? 6) + 4, // 테두리 두께 = 안쪽보다 더 두껍게
+    strokeColor: opts.outerColor ?? "#ffffff",
+    strokeOpacity: opts.outerOpacity ?? 1,
     strokeStyle: opts.strokeStyle ?? "solid",
   });
 
-  pl.setMap(currentMap);
-  currentPolylines.push(pl);
-  return pl;
+  // ✅ 안쪽선: 밝은 녹색
+  const inner = new kakao.maps.Polyline({
+    path,
+    strokeWeight: opts.strokeWeight ?? 6,
+    strokeColor: opts.strokeColor ?? "#22c55e",
+    strokeOpacity: opts.strokeOpacity ?? 0.95,
+    strokeStyle: opts.strokeStyle ?? "solid",
+  });
+
+  outer.setMap(currentMap);
+  inner.setMap(currentMap);
+
+  // ✅ clearPolylines()로 같이 지워지도록 둘 다 넣기
+  currentPolylines.push(outer, inner);
+
+  // 기존 호출부 호환을 위해 inner를 리턴
+  return inner;
 }
 
 function fitMapToTwo(pointsA = [], pointsB = []) {
@@ -931,6 +946,7 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
   try {
     if (!isMapReady || !currentMap) return;
 
+    clearPolylines();
     clearRoutePolyline();
 
     const acc = effectiveAccommodation;
@@ -957,20 +973,18 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
     const pts = Array.isArray(r?.points) ? r.points : [];
 
     if (pts.length) {
-      currentRoutePolyline = new kakao.maps.Polyline({
-        path: pts.map((p) => new kakao.maps.LatLng(p.lat, p.lng)),
-        strokeWeight: 5,
-        strokeColor: "#7c3aed",
-        strokeOpacity: 0.9,
-        strokeStyle: "solid",
+      // ✅ 기존 routePolyline 대신, 이중 폴리라인으로 그림
+      clearPolylines(); // 숙소→1번만 보여주려면 먼저 지우는 게 깔끔
+      drawPolylineFromPoints(pts, {
+        strokeWeight: 6,
+        strokeColor: "#22c55e", // 안쪽 밝은 녹색
+        strokeOpacity: 0.95,
+        outerColor: "#ffffff", // 겉 흰색
+        outerOpacity: 1,
       });
 
-      currentRoutePolyline.setMap(currentMap);
-
-      // ✅ 경로가 화면에 다 들어오게
       fitMapToTwo(pts, []);
     } else {
-      // ✅ points가 없으면 숙소/1번 좌표로 bounds
       fitMapToTwo([accLL, firstLL], []);
     }
 
@@ -1029,8 +1043,7 @@ async function showNextLegFromPlaceIdx(idx) {
     if (seq !== polylineReqSeq) return;
 
     drawPolylineFromPoints(r.points, {
-      strokeColor: "#7c3aed",
-      strokeWeight: 7,
+      strokeWeight: 10,
     });
 
     if (segEl)
@@ -1429,9 +1442,9 @@ function initKakaoMap() {
 
       // 5) polyline 표시
       drawPolylineFromPoints(r.points, {
-        strokeColor: "#ef4444",
-        strokeWeight: 7,
+        strokeWeight: 10,
       });
+      s;
 
       if (segEl) {
         segEl.textContent = `선택 지점 → 숙소: ${fmtKm(r.distanceM)} · ${fmtMin(
