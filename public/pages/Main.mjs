@@ -56,6 +56,21 @@ function fmtDateYMD(v) {
 }
 
 // =====================================================
+// ✅ 탭 전환 helpers
+// =====================================================
+function switchSidebarTab(tabName) {
+  document
+    .querySelectorAll(".sidebar-tabs .tab")
+    .forEach((t) => t.classList.toggle("active", t.dataset.tab === tabName));
+
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((c) =>
+      c.classList.toggle("active", c.id === `${tabName}-content`)
+    );
+}
+
+// =====================================================
 // ✅ Session 유지 확인 (/user/me)
 // =====================================================
 async function checkMe() {
@@ -1107,17 +1122,29 @@ async function loadMyTripsIntoTemplate() {
   trips.forEach((t) => {
     const card = document.createElement("div");
     card.className = "template-card";
+
     card.innerHTML = `
-  <div class="template-name">${escapeHtml(t.title || "제목 없음")}</div>
-  <div class="template-desc">
-    ${escapeHtml(t.description || "")}
-    <div style="margin-top:8px; opacity:.7; font-size:12px;">
-      ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
+    <div class="template-name">${escapeHtml(t.title || "제목 없음")}</div>
+    <div class="template-desc">
+      ${escapeHtml(t.description || "")}
+      <div style="margin-top:8px; opacity:.7; font-size:12px;">
+        ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
       fmtDateYMD(t.endDate)
     )}
+      </div>
+      <button class="btn-generate" style="margin-top:12px; width:100%; padding:10px;">
+        ✅ 이 여행 선택
+      </button>
     </div>
-  </div>
-`;
+  `;
+
+    const btn = card.querySelector("button");
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      switchSidebarTab("route");
+      await loadRouteForTripAndRenderTabs(t._id);
+    });
+
     wrap.appendChild(card);
   });
 }
@@ -1422,6 +1449,25 @@ async function loadLatestRouteAndRenderTabs() {
 
   if (!res.ok) {
     console.warn("⚠️ /route/latest 실패:", res.status);
+    return;
+  }
+
+  const data = await res.json();
+  renderDayTabs(data.route);
+}
+
+async function loadRouteForTripAndRenderTabs(tripId) {
+  const token = getToken();
+  if (!token) return;
+
+  const res = await fetch(`${API_BASE_URL}/route/by-trip/${tripId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    alert(data?.message || "Trip 경로 불러오기 실패");
     return;
   }
 
