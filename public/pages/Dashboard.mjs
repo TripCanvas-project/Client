@@ -109,7 +109,8 @@ function renderTrips(trips) {
 
 // 상태별 여행 로드
 async function loadTripsByStatus(status) {
-    const trips = await fetchWithAuth(`${API_BASE}/trips?status=${status}`);
+    const trips = await fetchWithAuth(`${API_BASE}/trip?status=${status}`);
+    console.log(trips);
     renderTrips(trips);
     updateTabCount(status, trips.length);
 }
@@ -144,7 +145,7 @@ async function initDashboard() {
 
         // 기본 탭 렌더
         const activeTrips = await fetchWithAuth(
-            `${API_BASE}/trips?status=active`
+            `${API_BASE}/trip?status=active`
         );
         renderTrips(activeTrips);
         updateTabCount("active", activeTrips.length);
@@ -154,13 +155,13 @@ async function initDashboard() {
 
         // planning 카운트
         const planningTrips = await fetchWithAuth(
-            `${API_BASE}/trips?status=planning`
+            `${API_BASE}/trip?status=planning`
         );
         updateTabCount("planning", planningTrips.length);
 
         // completed 카운트
         const completedTrips = await fetchWithAuth(
-            `${API_BASE}/trips?status=completed`
+            `${API_BASE}/trip?status=completed`
         );
         updateTabCount("completed", completedTrips.length);
 
