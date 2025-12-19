@@ -150,7 +150,7 @@ async function initDashboard() {
         updateTabCount("active", activeTrips.length);
 
         // 버킷리스트 로드
-        await loadMyBucketlists();
+        // await loadMyBucketlists();
 
         // planning 카운트
         const planningTrips = await fetchWithAuth(
