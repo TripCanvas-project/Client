@@ -42,6 +42,35 @@ function escapeHtml(s = "") {
 }
 
 // =====================================================
+// ✅ Date helpers
+// =====================================================
+function fmtDateYMD(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  // ✅ 로컬 기준 YYYY-MM-DD
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// =====================================================
+// ✅ 탭 전환 helpers
+// =====================================================
+function switchSidebarTab(tabName) {
+  document
+    .querySelectorAll(".sidebar-tabs .tab")
+    .forEach((t) => t.classList.toggle("active", t.dataset.tab === tabName));
+
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((c) =>
+      c.classList.toggle("active", c.id === `${tabName}-content`)
+    );
+}
+
+// =====================================================
 // ✅ Session 유지 확인 (/user/me)
 // =====================================================
 async function checkMe() {
@@ -367,8 +396,6 @@ const daySegmentsCache = new Map(); // day -> { segments, back }
 let currentRoutePolyline = null;
 let currentPolylines = [];
 let polylineReqSeq = 0;
-
-let tempClickMarker = null; // 지도 클릭으로 찍는 임시 마커
 
 // =====================================================
 // ✅ Overlay (정보 카드)
@@ -796,8 +823,7 @@ async function showAccToFirstLeg(day) {
 
     // ✅ 숙소->1번 폴리라인 표시
     drawPolylineFromPoints(r.points, {
-      strokeColor: "#7c3aed",
-      strokeWeight: 7,
+      strokeWeight: 10,
     });
 
     if (segEl)
@@ -879,7 +905,7 @@ async function computeDaySegments(day) {
       (back.durationS || 0);
 
     if (dayEl)
-      dayEl.textContent = `숙소 -> 추천장소 -> 숙소 예상 거리 ${fmtKm(
+      dayEl.textContent = `총 이동거리 ${fmtKm(
         totalM
       )} · 예상 이동시간 ${fmtMin(totalS)}`;
   } catch (e) {
@@ -905,17 +931,33 @@ function drawPolylineFromPoints(points, opts = {}) {
   if (!currentMap || !points?.length) return null;
 
   const path = points.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
-  const pl = new kakao.maps.Polyline({
+
+  // ✅ 겉선(테두리): 불투명 흰색
+  const outer = new kakao.maps.Polyline({
     path,
-    strokeWeight: opts.strokeWeight ?? 6,
-    strokeColor: opts.strokeColor ?? "#111827",
-    strokeOpacity: opts.strokeOpacity ?? 0.9,
+    strokeWeight: (opts.strokeWeight ?? 6) + 4, // 테두리 두께 = 안쪽보다 더 두껍게
+    strokeColor: opts.outerColor ?? "#ffffff",
+    strokeOpacity: opts.outerOpacity ?? 1,
     strokeStyle: opts.strokeStyle ?? "solid",
   });
 
-  pl.setMap(currentMap);
-  currentPolylines.push(pl);
-  return pl;
+  // ✅ 안쪽선: 밝은 녹색
+  const inner = new kakao.maps.Polyline({
+    path,
+    strokeWeight: opts.strokeWeight ?? 6,
+    strokeColor: opts.strokeColor ?? "#22c55e",
+    strokeOpacity: opts.strokeOpacity ?? 0.95,
+    strokeStyle: opts.strokeStyle ?? "solid",
+  });
+
+  outer.setMap(currentMap);
+  inner.setMap(currentMap);
+
+  // ✅ clearPolylines()로 같이 지워지도록 둘 다 넣기
+  currentPolylines.push(outer, inner);
+
+  // 기존 호출부 호환을 위해 inner를 리턴
+  return inner;
 }
 
 function fitMapToTwo(pointsA = [], pointsB = []) {
@@ -931,6 +973,7 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
   try {
     if (!isMapReady || !currentMap) return;
 
+    clearPolylines();
     clearRoutePolyline();
 
     const acc = effectiveAccommodation;
@@ -957,20 +1000,18 @@ async function drawAccToFirstPlaceRoute(dayPlan, effectiveAccommodation) {
     const pts = Array.isArray(r?.points) ? r.points : [];
 
     if (pts.length) {
-      currentRoutePolyline = new kakao.maps.Polyline({
-        path: pts.map((p) => new kakao.maps.LatLng(p.lat, p.lng)),
-        strokeWeight: 5,
-        strokeColor: "#7c3aed",
-        strokeOpacity: 0.9,
-        strokeStyle: "solid",
+      // ✅ 기존 routePolyline 대신, 이중 폴리라인으로 그림
+      clearPolylines(); // 숙소→1번만 보여주려면 먼저 지우는 게 깔끔
+      drawPolylineFromPoints(pts, {
+        strokeWeight: 6,
+        strokeColor: "#22c55e", // 안쪽 밝은 녹색
+        strokeOpacity: 0.95,
+        outerColor: "#ffffff", // 겉 흰색
+        outerOpacity: 1,
       });
 
-      currentRoutePolyline.setMap(currentMap);
-
-      // ✅ 경로가 화면에 다 들어오게
       fitMapToTwo(pts, []);
     } else {
-      // ✅ points가 없으면 숙소/1번 좌표로 bounds
       fitMapToTwo([accLL, firstLL], []);
     }
 
@@ -1029,8 +1070,7 @@ async function showNextLegFromPlaceIdx(idx) {
     if (seq !== polylineReqSeq) return;
 
     drawPolylineFromPoints(r.points, {
-      strokeColor: "#7c3aed",
-      strokeWeight: 7,
+      strokeWeight: 10,
     });
 
     if (segEl)
@@ -1043,6 +1083,70 @@ async function showNextLegFromPlaceIdx(idx) {
     if (segEl) segEl.textContent = "다음 구간 계산 실패";
   }
 }
+
+// =====================================================
+// 내 여행 불러오기 사이드 탭에
+// =====================================================
+async function loadMyTripsIntoTemplate() {
+  const wrap = document.getElementById("my-trips-list");
+  if (!wrap) return;
+
+  wrap.innerHTML = `<div class="place-description">불러오는 중…</div>`;
+
+  const token = getToken(); // 토큰 헬퍼 이미 있음 :contentReference[oaicite:3]{index=3}
+  if (!token) return;
+
+  const res = await fetch(`${API_BASE_URL}/trip/mine`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    wrap.innerHTML = `<div class="place-description">불러오기 실패: ${escapeHtml(
+      data?.message || "오류"
+    )}</div>`;
+    return;
+  }
+
+  const trips = Array.isArray(data?.trips) ? data.trips : [];
+  if (!trips.length) {
+    wrap.innerHTML = `<div class="place-description">저장된 여행이 없습니다.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = "";
+  trips.forEach((t) => {
+    const card = document.createElement("div");
+    card.className = "template-card";
+
+    card.innerHTML = `
+    <div class="template-name">${escapeHtml(t.title || "제목 없음")}</div>
+    <div class="template-desc">
+      ${escapeHtml(t.description || "")}
+      <div style="margin-top:8px; opacity:.7; font-size:12px;">
+        ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
+      fmtDateYMD(t.endDate)
+    )}
+      </div>
+      <button class="btn-generate" style="margin-top:12px; width:100%; padding:10px;">
+        ✅ 이 여행 선택
+      </button>
+    </div>
+  `;
+
+    const btn = card.querySelector("button");
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      switchSidebarTab("route");
+      await loadRouteForTripAndRenderTabs(t._id);
+    });
+
+    wrap.appendChild(card);
+  });
+}
+
 // =====================================================
 // ✅ Markers
 // =====================================================
@@ -1241,6 +1345,33 @@ function renderPlacesList(dayPlan) {
 
   listEl.innerHTML = "";
 
+  // ✅ (추가) 숙소 → 1번 경로를 "장소처럼" 리스트에 넣기
+  const accCard = document.createElement("div");
+  accCard.className = "place-item";
+  accCard.style.cursor = "pointer";
+
+  // 숙소→1번 구간은 segments[0]
+  const cache = daySegmentsCache.get(currentActiveDay);
+  const seg0 = cache?.segments?.[0];
+
+  const segText0 = seg0
+    ? `${fmtKm(seg0.distanceM)} · ${fmtMin(seg0.durationS)}`
+    : "이동 계산 전";
+
+  accCard.innerHTML = `
+  <div class="place-name">
+    <span class="place-number">🏨</span>
+    숙소 → 1번 경로
+  </div>
+  <div class="place-description">${segText0}</div>
+`;
+
+  accCard.addEventListener("click", () => {
+    window.__tc_onAccInfo?.(); // 기존 "숙소→1번 보기"와 동일 동작
+  });
+
+  listEl.appendChild(accCard);
+
   const places = dayPlan?.places || [];
   if (places.length === 0) {
     listEl.innerHTML = `<div class="place-description">장소가 없습니다.</div>`;
@@ -1323,6 +1454,25 @@ async function loadLatestRouteAndRenderTabs() {
   renderDayTabs(data.route);
 }
 
+async function loadRouteForTripAndRenderTabs(tripId) {
+  const token = getToken();
+  if (!token) return;
+
+  const res = await fetch(`${API_BASE_URL}/route/by-trip/${tripId}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    alert(data?.message || "Trip 경로 불러오기 실패");
+    return;
+  }
+
+  const data = await res.json();
+  renderDayTabs(data.route);
+}
+
 function renderDayTabs(route) {
   const tabsEl = document.getElementById("ai-day-tabs");
   if (!tabsEl) return;
@@ -1361,8 +1511,6 @@ function renderDayTabs(route) {
     await computeDaySegments(day);
     renderPlacesList(dpForUI);
 
-    ensureAccToFirstBtn(day);
-
     // ✅ 기본값: 예상 경로를 "숙소 → 1번"으로 설정
     window.__tc_onAccInfo?.();
   };
@@ -1397,54 +1545,6 @@ function initKakaoMap() {
 
   currentMap = new kakao.maps.Map(mapContainer, mapOption);
   isMapReady = true;
-
-  // ✅ (추가) 지도 클릭 → 마커 찍기 + 숙소 → 클릭지점 경로
-  kakao.maps.event.addListener(currentMap, "click", async (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-
-    // 1) 임시 마커 찍기(기존 제거 후 새로)
-    if (tempClickMarker) tempClickMarker.setMap(null);
-    tempClickMarker = new kakao.maps.Marker({ position: latlng });
-    tempClickMarker.setMap(currentMap);
-
-    // 2) 현재 Day 숙소 좌표 가져오기
-    const cached = dayRouteCache.get(currentActiveDay);
-    const accLL = cached?.accLL;
-    if (!accLL) {
-      console.warn("숙소 좌표가 없어서 경로를 못 그립니다.");
-      return;
-    }
-
-    // 3) 기존 선 지우기 + UI 표시
-    clearPolylines();
-    clearRoutePolyline();
-
-    const segEl = ensureSegmentStatsEl();
-    if (segEl) segEl.textContent = "숙소 → 선택 지점 계산 중…";
-
-    try {
-      // 4) 서버 directions 호출(이미 있는 함수 사용)
-      const r = await fetchDirections(accLL, clickedLL);
-
-      // 5) polyline 표시
-      drawPolylineFromPoints(r.points, {
-        strokeColor: "#ef4444",
-        strokeWeight: 7,
-      });
-
-      if (segEl) {
-        segEl.textContent = `숙소 → 선택 지점: ${fmtKm(r.distanceM)} · ${fmtMin(
-          r.durationS
-        )}`;
-      }
-
-      fitMapToTwo(r.points, []);
-    } catch (e) {
-      console.error("지도 클릭 경로 실패:", e);
-      if (segEl) segEl.textContent = "숙소 → 선택 지점 계산 실패";
-    }
-  });
 
   if (pendingDayToRender) {
     renderMarkersForDay(
@@ -1618,6 +1718,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tab.classList.add("active");
       document.getElementById(`${tabName}-content`)?.classList.add("active");
+
+      // ✅ (추가) 템플릿 탭 클릭 시 내 여행 목록 로드
+      if (tabName === "template") loadMyTripsIntoTemplate();
     });
   });
 
