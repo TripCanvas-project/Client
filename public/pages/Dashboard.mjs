@@ -149,6 +149,9 @@ async function initDashboard() {
         renderTrips(activeTrips);
         updateTabCount("active", activeTrips.length);
 
+        // 버킷리스트 로드
+        await loadMyBucketlists();
+
         // planning 카운트
         const planningTrips = await fetchWithAuth(
             `${API_BASE}/trips?status=planning`
@@ -182,3 +185,40 @@ function getStatusLabel(status) {
         cancelled: "취소",
     }[status];
 }
+
+// 버킷리스트 로드
+// async function loadMyBucketlists() {
+//     const data = await fetchWithAuth(`${API_BASE}/trips/bucketlists`);
+
+//     renderBucketlists(data.bucketlists);
+// }
+
+// 버킷리스트 렌더링
+// function renderBucketlists(bucketlists) {
+//     const grid = document.getElementById("bucketlistGrid");
+//     if (!grid) return;
+
+//     grid.innerHTML = "";
+
+//     if (!bucketlists || bucketlists.length === 0) {
+//         grid.innerHTML = `<p style="opacity:0.6">버킷리스트가 없습니다.</p>`;
+//         return;
+//     }
+
+//     bucketlists.forEach((item) => {
+//         const card = document.createElement("div");
+//         card.className = "bucketlist-card";
+
+//         card.innerHTML = `
+//             <div class="bucketlist-title">${item.title}</div>
+//             <div class="bucketlist-desc">
+//                 ${item.description || ""}
+//             </div>
+//             <div class="bucketlist-status">
+//                 ${item.isCompleted ? "✅ 완료" : "⏳ 진행중"}
+//             </div>
+//         `;
+
+//         grid.appendChild(card);
+//     });
+// }
