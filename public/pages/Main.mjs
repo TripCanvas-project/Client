@@ -567,6 +567,72 @@ function showPlaceInfoOverlay(posLatLng, place, idx, total) {
 }
 
 // =====================================================
+// ✅ Map click marker + accommodation link (NEW)
+// =====================================================
+let clickMarker = null;
+
+function clearClickMarkerAndLink() {
+  if (clickMarker) clickMarker.setMap(null);
+  clickMarker = null;
+}
+
+async function linkClickedPointToAccommodation(clickedLL) {
+  if (!isMapReady || !currentMap) return;
+
+  const cached = dayRouteCache.get(currentActiveDay);
+  const accLL = cached?.accLL;
+  if (!accLL) {
+    alert(
+      "현재 Day의 숙소 좌표가 없어서 연결할 수 없어요. (숙소를 먼저 설정해 주세요)"
+    );
+    return;
+  }
+
+  // ✅ 숙소->1번처럼: 이전 요청 무효화 + 다른 장소 연결 싹 지우고(선택->숙소만 남김)
+  const seq = ++polylineReqSeq;
+  clearPolylines();
+  clearRoutePolyline();
+  clearInfoOverlay();
+
+  // ✅ 기존 클릭 마커 제거 후 새로 생성
+  clearClickMarkerAndLink();
+
+  const pos = new kakao.maps.LatLng(clickedLL.lat, clickedLL.lng);
+  clickMarker = new kakao.maps.Marker({ position: pos });
+  clickMarker.setMap(currentMap);
+
+  // ✅ 거리/시간 UI 업데이트(숙소->1번처럼)
+  const segEl = ensureSegmentStatsEl();
+  if (segEl) segEl.textContent = "선택 → 숙소 계산 중…";
+
+  try {
+    // ✅ directions: 선택 -> 숙소
+    const r = await fetchDirections(clickedLL, accLL);
+    if (seq !== polylineReqSeq) return;
+
+    // ✅ 폴리라인은 기존 공통 함수로 통일(outer/inner + currentPolylines에 관리됨)
+    drawPolylineFromPoints(r.points, { strokeWeight: 10 });
+
+    // ✅ 거리/시간 표시
+    if (segEl)
+      segEl.textContent = `선택 → 숙소: ${fmtKm(r.distanceM)} · ${fmtMin(
+        r.durationS
+      )}`;
+
+    // ✅ 줌/바운드 적용
+    fitMapToTwo(r.points, []);
+  } catch (e) {
+    console.warn("선택→숙소 directions 실패:", e);
+
+    // fallback: 직선
+    drawPolylineFromPoints([clickedLL, accLL], { strokeWeight: 10 });
+    fitMapToTwo([clickedLL, accLL], []);
+
+    if (segEl) segEl.textContent = "선택 → 숙소 계산 실패(직선 연결 표시)";
+  }
+}
+
+// =====================================================
 // ✅ Coordinates + Optimization (NN + 2-opt)
 // =====================================================
 function extractLatLng(p) {
@@ -1156,6 +1222,7 @@ function clearMarkers() {
   clearInfoOverlay();
   clearPolylines();
   clearRoutePolyline();
+  clearClickMarkerAndLink();
 }
 
 function renderMarkersForDay(dayPlan, day, effectiveAccommodation) {
@@ -1303,8 +1370,6 @@ window.__tc_onAccInfo = () => {
     // currentMap.setCenter(pos); // 즉시 이동을 원하면 이걸 사용
     // currentMap.setLevel(4);    // 원하면 줌 레벨도 고정
   }
-
-  clearPolylines();
   drawAccToFirstPlaceRoute({ places: cached.orderedPlaces }, cached.acc);
 };
 
@@ -1383,6 +1448,11 @@ function renderPlacesList(dayPlan) {
     const addr = p.addressFull || p.address?.full || "";
     const description = p.description;
 
+    const descText =
+      (description && escapeHtml(description)) ||
+      (addr && escapeHtml(addr)) ||
+      "설명 정보 없음";
+
     const card = document.createElement("div");
     card.className = "place-item";
     card.style.cursor = "pointer";
@@ -1406,7 +1476,7 @@ function renderPlacesList(dayPlan) {
       </div>
 
       <div class="place-description">
-        ${addr ? escapeHtml(description) : "설명 정보 없음"}
+        ${descText}
       </div>
 
       <div class="place-move">${segText}</div>
@@ -1545,6 +1615,13 @@ function initKakaoMap() {
 
   currentMap = new kakao.maps.Map(mapContainer, mapOption);
   isMapReady = true;
+
+  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
+  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
+    const latlng = mouseEvent.latLng;
+    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
+    linkClickedPointToAccommodation(clickedLL);
+  });
 
   if (pendingDayToRender) {
     renderMarkersForDay(
