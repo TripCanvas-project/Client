@@ -57,12 +57,6 @@
                 >
                     ✨ 새 여행 만들기
                 </button>
-                <!-- <button class="btn btn-secondary" onclick="showBucketList()">
-          📝 버킷리스트 관리
-        </button> -->
-                <!-- <button class="btn btn-secondary" onclick="showTemplates()">
-                    🎨 템플릿 둘러보기
-                </button> -->
             </div>
 
             <!-- 탭 -->
@@ -78,103 +72,8 @@
                 </button>
             </div>
 
-            <!-- 여행 카드 그리드 -->
-            <div class="trips-grid" id="activeTrips">
-                <div class="trip-card" onclick="openTrip()">
-                    <div class="trip-thumbnail">
-                        <span class="trip-status active"></span>
-                    </div>
-                    <div class="trip-content">
-                        <h3 class="trip-title"></h3>
-                        <p class="trip-dates"></p>
-                        <div class="trip-meta">
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <div class="trip-progress">
-                            <div class="trip-progress-label">
-                                <span></span>
-                                <span></span>
-                            </div>
-                            <div class="trip-progress-bar">
-                                <div
-                                    class="trip-progress-fill"
-                                    style="width: 60%"
-                                ></div>
-                            </div>
-                        </div>
-                        <div class="trip-actions">
-                            <button class="trip-action-btn">✏️ 편집</button>
-                            <!-- <button class="trip-action-btn">👥 공유</button> -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="trip-card">
-                    <div class="trip-thumbnail">
-                        🏔️
-                        <span class="trip-status active"></span>
-                    </div>
-                    <div class="trip-content">
-                        <h3 class="trip-title"></h3>
-                        <p class="trip-dates"></p>
-                        <div class="trip-meta">
-                            <span></span>
-                            <span></span>
-                        </div>
-                        <div class="trip-progress">
-                            <div class="trip-progress-label">
-                                <span></span>
-                                <span></span>
-                            </div>
-                            <div class="trip-progress-bar">
-                                <div
-                                    class="trip-progress-fill"
-                                    style="width: 25%"
-                                ></div>
-                            </div>
-                        </div>
-                        <div class="trip-actions">
-                            <button class="trip-action-btn">✏️ 편집</button>
-                            <!-- <button class="trip-action-btn">👥 공유</button> -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="trip-card">
-                    <div
-                        class="trip-thumbnail"
-                        style="background: var(--secondary)"
-                    >
-                        ✨
-                        <span class="trip-status planning">● 계획 중</span>
-                    </div>
-                    <div class="trip-content">
-                        <h3 class="trip-title">제주도 힐링 여행</h3>
-                        <p class="trip-dates">2025.01.10 - 2025.01.13</p>
-                        <div class="trip-meta">
-                            <span>💰 ₩0 / ₩1,200,000</span>
-                            <span>📍 12개 장소</span>
-                        </div>
-                        <div class="trip-progress">
-                            <div class="trip-progress-label">
-                                <span>계획 진행도</span>
-                                <span>40%</span>
-                            </div>
-                            <div class="trip-progress-bar">
-                                <div
-                                    class="trip-progress-fill"
-                                    style="width: 40%"
-                                ></div>
-                            </div>
-                        </div>
-                        <div class="trip-actions">
-                            <button class="trip-action-btn">✏️ 편집</button>
-                            <button class="trip-action-btn">🗑️ 삭제</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- 🔥 여행 카드 렌더링 영역 (JS 전용) -->
+            <div class="trips-grid" id="activeTrips"></div>
 
             <!-- 챌린지 섹션 -->
             <div class="challenge-section">
@@ -243,25 +142,11 @@
                 </div>
             </div>
         </div>
-
+        <!-- 대시보드 로직 -->
         <script type="module" src="./pages/Dashboard.mjs"></script>
+
+        <!-- 공통 알림용 (임시) -->
         <script>
-            function createTrip() {
-                alert("새 여행 만들기 페이지로 이동합니다.");
-            }
-
-            function showBucketList() {
-                alert("버킷리스트 관리 페이지로 이동합니다.");
-            }
-
-            function showTemplates() {
-                alert("템플릿 페이지로 이동합니다.");
-            }
-
-            function openTrip() {
-                alert("여행 상세 페이지로 이동합니다.");
-            }
-
             function showAllChallenges() {
                 alert("전체 챌린지 페이지로 이동합니다.");
             }
