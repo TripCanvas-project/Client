@@ -42,6 +42,20 @@ function escapeHtml(s = "") {
 }
 
 // =====================================================
+// ✅ Date helpers
+// =====================================================
+function fmtDateYMD(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  // ✅ 로컬 기준 YYYY-MM-DD
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// =====================================================
 // ✅ Session 유지 확인 (/user/me)
 // =====================================================
 async function checkMe() {
@@ -1056,6 +1070,58 @@ async function showNextLegFromPlaceIdx(idx) {
     if (segEl) segEl.textContent = "다음 구간 계산 실패";
   }
 }
+
+// =====================================================
+// 내 여행 불러오기 사이드 탭에
+// =====================================================
+async function loadMyTripsIntoTemplate() {
+  const wrap = document.getElementById("my-trips-list");
+  if (!wrap) return;
+
+  wrap.innerHTML = `<div class="place-description">불러오는 중…</div>`;
+
+  const token = getToken(); // 토큰 헬퍼 이미 있음 :contentReference[oaicite:3]{index=3}
+  if (!token) return;
+
+  const res = await fetch(`${API_BASE_URL}/trip/mine`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    wrap.innerHTML = `<div class="place-description">불러오기 실패: ${escapeHtml(
+      data?.message || "오류"
+    )}</div>`;
+    return;
+  }
+
+  const trips = Array.isArray(data?.trips) ? data.trips : [];
+  if (!trips.length) {
+    wrap.innerHTML = `<div class="place-description">저장된 여행이 없습니다.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = "";
+  trips.forEach((t) => {
+    const card = document.createElement("div");
+    card.className = "template-card";
+    card.innerHTML = `
+  <div class="template-name">${escapeHtml(t.title || "제목 없음")}</div>
+  <div class="template-desc">
+    ${escapeHtml(t.description || "")}
+    <div style="margin-top:8px; opacity:.7; font-size:12px;">
+      ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
+      fmtDateYMD(t.endDate)
+    )}
+    </div>
+  </div>
+`;
+    wrap.appendChild(card);
+  });
+}
+
 // =====================================================
 // ✅ Markers
 // =====================================================
@@ -1254,6 +1320,33 @@ function renderPlacesList(dayPlan) {
 
   listEl.innerHTML = "";
 
+  // ✅ (추가) 숙소 → 1번 경로를 "장소처럼" 리스트에 넣기
+  const accCard = document.createElement("div");
+  accCard.className = "place-item";
+  accCard.style.cursor = "pointer";
+
+  // 숙소→1번 구간은 segments[0]
+  const cache = daySegmentsCache.get(currentActiveDay);
+  const seg0 = cache?.segments?.[0];
+
+  const segText0 = seg0
+    ? `${fmtKm(seg0.distanceM)} · ${fmtMin(seg0.durationS)}`
+    : "이동 계산 전";
+
+  accCard.innerHTML = `
+  <div class="place-name">
+    <span class="place-number">🏨</span>
+    숙소 → 1번 경로
+  </div>
+  <div class="place-description">${segText0}</div>
+`;
+
+  accCard.addEventListener("click", () => {
+    window.__tc_onAccInfo?.(); // 기존 "숙소→1번 보기"와 동일 동작
+  });
+
+  listEl.appendChild(accCard);
+
   const places = dayPlan?.places || [];
   if (places.length === 0) {
     listEl.innerHTML = `<div class="place-description">장소가 없습니다.</div>`;
@@ -1373,8 +1466,6 @@ function renderDayTabs(route) {
     // 2) 총합 + 구간 계산(캐시 저장) → 리스트 다시 렌더
     await computeDaySegments(day);
     renderPlacesList(dpForUI);
-
-    ensureAccToFirstBtn(day);
 
     // ✅ 기본값: 예상 경로를 "숙소 → 1번"으로 설정
     window.__tc_onAccInfo?.();
@@ -1631,6 +1722,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tab.classList.add("active");
       document.getElementById(`${tabName}-content`)?.classList.add("active");
+
+      // ✅ (추가) 템플릿 탭 클릭 시 내 여행 목록 로드
+      if (tabName === "template") loadMyTripsIntoTemplate();
     });
   });
 
