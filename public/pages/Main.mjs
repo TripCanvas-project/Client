@@ -1659,6 +1659,13 @@ function initKakaoMap() {
     renderMemos();
   });
 
+  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
+  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
+    const latlng = mouseEvent.latLng;
+    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
+    linkClickedPointToAccommodation(clickedLL);
+  });
+
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
@@ -2034,7 +2041,7 @@ function setupCanvas() {
 // 드로잉 도구 설정
 function setupDrawingTools() {
   const toolButtons = document.querySelectorAll('.tool-btn');
-  const tools = ['hand', 'memo', 'highlight', 'text', 'eraser', 'undo'];
+  const tools = ['pan', 'memo', 'highlight', 'text', 'eraser', 'undo'];
 
   toolButtons.forEach((btn, index) => {
     btn.addEventListener('click', () => {
@@ -2339,6 +2346,7 @@ function drawTextMemo(memo) {
 
   // 배경
   const metrics = ctx.measureText(memo.text); // 텍스트 메모의 너비와 높이 계산
+
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.fillRect(pixel.x, pixel.y, metrics.width + 8, memo.style.fontSize + 8);
 
