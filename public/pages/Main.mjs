@@ -1642,7 +1642,6 @@ function initKakaoMap() {
     const latlng = mouseEvent.latLng;
     const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
     linkClickedPointToAccommodation(clickedLL);
-  })
 
   // 드로잉 기능 추가
   setupCanvas();
