@@ -1643,6 +1643,10 @@ function initKakaoMap() {
     const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
     linkClickedPointToAccommodation(clickedLL);
   })
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1a52633 (main.mjs merge 해결)
   // 드로잉 기능 추가
   setupCanvas();
   setupDrawingTools();
