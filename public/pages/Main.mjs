@@ -7,7 +7,6 @@
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-
 const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
@@ -1661,7 +1660,6 @@ function initKakaoMap() {
     const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
     linkClickedPointToAccommodation(clickedLL);
   });
-
   // 드로잉 기능 추가
   setupCanvas();
   setupDrawingTools();
@@ -1675,13 +1673,6 @@ function initKakaoMap() {
   });
   kakao.maps.event.addListener(currentMap, "center_changed", () => {
     renderMemos();
-  });
-
-  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
-  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-    linkClickedPointToAccommodation(clickedLL);
   });
 
   if (pendingDayToRender) {
@@ -2285,6 +2276,7 @@ function addMemo(memo) {
   }
 
   renderMemos();
+
   console.log("Memo added:", memo);
 }
 
@@ -2309,13 +2301,13 @@ function addTextMemo(text, latLng) {
 // 메모 삭제
 function removeMemo(memoId) {
   memos = memos.filter((m) => m.id !== memoId);
-
   // Socket으로 전송
   if (collaboration) {
     collaboration.deleteMemo(memoId);
   }
 
   renderMemos();
+
   console.log("Memo removed:", memoId);
 }
 
