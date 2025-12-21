@@ -18,6 +18,16 @@ class VideoChat {
     }
 
     init() {
+        console.log('VideoChat init:', {
+            container: this.container,
+            controls: this.controls
+        });
+        
+        if (!this.controls) {
+            console.error('❌ .video-controls를 찾을 수 없습니다!');
+            return;
+        }
+
         // WebRTC 초기화
         webrtcService.initalize();
 
