@@ -2138,6 +2138,7 @@ function setupDrawingTools() {
   const toolButtons = document.querySelectorAll(".tool-btn");
   const tools = ["pan", "memo", "highlight", "text", "eraser", "undo"];
 
+
   toolButtons.forEach((btn, index) => {
     btn.addEventListener("click", () => {
       const tool = tools[index];
