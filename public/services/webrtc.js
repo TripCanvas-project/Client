@@ -1,4 +1,4 @@
-import socketService from "./socket";
+import socketService from "./socket.js";
 
 /*
     // RTCPeerConnection 내부 구조
