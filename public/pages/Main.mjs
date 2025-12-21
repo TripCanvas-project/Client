@@ -1659,13 +1659,6 @@ function initKakaoMap() {
     renderMemos();
   });
 
-  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
-  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-    linkClickedPointToAccommodation(clickedLL);
-  });
-
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
