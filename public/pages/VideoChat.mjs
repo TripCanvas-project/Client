@@ -1,5 +1,5 @@
-import webrtcService from "../../src/services/webrtc";
-import socketService from "../../src/services/socket";
+import webrtcService from '../services/webrtc.js';
+import socketService from '../services/socket.js';
 
 class VideoChat {
     constructor(options = {}) {

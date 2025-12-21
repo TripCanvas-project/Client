@@ -1,4 +1,4 @@
-import socketService from '../../src/services/socket';
+import socketService from '../services/socket.js';
 
 const SERVER_URL = 'http://localhost:8080';
 
