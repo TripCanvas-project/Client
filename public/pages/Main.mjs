@@ -2041,7 +2041,7 @@ function setupCanvas() {
 // 드로잉 도구 설정
 function setupDrawingTools() {
   const toolButtons = document.querySelectorAll('.tool-btn');
-  const tools = ['hand', 'memo', 'highlight', 'text', 'eraser', 'undo'];
+  const tools = ['pan', 'memo', 'highlight', 'text', 'eraser', 'undo'];
 
   toolButtons.forEach((btn, index) => {
     btn.addEventListener('click', () => {
