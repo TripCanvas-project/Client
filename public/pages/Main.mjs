@@ -2338,7 +2338,7 @@ function drawTextMemo(memo) {
   ctx.textBaseline = 'top'; // 텍스트 메모의 기준점을 위쪽으로 설정(사각형 배경 안에 글자 배치 수월)
 
   // 배경
-  const metrix = ctx.measureText(memo.text); // 텍스트 메모의 너비와 높이 계산
+  const metrics = ctx.measureText(memo.text); // 텍스트 메모의 너비와 높이 계산
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.fillRect(pixel.x, pixel.y, metrics.width + 8, memo.style.fontSize + 8);
 
@@ -2459,4 +2459,35 @@ async function initCollaboration() {
   } catch (error) {
     console.error('❌ Failed to initialize collaboration:', error);
   }
+}
+
+// 터치 이벤트 핸들러 (마우스 이벤트로 변환)
+function handleCanvasTouchStart(e) {
+  e.preventDefault(); // 스크롤 방지
+  const touch = e.touches[0];
+  const mouseEvent = new MouseEvent('mousedown', {
+    clientX: touch.clientX,
+    clientY: touch.clientY,
+    bubbles: true
+  });
+  e.target.dispatchEvent(mouseEvent);
+}
+
+function handleCanvasTouchMove(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const mouseEvent = new MouseEvent('mousemove', {
+    clientX: touch.clientX,
+    clientY: touch.clientY,
+    bubbles: true
+  });
+  e.target.dispatchEvent(mouseEvent);
+}
+
+function handleCanvasTouchEnd(e) {
+  e.preventDefault();
+  const mouseEvent = new MouseEvent('mouseup', {
+    bubbles: true
+  });
+  e.target.dispatchEvent(mouseEvent);
 }

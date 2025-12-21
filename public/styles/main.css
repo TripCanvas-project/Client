@@ -571,6 +571,7 @@ body {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
   display: flex;
   gap: 8px;
+  z-index: 20;
 }
 
 .tool-btn {
