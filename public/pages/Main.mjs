@@ -2339,6 +2339,7 @@ function drawTextMemo(memo) {
 
   // 배경
   const metrics = ctx.measureText(memo.text); // 텍스트 메모의 너비와 높이 계산
+
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.fillRect(pixel.x, pixel.y, metrics.width + 8, memo.style.fontSize + 8);
 
