@@ -1659,28 +1659,6 @@ function initKakaoMap() {
     renderMemos();
   });
 
-  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
-  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-    linkClickedPointToAccommodation(clickedLL);
-  })
-
-  // 드로잉 기능 추가
-  setupCanvas();
-  setupDrawingTools();
-
-  // 지도 이벤트에 메모 랜더링 추가
-  kakao.maps.event.addListener(currentMap, 'zoom_changed', () => {
-    renderMemos();
-  });
-  kakao.maps.event.addListener(currentMap, 'dragend', () => {
-    renderMemos();
-  });
-  kakao.maps.event.addListener(currentMap, 'center_changed', () => {
-    renderMemos();
-  });
-
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
