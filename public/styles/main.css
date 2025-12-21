@@ -814,3 +814,134 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-light);
 }
+
+/* ==================== Canvas 오버레이 스타일 ==================== */
+
+#kakao-map {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#drawing-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Pan 모드일 때는 이벤트 무시 */
+  z-index: 10;
+  cursor: crosshair;
+}
+
+/* 도구별 커서 */
+.map-canvas[data-tool="pan"] #drawing-canvas {
+  cursor: grab;
+}
+
+.map-canvas[data-tool="memo"] #drawing-canvas,
+.map-canvas[data-tool="highlight"] #drawing-canvas {
+  cursor: crosshair;
+}
+
+.map-canvas[data-tool="text"] #drawing-canvas {
+  cursor: text;
+}
+
+.map-canvas[data-tool="eraser"] #drawing-canvas {
+  cursor: pointer;
+}
+
+/* 비디오 타일 개선 */
+.video-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.video-tile.local {
+  border: 2px solid var(--primary);
+}
+
+/* 시스템 메시지 스타일 */
+.message.system-message {
+  background: #f3f4f6 !important;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* 채팅 메시지 애니메이션 */
+.message {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 지도 placeholder가 사라졌을 때 */
+.map-placeholder.hidden {
+  display: none !important;
+}
+
+/* 비디오 컨트롤 버튼 활성화 상태 */
+.video-control-btn.active {
+  background: var(--primary);
+}
+
+.video-control-btn.disabled {
+  background: #ef4444;
+}
+
+/* 툴바 버튼 호버 효과 개선 */
+.tool-btn {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.tool-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.tool-btn:hover::after {
+  opacity: 1;
+}
+
+/* 로딩 상태 */
+.loading-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

@@ -9,6 +9,8 @@
 // =====================================================
 
 const API_BASE_URL = "http://localhost:8080";
+let currentTripId = null;
+let currentUserData = null;
 
 // =====================================================
 // ✅ Auth / Token helpers
@@ -99,6 +101,12 @@ async function checkMe() {
     }
 
     console.log("✅ me:", data.user);
+
+    // 사용자 정보 저장
+    currentUserData = data.user;
+    localStorage.setItem('userId', data.user._id || data.user.userid);
+    localStorage.setItem('username', data.user.nickname || '사용자');
+
   } catch (e) {
     console.error("me error:", e);
     alert("서버 통신 중 오류가 발생했습니다.");
@@ -1521,6 +1529,14 @@ async function loadLatestRouteAndRenderTabs() {
   }
 
   const data = await res.json();
+
+  currentTripId = data.route?.tripId;
+
+  if (currentTripId) {
+    console.log(`Current Trip ID: ${currentTripId}`);
+    localStorage.setItem('lastTripId', currentTripId);
+  }
+
   renderDayTabs(data.route);
 }
 
@@ -1540,6 +1556,11 @@ async function loadRouteForTripAndRenderTabs(tripId) {
   }
 
   const data = await res.json();
+
+  // tripId 저장
+  currentTripId = tripId;
+  localStorage.setItem('lastTripId', tripId);
+
   renderDayTabs(data.route);
 }
 
@@ -1621,6 +1642,21 @@ function initKakaoMap() {
     const latlng = mouseEvent.latLng;
     const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
     linkClickedPointToAccommodation(clickedLL);
+  })
+
+  // 드로잉 기능 추가
+  setupCanvas();
+  setupDrawingTools();
+
+  // 지도 이벤트에 메모 랜더링 추가
+  kakao.maps.event.addListener(currentMap, 'zoom_changed', () => {
+    renderMemos();
+  });
+  kakao.maps.event.addListener(currentMap, 'dragend', () => {
+    renderMemos();
+  });
+  kakao.maps.event.addListener(currentMap, 'center_changed', () => {
+    renderMemos();
   });
 
   if (pendingDayToRender) {
@@ -1666,6 +1702,8 @@ document.addEventListener("DOMContentLoaded", () => {
         subSelection.innerHTML =
           '<option value="">선택 가능한 항목이 없습니다</option>';
       }
+
+      initCollaboration();
     });
   }
 
@@ -1936,3 +1974,490 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+// ==========================================================
+import Collaboration from './Collaboration.mjs';
+import VideoChat from './VideoChat.mjs';
+
+
+// ==================== 지도 & 드로잉 시스템 ====================
+let canvas = null;
+let ctx = null;
+let currentTool = 'pan';
+let memos = [];
+let isDrawing = false;
+let currentPath = [];
+let undoStack = [];
+let collaboration = null;
+let videoChat = null;
+
+function setupCanvas() {
+  const mapCanvas = document.querySelector('.map-canvas');
+
+  // Canvase 요소 생성
+  canvas = document.createElement('canvas');
+  canvas.id = 'drawing-canvas';
+  canvas.style.position = 'absolute';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.style.pointerEvents = 'auto';
+  canvas.style.zIndex = '10';
+
+  mapCanvas.appendChild(canvas);
+
+  // Canvas 크기 설정
+  const resizeCanvas = () => {
+    canvas.width = mapCanvas.clientWidth;
+    canvas.height = mapCanvas.clientHeight;
+    renderMemos();
+  }
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  ctx = canvas.getContext('2d'); // 2D 그래픽 컨텍스트 생성(CanvasRenderingContext2D)
+
+  // Canvas 마우스 이벤트
+  canvas.addEventListener('mousedown', handleCanvasMouseDown);
+  canvas.addEventListener('mousemove', handleCanvasMouseMove);
+  canvas.addEventListener('mouseup', handleCanvasMouseUp);
+  canvas.addEventListener('mouseout', handleCanvasMouseUp);
+
+  // Canvas 터치 이벤트
+  canvas.addEventListener('touchstart', handleCanvasTouchStart);
+  canvas.addEventListener('touchmove', handleCanvasTouchMove);
+  canvas.addEventListener('touchend', handleCanvasTouchEnd);
+  canvas.addEventListener('touchcancel', handleCanvasTouchEnd);
+}
+
+// 드로잉 도구 설정
+function setupDrawingTools() {
+  const toolButtons = document.querySelectorAll('.tool-btn');
+  const tools = ['hand', 'memo', 'highlight', 'text', 'eraser', 'undo'];
+
+  toolButtons.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      const tool = tools[index];
+
+      // Undo는 즉시 실행
+      if (tool === 'undo') {
+        undoLastMemo();
+        return;
+      }
+
+      // 도구 변경
+      currentTool = tool;
+
+      // 활성화 스타일
+      toolButtons.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // pan 모드일 때는 지도 드래그 가능, 아니면 불가
+      if (tool === 'pan') {
+        currentMap.setDraggable(true);
+        currentMap.setZoomable(true);
+        canvas.style.pointerEvents = 'none';
+      } else {
+        currentMap.setDraggable(false);
+        currentMap.setZoomable(false);
+        canvas.style.pointerEvents = 'auto';
+      }
+
+      console.log('Tool changed:', tool);
+    })
+  })
+}
+
+// 마우스 다운 이벤트
+function handleCanvasMouseDown(e) {
+  if (currentTool === 'pan') return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clinetX - rect.left;
+  const y = e.clientY - rect.top;
+
+  if (currentTool === 'eraser') {
+    // 지우개: 클릭한 위치의 메모 삭제
+    const clickedMemo = findMemoAtPosition(x, y);
+    if (clickedMemo) {
+      removeMemo(clickedMemo._id);
+    }
+    return;
+  }
+
+  if (currentTool === 'text') {
+    // 텍스트 입력
+    const text = prompt('메모 내용을 입력하세요:');
+    if (text) {
+      const latLng = pixelToLatLng(x, y);
+      addTextMemo(text, latLng);
+    }
+    return;
+  }
+
+  // 드로잉 시작
+  isDrawing = true;
+  currentPath = [{ x, y, latLng: pixelToLatLng(x, y)}];
+}
+
+// 마우스 이동 이벤트
+function handleCanvasMouseMove(e) {
+  if (!isDrawing) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  currentPath.push({ x, y, latLng: pixelToLatLng(x, y)});
+
+  // 실시간 미리보기
+  renderMemos();
+  drawPathPreview(currentPath);
+}
+
+// 마우스 업 이벤트
+function handleCanvasMouseUp(e) {
+  if (!isDrawing) return;
+
+  isDrawing = false;
+
+  if (currentPath.length > 2) { // 점 3개 이상이 모여야 선
+    // 메모 생성
+    const memo = {
+      id: crypto.randomUUID(),
+      type: 'path',
+      coords: currentPath.map(p => p.latLng), // 지도를 확대하거나 축소해도 메모가 엉뚱한 곳으로 가지 않고 실제 지리적 위치에 고정
+      style: {
+        color: currentTool === 'highlight' ? '#ffeb3b' : '#ff5252',
+        width: currentTool === 'highlight' ? 8 : 3,
+        opacity: currentTool === 'highlight' ? 0.6 : 1
+      },
+      createdBy: localStorage.getItem('userId') || 'anonymous', // 메모 생성자
+      timeStamp: Date.now() // 메모 생성 시간
+    };
+
+    addMemo(memo);
+  }
+
+  currentPath = [];
+}
+
+// 경로 미리보기
+function drawPathPreview(path) {
+  if (path.length < 2) return;
+
+  ctx.strokeStyle = currentTool === 'highlight' ? 'rgba(255, 235, 59, 0.6)' : '#ff5252';
+  ctx.lineWidth = currentTool === 'highlight' ? 8 : 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  ctx.beginPath(); // 경로 시작
+  ctx.moveTo(path[0].x, path[0].y); // 첫 번째 점으로 이동
+
+  for (let i = 1; i < path.length; i++) {
+    ctx.lineTo(path[i].x, path[i].y) // 다음 점으로 선 그리기
+  }
+
+  ctx.stroke(); // 선 그리기
+}
+
+// 메모 추가
+function addMemo(memo) {
+  memos.push(memo);      // 메모 배열에 추가
+  undoStack.push(memo);  // 되돌리기 스택에 추가
+
+  // Socket으로 전송
+  if (collaboration) {
+    collaboration.sendMemo(memo); // 협업 모드에서 메모 전송
+  }
+
+  renderMemos();
+  console.log('Memo added:', memo);
+}
+
+// 텍스트 메모 추가
+function addTextMemo(text, latLng) {
+  const memo = {
+    id: crypto.randomUUID(),
+    type: 'text',
+    coords: [latLng],
+    text: text,
+    style: {
+      color: '#000000',
+      fontSize: 16
+    },
+    createdBy: localStorage.getItem('userId') || 'anonymous',
+    timestamp: Date.now()
+  }
+
+  addMemo(memo);
+}
+
+// 메모 삭제
+function removeMemo(memoId) {
+  memos = memos.filter(m => m.id !== memoId);
+  
+  // Socket으로 전송
+  if (collaboration) {
+    collaboration.deleteMemo(memoId);
+  }
+
+  renderMemos();
+  console.log('Memo removed:', memoId);
+}
+
+// Undo
+function undoLastMemo() {
+  if (undoStack.length === 0) {
+    alert('실행 취소할 작업이 없습니다.')
+    return;
+  }
+
+  const lastMemo = undoStack.pop();
+  removeMemo(lastMemo.id);
+}
+
+// 점과 선분 사이의 최단 거리 계산
+function distanceToSegment(px, py, x1, y1, x2, y2) {
+  const A = px - x1; // 선분의 시작점에서 마우스포인터로 향하는 마우스 위치 벡터
+  const B = py - y1; 
+  const C = x2 - x1; // 선분의 시작점에서 끝점으로 향하는 선분 백터
+  const D = y2 - y1; 
+
+  const dot = A * C + B * D; // 벡터의 내적(내적: 그 선분 방향으로 얼마나 나아갔는가)
+  const lenSq = C * C + D * D; // 선분 실제 길이, 피타고라스 정리로 계산
+
+  /* 
+    param: 선분백터 위에서 마우스와 가장 가까운 지점이 어디인지를 나타내는 비율
+    param < 0: 선분 밖, 최단거리: 시작점과의 거리
+    param > 1: 선분 끝점, 최단거리: 끝점과의 거리
+    param = 0 ~ 1: 선분 위의 지점, 최단거리: 선분에 내린 수선의 발
+  */
+  let param = -1; 
+  if (lenSq !== 0) {
+    param = dot / lenSq; // 마우스 포인터가 선분 방향으로 얼마나 나아갔는가/ 선분 길이로 나누어 비율로 계산
+  }
+
+  let xx, yy; // xx: 최단거리 지점의 x 좌표, yy: 최단거리 지점의 y 좌표
+
+  if (param < 0) {
+    // 선분 시작점이 가장 가까움
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    // 선분 위의 지점이 가장 가까움
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+  const dx = px - xx; // x 좌표 차이
+  const dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy); // 피타고라스 정리로 최단거리 계산
+}
+
+// 위치에서 메모 찾기
+function findMemoAtPosition(x, y) {
+  const CLICK_THRESHOLD = 15; // 클릭 허용 범위 (픽셀)
+  
+  for (let i = memos.length - 1; i >= 0; i--) {
+    const memo = memos[i];
+
+    if (memo.type === 'text') {
+      // 텍스트: 사각형 영역 체크
+      const pixel = latLngToPixel(memo.coords[0]); // 메모의 지리적 위치를 픽셀 좌표로 변환
+      const dist = Math.sqrt((pixel.x - x) ** 2 + (pixel.y - y) ** 2); // 픽셀 좌표와 마우스 포인터 사이의 거리 계산
+      if (dist < CLICK_THRESHOLD + 10) return memo; // 텍스트는 조금 더 넓게 (펜 선보다 클릭하기 어려움)
+    } else if (memo.type === 'path') {
+      // 경로: 각 선분과의 최단 거리 계산
+      const pixels = memo.coords.map(coord => latLngToPixel(coord)); // 메모의 지리적 위치를 픽셀 좌표로 변환
+
+      for (let j = 0; j < pixels.length - 1; j++) {
+        const p1 = pixels[j];     // 선분의 시작점
+        const p2 = pixels[j + 1]; // 선분의 끝점
+
+        const dist = distanceToSegment(x, y, p1.x, p1.y, p2.x, p2.y);
+
+        // 선의 두께를 고려한 클릭 범위
+        const lineWidth = memo.style.width || 3;
+        const threshold = Math.max(CLICK_THRESHOLD, lineWidth + 5);
+
+        if (dist < threshold) return memo;
+      }
+    }
+  }
+  return null;
+}
+
+// 모든 메모 렌더링
+function renderMemos() {
+  if (!ctx || !currentMap) return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  memos.forEach(memo => {
+    if (memo.type === 'path') {
+      drawPathMemo(memo);
+    } else if (memo.type === 'text') {
+      drawTextMemo(memo);
+    }
+  })
+}
+
+// 경로 메모 그리기
+function drawPathMemo(memo) {
+  if (memo.coords.length < 2) return;
+
+  const pixels = memo.coords.map(coord => latLngToPixel(coord));
+
+  ctx.strokeStyle = memo.style.opacity < 1
+    ? `rgba(${hexToRgb(memo.style.color)}, ${memo.style.opacity})`
+    : memo.style.color;
+  ctx.lineWidth = memo.style.width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(pixels[0].x, pixels[0].y);
+
+  for (let i = 1; i < pixels.length; i++) {
+    ctx.lineTo(pixels[i].x, pixels[i].y);
+  }
+
+  ctx.stroke();
+}
+
+// 텍스트 메모 그리기
+function drawTextMemo(memo) {
+  const pixel = latLngToPixel(memo.coords[0]);
+
+  ctx.font = `${memo.style.fontSize}px sans-serif`;
+  ctx.fillStyle = memo.style.color;
+  ctx.textBaseline = 'top'; // 텍스트 메모의 기준점을 위쪽으로 설정(사각형 배경 안에 글자 배치 수월)
+
+  // 배경
+  const metrix = ctx.measureText(memo.text); // 텍스트 메모의 너비와 높이 계산
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fillRect(pixel.x, pixel.y, metrics.width + 8, memo.style.fontSize + 8);
+
+  // 테두리
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(pixel.x, pixel.y, metrics.width + 8, memo.style.fontSize + 8);
+
+  // 텍스트
+  ctx.fillStyle = memo.style.color;
+  ctx.fillText(memo.text, pixel.x + 4, pixel.y + 4);
+}
+
+// 좌표 변환: 픽셀 -> 위경도
+function pixelToLatLng(x, y) {
+  // 지도는 둥근 지구(3D)를 평면(2D)으로 펼쳐놓은 것. 이 평면과 구체 사이의 수학적 변환 규칙을 담고 있는 객체가 projection
+  const projection = currentMap.getProjection(); 
+  // 단순한 숫자 쌍인 x, y를 카카오맵 API가 인식할 수 있는 전용 좌표 객체로 래핑(Wrapping), 캔버스의 왼쪽 상단으로부터의 거리
+  const point = new kakao.maps.Point(x, y);
+  // 컨테이너 좌표를 지리 좌표, ex) 현재 화면의 (500, 300)위치는 실제 지구의 북위 37.5, 동경 127.0 위치에 해당
+  const coords = projection.coordsFromContainerPoint(point);
+  return { x: point.x, y: point.y }; 
+}
+
+// 좌표 변환: 위경도 -> 픽셀
+function latLngToPixel(latLng) {
+  const projection = currentMap.getProjection();
+  const coords = new kakao.maps.LatLng(latLng.lat, latLng.lng);
+  const point = projection.containerPointFromCoords(coords);
+  return { x: point.x, y: point.y };
+}
+
+// Hex to RGB
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : '0, 0, 0';
+}
+
+// ==================== getTripId 헬퍼 함수 추가 ===========
+function getTripId() {
+  // 1. URL 파라미터 우선
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTripId = urlParams.get('tripId');
+  if (urlTripId) {
+    currentTripId = urlTripId;
+    return urlTripId;
+  }
+
+  // 2. 전역 변수 (route 로드 시 설정됨)
+  if (currentTripId) return currentTripId;
+
+  // 3. localStorage (마지막 방문한 여행)
+  const lastTripId = localStorage.getItem('lastTripId');
+  if (lastTripId) {
+    currentTripId = lastTripId;
+    return lastTripId;
+  }
+
+  return null;
+}
+
+// ==================== 협업 모듈 초기화 ====================
+async function initCollaboration() {
+  try {
+    const tripId = getTripId();
+
+    if (!tripId) {
+      console.warn('⚠️ No trip ID available, waiting for route load...');
+      // route 로드 대기 (최대 5초)
+      let attempts = 0;
+      while (!currentTripId && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!currentTripId) {
+        console.warn('⚠️ Trip ID not available, collaboration disabled');
+        return;
+      }     
+    }
+
+      // 사용자 정보 가져오기 (checkMe에서 설정됨)
+      const userId = localStorage.getItem('userId') || crypto.randomUUID();
+      const userName = localStorage.getItem('username') || '사용자'
+
+       // Collaboration 초기화
+    collaboration = new Collaboration({
+      chatContainer: '#chat-messages',
+      chatInput: '#chat-input',
+      onMemoReceived: (memo) => {
+        // 중복 체크
+        if (!memos.find(m => m.id === memo.id)) {
+          memos.push(memo);
+          renderMemos();
+        }
+      },
+      onMemoDeleted: (memoId) => {
+        memos = memos.filter(m => m.id !== memoId);
+        renderMemos();
+      }
+    });
+
+     // VideoChat 초기화
+     videoChat = new VideoChat({
+      container: '.video-grid',
+      controls: '.video-controls'
+    });
+
+    // Room 참가
+    collaboration.joinRoom(currentTripId, userId, username);
+    
+    console.log(`✅ Collaboration initialized`);
+    console.log(`   - Trip ID: ${currentTripId}`);
+    console.log(`   - User ID: ${userId}`);
+    console.log(`   - Username: ${username}`);
+  } catch (error) {
+    console.error('❌ Failed to initialize collaboration:', error);
+  }
+}

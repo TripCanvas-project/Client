@@ -131,6 +131,12 @@ class Collaboration {
     displayChatMessage(username, message, timestamp) {
         if (!this.chatContainer) return;
 
+        // Placeholder 제거
+        const placeholder = this.chatContainer.querySelector('.chat-placeholder');
+        if (placeholder) {
+          placeholder.remove();
+        }
+
         const messageEl = document.createElement('div');
         messageEl.className = 'message';
 
