@@ -1664,6 +1664,21 @@ function initKakaoMap() {
     const latlng = mouseEvent.latLng;
     const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
     linkClickedPointToAccommodation(clickedLL);
+  })
+
+  // 드로잉 기능 추가
+  setupCanvas();
+  setupDrawingTools();
+
+  // 지도 이벤트에 메모 랜더링 추가
+  kakao.maps.event.addListener(currentMap, 'zoom_changed', () => {
+    renderMemos();
+  });
+  kakao.maps.event.addListener(currentMap, 'dragend', () => {
+    renderMemos();
+  });
+  kakao.maps.event.addListener(currentMap, 'center_changed', () => {
+    renderMemos();
   });
 
   if (pendingDayToRender) {
@@ -1680,7 +1695,6 @@ function initKakaoMap() {
 
   console.log("✅ 카카오 지도가 성공적으로 초기화되었습니다.");
 }
-
 // =====================================================
 // ✅ DOMContentLoaded (Main Wiring)
 // =====================================================
