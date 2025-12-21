@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-constserverUrl = 'http://localhost:3000'
+constserverUrl = 'http://localhost:8080'
 
 
 class SocketService {
