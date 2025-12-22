@@ -1533,8 +1533,15 @@ async function loadLatestRouteAndRenderTabs() {
   currentTripId = data.route?.tripId;
 
   if (currentTripId) {
-    console.log(`Current Trip ID: ${currentTripId}`);
+    console.log(`🚀 새 여행 생성됨 - tripId: ${currentTripId}`);
     localStorage.setItem("lastTripId", currentTripId);
+
+    // ✅ 여행 정보 가져오기 (예산 정보 포함)
+    await loadTripData(currentTripId);
+
+    // ✅ 예산과 일정 초기화 (새 여행이므로 빈 상태)
+    await loadMyExpenses();
+    await loadMySchedules();
   }
 
   renderDayTabs(data.route);
@@ -1561,8 +1568,14 @@ async function loadRouteForTripAndRenderTabs(tripId) {
   currentTripId = tripId;
   localStorage.setItem("lastTripId", tripId);
 
+  console.log(`🚀 여행 선택됨 - tripId: ${currentTripId}`);
+
   // 여행 정보 가져오기 (예산 정보 포함)
   await loadTripData(tripId);
+
+  // ✅ 여행 선택 시 예산과 일정 다시 불러오기
+  await loadMyExpenses();
+  await loadMySchedules();
 
   renderDayTabs(data.route);
 }
@@ -2646,6 +2659,13 @@ async function addExpense() {
     return;
   }
 
+  // ✅ currentTripId 확인
+  if (!currentTripId) {
+    alert("여행을 먼저 선택해주세요.");
+    console.error("❌ currentTripId가 설정되지 않았습니다.");
+    return;
+  }
+
   const name = document.getElementById("expense-name")?.value.trim();
   const category = document.getElementById("expense-category")?.value;
   const amount = document.getElementById("expense-amount")?.value;
@@ -2659,6 +2679,8 @@ async function addExpense() {
     alert("금액은 0보다 커야 합니다.");
     return;
   }
+
+  console.log(`💰 지출 추가 - tripId: ${currentTripId}, name: ${name}, amount: ${amount}`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/budget`, {
@@ -2701,9 +2723,13 @@ async function addExpense() {
 async function loadMyExpenses() {
   const token = getToken();
   if (!token || !currentTripId) {
-    console.log("여행 ID가 없거나 로그인이 필요합니다.");
+    console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
+    console.log(`   - token: ${token ? '있음' : '없음'}`);
+    console.log(`   - currentTripId: ${currentTripId || '없음'}`);
     return;
   }
+
+  console.log(`📊 지출 불러오기 - tripId: ${currentTripId}`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/budget/my/${currentTripId}`, {
@@ -2822,6 +2848,13 @@ async function saveSchedule() {
     return;
   }
 
+  // ✅ currentTripId 확인
+  if (!currentTripId) {
+    alert("여행을 먼저 선택해주세요.");
+    console.error("❌ currentTripId가 설정되지 않았습니다.");
+    return;
+  }
+
   const time = document.getElementById("schedule-time")?.value;
   const title = document.getElementById("schedule-title")?.value.trim();
   const location = document.getElementById("schedule-location")?.value.trim();
@@ -2830,6 +2863,8 @@ async function saveSchedule() {
     alert("모든 항목을 입력해주세요.");
     return;
   }
+
+  console.log(`📅 일정 추가 - tripId: ${currentTripId}, title: ${title}, time: ${time}`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/schedule`, {
@@ -2868,9 +2903,13 @@ async function saveSchedule() {
 async function loadMySchedules() {
   const token = getToken();
   if (!token || !currentTripId) {
-    console.log("여행 ID가 없거나 로그인이 필요합니다.");
+    console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
+    console.log(`   - token: ${token ? '있음' : '없음'}`);
+    console.log(`   - currentTripId: ${currentTripId || '없음'}`);
     return;
   }
+
+  console.log(`📅 일정 불러오기 - tripId: ${currentTripId}`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/schedule/my/${currentTripId}`, {
