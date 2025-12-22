@@ -45,8 +45,7 @@ async function loadMyTrips() {
     document.querySelector(".visitedPlaces").innerText = user.stats.totalPlaces;
 }
 
-// 여행 리스트 렌더링
-function renderTrips(trips) {
+function renderTrips(trips, tripStyles = {}) {
     const container = document.getElementById("activeTrips");
     container.innerHTML = "";
 
@@ -58,6 +57,7 @@ function renderTrips(trips) {
     trips.forEach((trip) => {
         const card = document.createElement("div");
         card.className = "trip-card";
+        card.dataset.tripId = trip._id;
 
         card.innerHTML = `
             <div class="trip-thumbnail">
@@ -69,48 +69,135 @@ function renderTrips(trips) {
 
             <div class="trip-content">
                 <h3 class="trip-title">${trip.title}</h3>
-                <p class="trip-dates">
-                    ${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}
-                </p>
-
-                <div class="trip-meta">
-                    <span>
-                        💰 ₩${trip.constraints?.budget?.spent || 0}
-                        / ₩${trip.constraints?.budget?.total || 0}
-                    </span>
-                    <span>📍 ${trip.routes?.length || 0}개 장소</span>
-                </div>
-
-                <div class="trip-progress">
-                    <div class="trip-progress-label">
-                        <span>진행도</span>
-                        <span>${trip.progress || 0}%</span>
-                    </div>
-                    <div class="trip-progress-bar">
-                        <div class="trip-progress-fill"
-                             style="width:${trip.progress || 0}%"></div>
-                    </div>
-                </div>
 
                 <div class="trip-actions">
-                    <button class="trip-action-btn">✏️ 편집</button>
+                    <button class="trip-action-btn edit-btn">✏️ 편집</button>
+                </div>
+
+                <div class="trip-palette hidden">
+                    <div class="palette-section">
+                        <p>배경 색상</p>
+                        <div class="color-options">
+                            <span class="color" data-color="#60A5FA"></span>
+                            <span class="color" data-color="#34D399"></span>
+                            <span class="color" data-color="#FBBF24"></span>
+                            <span class="color" data-color="#F87171"></span>
+                            <span class="color" data-color="#A78BFA"></span>
+                        </div>
+                    </div>
+
+                    <div class="palette-section">
+                        <p>이모지</p>
+                        <input
+                            type="text"
+                            class="emoji-input"
+                            placeholder="✈️"
+                            maxlength="2"
+                        />
+                    </div>
                 </div>
             </div>
         `;
 
-        // card.onclick = () => {
-        //     location.href = `/trip.html?id=${trip._id}`;
-        // };
+        // 저장된 스타일 복원
+        applyTripStyle(card, tripStyles[trip._id]);
+
+        const editBtn = card.querySelector(".edit-btn");
+        const palette = card.querySelector(".trip-palette");
+        const thumbnail = card.querySelector(".trip-thumbnail");
+        const emojiInput = card.querySelector(".emoji-input");
+
+        // ✏️ 편집 버튼 → 팔레트 토글
+        editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            palette.classList.toggle("hidden");
+        });
+
+        palette.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+
+        // 🎨 색상 선택 → 썸네일 + 서버 저장
+        palette.querySelectorAll(".color").forEach((c) => {
+            c.addEventListener("click", async () => {
+                const color = c.dataset.color;
+
+                thumbnail.style.backgroundColor = color;
+
+                await saveTripStyle(trip._id, { color });
+            });
+        });
+
+        // 😀 이모지 입력 → 썸네일 + 서버 저장
+        emojiInput.addEventListener("input", async () => {
+            const value = emojiInput.value.trim();
+
+            const isEmoji = /\p{Extended_Pictographic}/u.test(value);
+            if (!isEmoji) {
+                emojiInput.value = "";
+                return;
+            }
+
+            thumbnail.firstChild.textContent = value;
+
+            await saveTripStyle(trip._id, { emoji: value });
+        });
 
         container.appendChild(card);
     });
 }
 
+async function saveTripStyle(tripId, style) {
+    try {
+        return await fetchWithAuth(`${API_BASE}/user/${tripId}/customize`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(style),
+        });
+    } catch (err) {
+        console.error("saveTripStyle failed:", err);
+        return null;
+    }
+}
+
+async function fetchMyTripStyles() {
+    try {
+        const res = await fetchWithAuth(`${API_BASE}/user/trip_styles`);
+        return res?.styles ?? {};
+    } catch (e) {
+        console.warn("trip styles fetch failed, fallback to empty");
+        return {};
+    }
+}
+
+function applyTripStyle(card, style) {
+    if (!style) return;
+
+    const thumbnail = card.querySelector(".trip-thumbnail");
+
+    if (style.color) {
+        thumbnail.style.backgroundColor = style.color;
+    }
+
+    if (style.emoji) {
+        thumbnail.firstChild.textContent = style.emoji;
+    }
+}
+
+document.addEventListener("click", () => {
+    document
+        .querySelectorAll(".trip-palette")
+        .forEach((p) => p.classList.add("hidden"));
+});
+
 // 상태별 여행 로드
 async function loadTripsByStatus(status) {
     const trips = await fetchWithAuth(`${API_BASE}/trip?status=${status}`);
-    console.log(trips);
-    renderTrips(trips);
+    const tripStyles = await fetchMyTripStyles();
+
+    renderTrips(trips, tripStyles);
     updateTabCount(status, trips.length);
 }
 
@@ -142,11 +229,11 @@ async function initDashboard() {
     try {
         await loadMyTrips();
 
-        // 기본 탭 렌더
+        // 기본 탭
         const activeTrips = await fetchWithAuth(
             `${API_BASE}/trip?status=active`
         );
-        renderTrips(activeTrips);
+
         updateTabCount("active", activeTrips.length);
 
         // 버킷리스트 로드
@@ -165,6 +252,9 @@ async function initDashboard() {
         updateTabCount("completed", completedTrips.length);
 
         initTabs();
+
+        const tripStyles = await fetchMyTripStyles();
+        renderTrips(activeTrips, tripStyles);
     } catch (err) {
         console.error(err);
     }
@@ -222,3 +312,23 @@ function getStatusLabel(status) {
 //         grid.appendChild(card);
 //     });
 // }
+
+// 새 여행 만들기 버튼
+const createNewTripBtn = document.querySelector(".createNewTripBtn");
+createNewTripBtn.addEventListener("click", async () => {
+    try {
+        const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
+
+        if (!newTrip.ok) throw new Error("새 여행 생성 실패");
+
+        const data = await newTrip.json(); // { tripId: "..." }
+        console.log("New trip created:", data);
+        const tripId = data.tripId;
+
+        // tripId에 해당하는 main.html로 이동
+        window.location.href = `/main.html?tripId=${tripId}`;
+    } catch (err) {
+        console.error(err);
+        alert("새 여행 생성 중 오류가 발생했습니다.");
+    }
+});
