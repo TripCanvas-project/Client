@@ -292,6 +292,28 @@ body {
   border-color: var(--primary);
 }
 
+.input-with-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.input-with-btn input {
+  flex: 1;
+}
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 900;
+}
+.icon-btn:hover {
+  border-color: var(--primary);
+  background: var(--hover);
+}
+
 .template-chips {
   display: flex;
   flex-wrap: wrap;
