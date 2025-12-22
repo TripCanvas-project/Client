@@ -6,7 +6,7 @@ class Collaboration {
     constructor() {
         this.options = this.options;
         this.roomId = null;
-        this.userId = nulll;
+        this.userId = null;
         this.userId = null; // username
         this.username = null; // name
         this.isConnected = false;
