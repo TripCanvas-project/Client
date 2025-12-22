@@ -11,8 +11,24 @@
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <!-- 네비게이션 -->
-    <div id="navbar"></div>
+    <!-- 헤더 -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo" onclick="location.href='/dashboard.html'">
+          🗺️ TripCanvas
+        </div>
+        <div class="trip-title">여기에 trip title 렌더링</div>
+      </div>
+      <div class="header-right">
+        <div class="collab-users">
+          <div class="user-avatar" title="김철수">김</div>
+          <div class="user-avatar" title="김민수">김</div>
+          <div class="user-avatar" title="이지은">이</div>
+        </div>
+        <button class="btn btn-primary" id="saveBtn">💾 저장하기</button>
+        <button class="btn btn-secondary" id="logoutBtn">🚪 로그아웃</button>
+      </div>
+    </header>
 
     <script type="module">
       import { loadNavbar } from "./js/navbar.js";
@@ -36,12 +52,15 @@
 
             <div class="input-group">
               <label>출발지</label>
-              <input
-                type="text"
-                id="departure"
-                placeholder="예: 서울역"
-                value="서울역"
-              />
+
+              <div class="input-with-btn">
+                <input
+                  type="text"
+                  id="departure"
+                  placeholder="예: 서울역"
+                  value="서울역"
+                />
+              </div>
             </div>
 
             <div class="input-group input-group-destination">
@@ -355,15 +374,18 @@
 
             <!-- ✅ Main.mjs: chat-messages -->
             <div class="chat-messages" id="chat-messages">
-              <div class="chat-placeholder" style="
-                text-align: center; 
-                padding: 40px 20px; 
-                color: var(--text-light);
-                font-size: 14px;
-              ">
-                <div style="font-size: 48px; margin-bottom: 16px;">💬</div>
+              <div
+                class="chat-placeholder"
+                style="
+                  text-align: center;
+                  padding: 40px 20px;
+                  color: var(--text-light);
+                  font-size: 14px;
+                "
+              >
+                <div style="font-size: 48px; margin-bottom: 16px">💬</div>
                 <div>채팅 메시지가 없습니다</div>
-                <div style="margin-top: 8px; font-size: 12px;">
+                <div style="margin-top: 8px; font-size: 12px">
                   첫 메시지를 보내보세요!
                 </div>
               </div>
@@ -378,25 +400,28 @@
               <!-- VideoChat.mjs가 동적으로 비디오 타일 추가 -->
               <div class="video-grid">
                 <!-- Placeholder (선택사항) -->
-                <div class="video-placeholder" style="
-                  grid-column: 1 / -1;
-                  text-align: center;
-                  padding: 60px 20px;
-                  color: white;
-                  background: #334155;
-                  border-radius: 8px;
-                  margin: 8px;
-                ">
-                  <div style="font-size: 48px; margin-bottom: 16px;">📹</div>
-                  <div style="font-size: 16px; margin-bottom: 8px;">
+                <div
+                  class="video-placeholder"
+                  style="
+                    grid-column: 1 / -1;
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: white;
+                    background: #334155;
+                    border-radius: 8px;
+                    margin: 8px;
+                  "
+                >
+                  <div style="font-size: 48px; margin-bottom: 16px">📹</div>
+                  <div style="font-size: 16px; margin-bottom: 8px">
                     화상 채팅이 시작되지 않았습니다
                   </div>
-                  <div style="font-size: 13px; opacity: 0.7;">
+                  <div style="font-size: 13px; opacity: 0.7">
                     카메라 버튼(📹)을 눌러 통화를 시작하세요
                   </div>
                 </div>
               </div>
-              
+
               <div class="video-controls">
                 <button class="video-control-btn">🎤</button>
                 <button class="video-control-btn">📹</button>
@@ -495,5 +520,6 @@
     </div>
 
     <script type="module" src="./pages/Main.mjs"></script>
+    <script type="module" src="./pages/NavbarUserInfo.js"></script>
   </body>
 </html>
