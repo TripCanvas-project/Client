@@ -94,7 +94,6 @@ function renderTrips(trips) {
 
                 <div class="trip-actions">
                     <button class="trip-action-btn">✏️ 편집</button>
-                    <button class="trip-action-btn">👥 공유</button>
                 </div>
             </div>
         `;
