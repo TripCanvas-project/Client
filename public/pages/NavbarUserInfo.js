@@ -41,6 +41,7 @@ export async function loadNavbarUser() {
     };
 
     document.getElementById("logoutBtn").onclick = () => {
+        console.log("Logging out...");
         localStorage.removeItem("token");
         location.href = "/login.html";
     };

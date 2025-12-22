@@ -41,11 +41,101 @@ async function loadMyProfile() {
     statElements[0].innerText = user.stats.totalTrips;
     statElements[1].innerText = user.stats.totalPlaces;
     statElements[2].innerText = user.stats.totalBucketlists;
+
+    loadTripHistory();
 }
 
 loadMyProfile();
 
-/* ================= 탭 전환 ================= */
+async function loadTripHistory() {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+            "http://localhost:8080/trip/trip_history",
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.error("여행 히스토리 로드 실패");
+            return;
+        }
+
+        const histories = await response.json();
+        console.log("여행 히스토리:", histories);
+
+        const container = document.getElementById("tripHistoryContainer");
+
+        if (!histories || histories.length === 0) {
+            container.innerHTML =
+                '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리가 없습니다.</p>';
+            return;
+        }
+
+        // 최대 3개만 표시
+        const displayData = histories.slice(0, 3);
+
+        const html = displayData
+            .map(
+                (trip) => `
+            <div class="trip-history-item">
+                <div class="trip-history-icon">${getCategoryIcon(
+                    trip.category
+                )}</div>
+                <div class="trip-history-info">
+                    <div class="trip-history-title">${escapeHtml(
+                        trip.title
+                    )}</div>
+                    <div class="trip-history-date">${trip.dateRange}</div>
+                </div>
+                <div class="trip-history-stats">
+                    <span>💰 ${trip.budgetDisplay}</span>
+                    <span>📍 ${trip.placesDisplay}</span>
+                </div>
+            </div>
+        `
+            )
+            .join("");
+
+        container.innerHTML = html;
+    } catch (err) {
+        console.error("여행 히스토리 로드 중 오류:", err);
+        document.getElementById("tripHistoryContainer").innerHTML =
+            '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리를 불러올 수 없습니다.</p>';
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 카테고리별 아이콘 매핑
+function getCategoryIcon(category) {
+    const iconMap = {
+        카페: "☕",
+        맛집: "🍽️",
+        "역사/문화": "🏛️",
+        자연: "🌲",
+        쇼핑: "🛍️",
+        캠핑: "⛺",
+        food: "🍽️",
+        transport: "🚗",
+        accommodation: "🏨",
+        activity: "🎭",
+        shopping: "🛍️",
+        ticket: "🎫",
+        etc: "🏖️",
+    };
+    return iconMap[category] || "🏖️";
+}
+
+// 탭 전환
 document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
         const tabName = btn.dataset.tab;
@@ -63,7 +153,7 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
     });
 });
 
-/* ================= 이미지 미리보기 ================= */
+// 이미지 미리보기
 const avatarInput = document.getElementById("avatarUpload");
 const avatarContainer = document.querySelector(".profile-avatar-large");
 
@@ -81,7 +171,7 @@ avatarInput.addEventListener("change", (e) => {
     reader.readAsDataURL(file);
 });
 
-/* ================= 프로필 저장 ================= */
+// 프로필 저장
 const profileForm = document.getElementById("profileForm");
 
 profileForm.addEventListener("submit", async (e) => {
