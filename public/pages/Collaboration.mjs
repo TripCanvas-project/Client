@@ -1,4 +1,4 @@
-import socketService from '../../src/services/socket';
+import socketService from '../services/socket.js';
 
 const SERVER_URL = 'http://localhost:8080';
 
@@ -130,6 +130,12 @@ class Collaboration {
     // 채팅 메시지 표시
     displayChatMessage(username, message, timestamp) {
         if (!this.chatContainer) return;
+
+        // Placeholder 제거
+        const placeholder = this.chatContainer.querySelector('.chat-placeholder');
+        if (placeholder) {
+          placeholder.remove();
+        }
 
         const messageEl = document.createElement('div');
         messageEl.className = 'message';
