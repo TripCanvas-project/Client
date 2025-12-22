@@ -444,6 +444,76 @@
 
             <!-- 지출 목록은 Main.mjs의 loadMyExpenses()에서 동적으로 추가됩니다 -->
 
+            <!-- 지출 수정 폼 (숨김 상태) -->
+            <div
+              id="expense-edit-form"
+              style="
+                display: none;
+                margin-top: 20px;
+                background: var(--bg);
+                padding: 16px;
+                border-radius: 12px;
+                border: 2px solid #8b5cf6;
+              "
+            >
+              <div class="section-title">✏️ 지출 수정</div>
+
+              <div class="input-group">
+                <label>지출 항목</label>
+                <input
+                  type="text"
+                  id="edit-expense-name"
+                  placeholder="예: 바다 앞 카페"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>카테고리</label>
+                <select id="edit-expense-category" required>
+                  <option value="">카테고리 선택</option>
+                  <option value="식비">🍽️ 식비</option>
+                  <option value="교통비">🚗 교통비</option>
+                  <option value="숙박비">🏨 숙박비</option>
+                  <option value="액티비티">🎢 액티비티</option>
+                  <option value="쇼핑">🛍️ 쇼핑</option>
+                  <option value="입장권">🎫 입장권</option>
+                  <option value="기타">💡 기타</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label>금액 (원)</label>
+                <input
+                  type="number"
+                  id="edit-expense-amount"
+                  placeholder="예: 15000"
+                  min="0"
+                />
+              </div>
+
+              <div style="display: flex; gap: 10px">
+                <button
+                  class="btn-generate"
+                  id="update-expense-btn"
+                  style="margin-top: 0; flex: 1"
+                >
+                  💾 저장
+                </button>
+                <button
+                  class="btn-generate"
+                  id="cancel-edit-expense-btn"
+                  style="
+                    margin-top: 0;
+                    flex: 1;
+                    background: rgba(0, 0, 0, 0.1);
+                    color: rgba(0, 0, 0, 0.7);
+                  "
+                >
+                  ❌ 취소
+                </button>
+              </div>
+            </div>
+
             <!-- 지출 추가 폼 -->
             <div
               style="

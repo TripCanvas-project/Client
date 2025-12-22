@@ -2757,12 +2757,17 @@ async function loadMyExpenses() {
     expenses.forEach((expense) => {
       const expenseItem = document.createElement("div");
       expenseItem.className = "expense-item dynamic"; // 동적 아이템 표시
+      expenseItem.dataset.expenseId = expense._id;
       expenseItem.innerHTML = `
         <div class="expense-info">
           <div class="expense-name">${escapeHtml(expense.name)}</div>
           <div class="expense-category">#${escapeHtml(expense.category)}</div>
         </div>
-        <div class="expense-amount">₩${expense.amount.toLocaleString("ko-KR")}</div>
+        <div class="expense-amount" style="margin-bottom: 1.4rem;">₩${expense.amount.toLocaleString("ko-KR")}</div>
+        <div class="expense-actions">
+          <button class="btn-icon btn-edit-expense" title="수정" data-id="${expense._id}">✏️</button>
+          <button class="btn-icon btn-delete-expense" title="삭제" data-id="${expense._id}">🗑️</button>
+        </div>
       `;
 
       if (expenseForm) {
@@ -2771,6 +2776,10 @@ async function loadMyExpenses() {
     });
 
     updateBudgetSummary();
+
+    // 수정/삭제 버튼 이벤트 등록
+    attachExpenseActions();
+
     console.log(`✅ ${expenses.length}개의 지출 내역을 불러왔습니다.`);
   } catch (error) {
     console.error("지출 불러오기 오류:", error);
@@ -2813,6 +2822,142 @@ function updateBudgetSummary() {
   const totalSpentLabelEl = document.getElementById("total-spent-label");
   if (totalSpentLabelEl) {
     totalSpentLabelEl.textContent = `총 사용 금액: ₩${totalSpent.toLocaleString("ko-KR")}`;
+  }
+}
+
+// 지출 수정/삭제 버튼 이벤트 연결
+function attachExpenseActions() {
+  // 수정 버튼
+  document.querySelectorAll(".btn-edit-expense").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const expenseId = e.target.dataset.id;
+      openEditExpenseForm(expenseId);
+    });
+  });
+
+  // 삭제 버튼
+  document.querySelectorAll(".btn-delete-expense").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const expenseId = e.target.dataset.id;
+      if (confirm("이 지출을 삭제하시겠습니까?")) {
+        await deleteExpense(expenseId);
+      }
+    });
+  });
+}
+
+// 지출 수정 폼 열기
+function openEditExpenseForm(expenseId) {
+  const expenseItem = document.querySelector(`[data-expense-id="${expenseId}"]`);
+  if (!expenseItem) return;
+
+  const name = expenseItem.querySelector(".expense-name")?.textContent;
+  const category = expenseItem.querySelector(".expense-category")?.textContent.replace("#", "");
+  const amountText = expenseItem.querySelector(".expense-amount")?.textContent;
+  const amount = amountText.replace(/[₩,]/g, "").trim();
+
+  const editForm = document.getElementById("expense-edit-form");
+  if (editForm) {
+    editForm.style.display = "block";
+    editForm.dataset.expenseId = expenseId;
+    document.getElementById("edit-expense-name").value = name;
+    document.getElementById("edit-expense-category").value = category;
+    document.getElementById("edit-expense-amount").value = amount;
+  }
+}
+
+// 지출 수정 폼 닫기
+function closeEditExpenseForm() {
+  const editForm = document.getElementById("expense-edit-form");
+  if (editForm) {
+    editForm.style.display = "none";
+    delete editForm.dataset.expenseId;
+  }
+}
+
+// 지출 수정
+async function updateExpense() {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  const editForm = document.getElementById("expense-edit-form");
+  const expenseId = editForm?.dataset.expenseId;
+
+  if (!expenseId) {
+    alert("지출 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  const name = document.getElementById("edit-expense-name")?.value.trim();
+  const category = document.getElementById("edit-expense-category")?.value;
+  const amount = document.getElementById("edit-expense-amount")?.value;
+
+  if (!name || !category || !amount) {
+    alert("모든 항목을 입력해주세요.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget/${expenseId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name,
+        category,
+        amount: Number(amount),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "지출 수정에 실패했습니다.");
+      return;
+    }
+
+    alert("지출이 수정되었습니다!");
+    closeEditExpenseForm();
+    await loadMyExpenses();
+  } catch (error) {
+    console.error("지출 수정 오류:", error);
+    alert("지출 수정 중 오류가 발생했습니다.");
+  }
+}
+
+// 지출 삭제
+async function deleteExpense(expenseId) {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget/${expenseId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "지출 삭제에 실패했습니다.");
+      return;
+    }
+
+    alert("지출이 삭제되었습니다!");
+    await loadMyExpenses();
+  } catch (error) {
+    console.error("지출 삭제 오류:", error);
+    alert("지출 삭제 중 오류가 발생했습니다.");
   }
 }
 
@@ -3100,6 +3245,12 @@ async function deleteSchedule(scheduleId) {
 
 // 예산 추가 버튼
 document.getElementById("add-expense-btn")?.addEventListener("click", addExpense);
+
+// 지출 수정 저장 버튼
+document.getElementById("update-expense-btn")?.addEventListener("click", updateExpense);
+
+// 지출 수정 취소 버튼
+document.getElementById("cancel-edit-expense-btn")?.addEventListener("click", closeEditExpenseForm);
 
 // 일정 추가 버튼 (폼 열기)
 document.getElementById("add-schedule-btn")?.addEventListener("click", openScheduleForm);
