@@ -2763,10 +2763,12 @@ async function loadMyExpenses() {
           <div class="expense-name">${escapeHtml(expense.name)}</div>
           <div class="expense-category">#${escapeHtml(expense.category)}</div>
         </div>
-        <div class="expense-amount" style="margin-bottom: 1.4rem;">₩${expense.amount.toLocaleString("ko-KR")}</div>
-        <div class="expense-actions">
-          <button class="btn-icon btn-edit-expense" title="수정" data-id="${expense._id}">✏️</button>
-          <button class="btn-icon btn-delete-expense" title="삭제" data-id="${expense._id}">🗑️</button>
+        <div class="expense-right">
+          <div class="expense-amount">₩${expense.amount.toLocaleString("ko-KR")}</div>
+          <div class="expense-actions">
+            <button class="btn-expense-edit" data-id="${expense._id}">수정</button>
+            <button class="btn-expense-delete" data-id="${expense._id}">삭제</button>
+          </div>
         </div>
       `;
 
@@ -2828,7 +2830,7 @@ function updateBudgetSummary() {
 // 지출 수정/삭제 버튼 이벤트 연결
 function attachExpenseActions() {
   // 수정 버튼
-  document.querySelectorAll(".btn-edit-expense").forEach((btn) => {
+  document.querySelectorAll(".btn-expense-edit").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const expenseId = e.target.dataset.id;
       openEditExpenseForm(expenseId);
@@ -2836,7 +2838,7 @@ function attachExpenseActions() {
   });
 
   // 삭제 버튼
-  document.querySelectorAll(".btn-delete-expense").forEach((btn) => {
+  document.querySelectorAll(".btn-expense-delete").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const expenseId = e.target.dataset.id;
       if (confirm("이 지출을 삭제하시겠습니까?")) {
