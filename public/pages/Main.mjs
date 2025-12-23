@@ -2820,10 +2820,10 @@ function updateBudgetSummary() {
     remainingBudgetEl.textContent = `₩${remainingBudget.toLocaleString("ko-KR")}`;
   }
 
-  // budget-label: 총 사용 금액 표시
-  const totalSpentLabelEl = document.getElementById("total-spent-label");
-  if (totalSpentLabelEl) {
-    totalSpentLabelEl.textContent = `총 사용 금액: ₩${totalSpent.toLocaleString("ko-KR")}`;
+  /// budget-label: 총 예산 표시
+const totalBudgetLabelEl = document.getElementById("total-budget-label");
+if (totalBudgetLabelEl) {
+  totalBudgetLabelEl.textContent = `총 예산: ₩${personalBudget.toLocaleString("ko-KR")}`;
   }
 }
 

@@ -317,14 +317,14 @@
                 <button
                   class="btn-generate"
                   id="update-schedule-btn"
-                  style="margin-top: 0"
+                  style="margin-top: 0; flex: 1; text-align: center"
                 >
-                  💾 수정 저장
+                  💾 저장
                 </button>
                 <button
                   class="btn-secondary"
                   id="cancel-edit-schedule-btn"
-                  style="width: 100%; padding: 14px; margin-top: 0"
+                  style="margin-top: 0; flex: 1; padding: 14px; text-align: center"
                 >
                   취소
                 </button>
@@ -435,8 +435,8 @@
           <div class="panel-tab-content" id="budget-content">
             <div class="budget-summary">
               <div class="budget-amount" id="remaining-budget">₩0</div>
-              <div class="budget-label" id="total-spent-label">
-                총 사용 금액
+              <div class="budget-label" id="total-budget-label">
+                총 예산
               </div>
             </div>
 
@@ -494,21 +494,16 @@
                 <button
                   class="btn-generate"
                   id="update-expense-btn"
-                  style="margin-top: 0; flex: 1"
+                  style="margin-top: 0; flex: 1; text-align: center"
                 >
                   💾 저장
                 </button>
                 <button
-                  class="btn-generate"
+                  class="btn-secondary"
                   id="cancel-edit-expense-btn"
-                  style="
-                    margin-top: 0;
-                    flex: 1;
-                    background: rgba(0, 0, 0, 0.1);
-                    color: rgba(0, 0, 0, 0.7);
-                  "
+                  style="margin-top: 0; flex: 1; padding: 14px; text-align: center"
                 >
-                  ❌ 취소
+                  취소
                 </button>
               </div>
             </div>
