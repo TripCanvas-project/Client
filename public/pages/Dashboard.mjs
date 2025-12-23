@@ -228,6 +228,7 @@ function updateTabCount(status, count) {
 async function initDashboard() {
     try {
         await loadMyTrips();
+        await loadMyChallenges();
 
         // 기본 탭
         const activeTrips = await fetchWithAuth(
@@ -235,9 +236,6 @@ async function initDashboard() {
         );
 
         updateTabCount("active", activeTrips.length);
-
-        // 버킷리스트 로드
-        // await loadMyBucketlists();
 
         // planning 카운트
         const planningTrips = await fetchWithAuth(
@@ -332,3 +330,53 @@ createNewTripBtn.addEventListener("click", async () => {
         alert("새 여행 생성 중 오류가 발생했습니다.");
     }
 });
+
+async function loadMyChallenges() {
+    try {
+        const challenges = await fetchWithAuth(`${API_BASE}/bucket/`);
+
+        console.log("챌린지 데이터:", challenges);
+        renderChallenges(challenges);
+    } catch (err) {
+        console.error("챌린지 조회 실패:", err);
+    }
+}
+
+function renderChallenges(challenges) {
+    const grid = document.getElementById("challengesGrid");
+    grid.innerHTML = "";
+
+    if (!challenges || challenges.length === 0) {
+        grid.innerHTML = `<p class="empty-text">아직 챌린지가 없어요 😢</p>`;
+        return;
+    }
+
+    challenges.forEach((challenge) => {
+        const progressPercent = Math.min(
+            Math.round((challenge.current / challenge.target) * 100),
+            100
+        );
+
+        const card = document.createElement("div");
+        card.className = "challenge-card";
+
+        card.innerHTML = `
+            <div class="challenge-icon">${challenge.icon || "🎯"}</div>
+            <div class="challenge-name">${challenge.name}</div>
+            <div class="challenge-progress">
+                ${challenge.current} / ${challenge.target}
+            </div>
+            <div class="challenge-target">
+                ${challenge.target}개 목표
+            </div>
+            <div class="challenge-bar">
+                <div
+                    class="challenge-bar-fill"
+                    style="width: ${progressPercent}%"
+                ></div>
+            </div>
+        `;
+
+        grid.appendChild(card);
+    });
+}

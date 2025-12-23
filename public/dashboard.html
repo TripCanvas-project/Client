@@ -69,7 +69,7 @@
                 </button>
             </div>
 
-            <!-- 🔥 여행 카드 렌더링 영역 (JS 전용) -->
+            <!-- 여행 카드 렌더링 영역 (JS 전용) -->
             <div class="trips-grid" id="activeTrips"></div>
 
             <!-- 챌린지 섹션 -->
@@ -84,59 +84,8 @@
                     </button>
                 </div>
 
-                <div class="challenges-grid">
-                    <div class="challenge-card">
-                        <div class="challenge-icon">☕</div>
-                        <div class="challenge-name">카페 탐방가</div>
-                        <div class="challenge-progress">12/20</div>
-                        <div class="challenge-target">20개 카페 방문</div>
-                        <div class="challenge-bar">
-                            <div
-                                class="challenge-bar-fill"
-                                style="width: 60%"
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div class="challenge-card">
-                        <div class="challenge-icon">🍽️</div>
-                        <div class="challenge-name">미식가</div>
-                        <div class="challenge-progress">34/50</div>
-                        <div class="challenge-target">50개 맛집 방문</div>
-                        <div class="challenge-bar">
-                            <div
-                                class="challenge-bar-fill"
-                                style="width: 68%"
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div class="challenge-card">
-                        <div class="challenge-icon">📸</div>
-                        <div class="challenge-name">포토그래퍼</div>
-                        <div class="challenge-progress">89/100</div>
-                        <div class="challenge-target">100장 사진 촬영</div>
-                        <div class="challenge-bar">
-                            <div
-                                class="challenge-bar-fill"
-                                style="width: 89%"
-                            ></div>
-                        </div>
-                    </div>
-
-                    <div class="challenge-card">
-                        <div class="challenge-icon">🏃</div>
-                        <div class="challenge-name">여행벌레</div>
-                        <div class="challenge-progress">18/30</div>
-                        <div class="challenge-target">30개 도시 방문</div>
-                        <div class="challenge-bar">
-                            <div
-                                class="challenge-bar-fill"
-                                style="width: 60%"
-                            ></div>
-                        </div>
-                    </div>
-                </div>
+                <!-- 버킷리스트 js 동적 렌더링 부분 -->
+                <div class="challenges-grid" id="challengesGrid"></div>
             </div>
         </div>
         <!-- 대시보드 로직 -->
