@@ -8,7 +8,7 @@
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
 
