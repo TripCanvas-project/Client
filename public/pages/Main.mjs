@@ -12,9 +12,8 @@ const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
-let isExpenseEditMode = false;  // 수정 모드 플래그
-let currentEditingExpenseId = null;  // 수정 중인 지출 ID
-
+let isExpenseEditMode = false; // 수정 모드 플래그
+let currentEditingExpenseId = null; // 수정 중인 지출 ID
 
 // =====================================================
 // ✅ Auth / Token helpers
@@ -2609,6 +2608,7 @@ function handleCanvasTouchEnd(e) {
   });
   e.target.dispatchEvent(mouseEvent);
 }
+
 // =====================================================
 // 예산 & 일정 관리 기능 (Main.mjs에 추가할 코드)
 // =====================================================
@@ -2666,7 +2666,6 @@ async function addExpense() {
     return;
   }
 
-
   // ✅ currentTripId 확인
   if (!currentTripId) {
     alert("여행을 먼저 선택해주세요.");
@@ -2688,7 +2687,9 @@ async function addExpense() {
     return;
   }
 
-  console.log(`💰 지출 추가 - tripId: ${currentTripId}, name: ${name}, amount: ${amount}`);
+  console.log(
+    `💰 지출 추가 - tripId: ${currentTripId}, name: ${name}, amount: ${amount}`
+  );
 
   try {
     const response = await fetch(`${API_BASE_URL}/budget`, {
@@ -2732,8 +2733,8 @@ async function loadMyExpenses() {
   const token = getToken();
   if (!token || !currentTripId) {
     console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
-    console.log(`   - token: ${token ? '있음' : '없음'}`);
-    console.log(`   - currentTripId: ${currentTripId || '없음'}`);
+    console.log(`   - token: ${token ? "있음" : "없음"}`);
+    console.log(`   - currentTripId: ${currentTripId || "없음"}`);
     return;
   }
 
@@ -2756,11 +2757,15 @@ async function loadMyExpenses() {
 
     // 기존 동적으로 추가된 지출 항목 제거 (기본 예시 항목은 유지)
     const budgetContent = document.getElementById("budget-content");
-    const existingExpenses = budgetContent?.querySelectorAll(".expense-item.dynamic");
+    const existingExpenses = budgetContent?.querySelectorAll(
+      ".expense-item.dynamic"
+    );
     existingExpenses?.forEach((item) => item.remove());
 
     // 불러온 지출 내역 표시
-    const expenseForm = budgetContent?.querySelector("div[style*='margin-top: 20px']");
+    const expenseForm = budgetContent?.querySelector(
+      "div[style*='margin-top: 20px']"
+    );
 
     expenses.forEach((expense) => {
       const expenseItem = document.createElement("div");
@@ -2772,10 +2777,16 @@ async function loadMyExpenses() {
           <div class="expense-category">#${escapeHtml(expense.category)}</div>
         </div>
         <div class="expense-right">
-          <div class="expense-amount">₩${expense.amount.toLocaleString("ko-KR")}</div>
+          <div class="expense-amount">₩${expense.amount.toLocaleString(
+            "ko-KR"
+          )}</div>
           <div class="expense-actions">
-            <button class="btn-expense-edit" data-id="${expense._id}">수정</button>
-            <button class="btn-expense-delete" data-id="${expense._id}">삭제</button>
+            <button class="btn-expense-edit" data-id="${
+              expense._id
+            }">수정</button>
+            <button class="btn-expense-delete" data-id="${
+              expense._id
+            }">삭제</button>
           </div>
         </div>
       `;
@@ -2802,7 +2813,8 @@ function updateBudgetSummary() {
   let totalSpent = 0;
 
   expenseItems.forEach((item) => {
-    const amountText = item.querySelector(".expense-amount")?.textContent || "₩0";
+    const amountText =
+      item.querySelector(".expense-amount")?.textContent || "₩0";
     const amount = Number(amountText.replace(/[₩,]/g, ""));
     if (!isNaN(amount)) {
       totalSpent += amount;
@@ -2816,7 +2828,8 @@ function updateBudgetSummary() {
     personalBudget = currentTripData.constraints.budget.perPerson;
   } else {
     // 입력 필드에서 가져오기 (새로운 여행 생성 중)
-    personalBudget = parseFloat(document.getElementById("personal-budget")?.value) || 0;
+    personalBudget =
+      parseFloat(document.getElementById("personal-budget")?.value) || 0;
   }
 
   // 남은 예산 = 개인 예산 - 사용한 금액
@@ -2825,13 +2838,17 @@ function updateBudgetSummary() {
   // budget-amount: 남은 예산 표시
   const remainingBudgetEl = document.getElementById("remaining-budget");
   if (remainingBudgetEl) {
-    remainingBudgetEl.textContent = `₩${remainingBudget.toLocaleString("ko-KR")}`;
+    remainingBudgetEl.textContent = `₩${remainingBudget.toLocaleString(
+      "ko-KR"
+    )}`;
   }
 
   /// budget-label: 총 예산 표시
-const totalBudgetLabelEl = document.getElementById("total-budget-label");
-if (totalBudgetLabelEl) {
-  totalBudgetLabelEl.textContent = `총 예산: ₩${personalBudget.toLocaleString("ko-KR")}`;
+  const totalBudgetLabelEl = document.getElementById("total-budget-label");
+  if (totalBudgetLabelEl) {
+    totalBudgetLabelEl.textContent = `총 예산: ₩${personalBudget.toLocaleString(
+      "ko-KR"
+    )}`;
   }
 }
 
@@ -2858,11 +2875,15 @@ function attachExpenseActions() {
 
 // 지출 수정 폼 열기 (기존 추가 폼 재사용)
 function openEditExpenseForm(expenseId) {
-  const expenseItem = document.querySelector(`[data-expense-id="${expenseId}"]`);
+  const expenseItem = document.querySelector(
+    `[data-expense-id="${expenseId}"]`
+  );
   if (!expenseItem) return;
 
   const name = expenseItem.querySelector(".expense-name")?.textContent;
-  const category = expenseItem.querySelector(".expense-category")?.textContent.replace("#", "");
+  const category = expenseItem
+    .querySelector(".expense-category")
+    ?.textContent.replace("#", "");
   const amountText = expenseItem.querySelector(".expense-amount")?.textContent;
   const amount = amountText.replace(/[₩,]/g, "").trim();
 
@@ -2889,9 +2910,10 @@ function openEditExpenseForm(expenseId) {
   }
 
   // 폼으로 스크롤
-  document.getElementById("expense-form-container")?.scrollIntoView({ behavior: "smooth" });
+  document
+    .getElementById("expense-form-container")
+    ?.scrollIntoView({ behavior: "smooth" });
 }
-
 
 // 지출 수정 모드 취소 (추가 모드로 복귀)
 function closeEditExpenseForm() {
@@ -2941,18 +2963,21 @@ async function updateExpense() {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/budget/${currentEditingExpenseId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name,
-        category,
-        amount: Number(amount),
-      }),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/budget/${currentEditingExpenseId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          category,
+          amount: Number(amount),
+        }),
+      }
+    );
 
     const data = await response.json();
 
@@ -2969,7 +2994,6 @@ async function updateExpense() {
     alert("지출 수정 중 오류가 발생했습니다.");
   }
 }
-
 
 // 지출 삭제
 async function deleteExpense(expenseId) {
@@ -3050,7 +3074,9 @@ async function saveSchedule() {
     return;
   }
 
-  console.log(`📅 일정 추가 - tripId: ${currentTripId}, title: ${title}, time: ${time}`);
+  console.log(
+    `📅 일정 추가 - tripId: ${currentTripId}, title: ${title}, time: ${time}`
+  );
 
   try {
     const response = await fetch(`${API_BASE_URL}/schedule`, {
@@ -3090,19 +3116,22 @@ async function loadMySchedules() {
   const token = getToken();
   if (!token || !currentTripId) {
     console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
-    console.log(`   - token: ${token ? '있음' : '없음'}`);
-    console.log(`   - currentTripId: ${currentTripId || '없음'}`);
+    console.log(`   - token: ${token ? "있음" : "없음"}`);
+    console.log(`   - currentTripId: ${currentTripId || "없음"}`);
     return;
   }
 
   console.log(`📅 일정 불러오기 - tripId: ${currentTripId}`);
 
   try {
-    const response = await fetch(`${API_BASE_URL}/schedule/my/${currentTripId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/schedule/my/${currentTripId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     if (!response.ok) {
       console.error("일정 조회 실패");
@@ -3128,11 +3157,17 @@ async function loadMySchedules() {
         <div class="schedule-info">
           <div class="schedule-time">⏰ ${escapeHtml(schedule.time)}</div>
           <div class="schedule-title">${escapeHtml(schedule.title)}</div>
-          <div class="schedule-location">📍 ${escapeHtml(schedule.location)}</div>
+          <div class="schedule-location">📍 ${escapeHtml(
+            schedule.location
+          )}</div>
         </div>
         <div class="schedule-actions">
-          <button class="btn-icon btn-edit-schedule" title="수정" data-id="${schedule._id}">✏️</button>
-          <button class="btn-icon btn-delete-schedule" title="삭제" data-id="${schedule._id}">🗑️</button>
+          <button class="btn-icon btn-edit-schedule" title="수정" data-id="${
+            schedule._id
+          }">✏️</button>
+          <button class="btn-icon btn-delete-schedule" title="삭제" data-id="${
+            schedule._id
+          }">🗑️</button>
         </div>
       `;
 
@@ -3171,12 +3206,18 @@ function attachScheduleActions() {
 
 // 일정 수정 폼 열기
 function openEditScheduleForm(scheduleId) {
-  const scheduleItem = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+  const scheduleItem = document.querySelector(
+    `[data-schedule-id="${scheduleId}"]`
+  );
   if (!scheduleItem) return;
 
-  const time = scheduleItem.querySelector(".schedule-time")?.textContent.replace("⏰ ", "");
+  const time = scheduleItem
+    .querySelector(".schedule-time")
+    ?.textContent.replace("⏰ ", "");
   const title = scheduleItem.querySelector(".schedule-title")?.textContent;
-  const location = scheduleItem.querySelector(".schedule-location")?.textContent.replace("📍 ", "");
+  const location = scheduleItem
+    .querySelector(".schedule-location")
+    ?.textContent.replace("📍 ", "");
 
   const editForm = document.getElementById("schedule-edit-form");
   if (editForm) {
@@ -3216,7 +3257,9 @@ async function updateSchedule() {
 
   const time = document.getElementById("schedule-edit-time")?.value;
   const title = document.getElementById("schedule-edit-title")?.value.trim();
-  const location = document.getElementById("schedule-edit-location")?.value.trim();
+  const location = document
+    .getElementById("schedule-edit-location")
+    ?.value.trim();
 
   if (!time || !title || !location) {
     alert("모든 항목을 입력해주세요.");
@@ -3285,28 +3328,44 @@ async function deleteSchedule(scheduleId) {
 // =====================================================
 
 // 예산 추가 버튼
-document.getElementById("add-expense-btn")?.addEventListener("click", addExpense);
+document
+  .getElementById("add-expense-btn")
+  ?.addEventListener("click", addExpense);
 
 // 지출 저장 버튼 (수정 모드)
-document.getElementById("save-expense-btn")?.addEventListener("click", updateExpense);
+document
+  .getElementById("save-expense-btn")
+  ?.addEventListener("click", updateExpense);
 
 // 지출 취소 버튼 (수정 모드)
-document.getElementById("cancel-expense-btn")?.addEventListener("click", closeEditExpenseForm);
+document
+  .getElementById("cancel-expense-btn")
+  ?.addEventListener("click", closeEditExpenseForm);
 
 // 일정 추가 버튼 (폼 열기)
-document.getElementById("add-schedule-btn")?.addEventListener("click", openScheduleForm);
+document
+  .getElementById("add-schedule-btn")
+  ?.addEventListener("click", openScheduleForm);
 
 // 일정 저장 버튼
-document.getElementById("save-schedule-btn")?.addEventListener("click", saveSchedule);
+document
+  .getElementById("save-schedule-btn")
+  ?.addEventListener("click", saveSchedule);
 
 // 일정 추가 취소 버튼
-document.getElementById("cancel-schedule-btn")?.addEventListener("click", closeScheduleForm);
+document
+  .getElementById("cancel-schedule-btn")
+  ?.addEventListener("click", closeScheduleForm);
 
 // 일정 수정 저장 버튼
-document.getElementById("update-schedule-btn")?.addEventListener("click", updateSchedule);
+document
+  .getElementById("update-schedule-btn")
+  ?.addEventListener("click", updateSchedule);
 
 // 일정 수정 취소 버튼
-document.getElementById("cancel-edit-schedule-btn")?.addEventListener("click", closeEditScheduleForm);
+document
+  .getElementById("cancel-edit-schedule-btn")
+  ?.addEventListener("click", closeEditScheduleForm);
 
 // =====================================================
 // ✅ 초기 로드
@@ -3318,7 +3377,7 @@ async function initBudgetAndSchedule() {
   // currentTripId가 설정될 때까지 대기
   let attempts = 0;
   while (!currentTripId && attempts < 50) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     attempts++;
   }
 
@@ -3332,8 +3391,8 @@ async function initBudgetAndSchedule() {
 }
 
 // DOM이 준비되면 초기화
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBudgetAndSchedule);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBudgetAndSchedule);
 } else {
   initBudgetAndSchedule();
 }
