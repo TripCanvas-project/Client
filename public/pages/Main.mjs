@@ -8,7 +8,7 @@
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
@@ -2609,6 +2609,7 @@ function handleCanvasTouchEnd(e) {
   });
   e.target.dispatchEvent(mouseEvent);
 }
+<<<<<<< HEAD
 // =====================================================
 // 예산 & 일정 관리 기능 (Main.mjs에 추가할 코드)
 // =====================================================
@@ -3339,3 +3340,5 @@ if (document.readyState === 'loading') {
 } else {
   initBudgetAndSchedule();
 }
+=======
+>>>>>>> origin

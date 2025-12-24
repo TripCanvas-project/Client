@@ -6,29 +6,13 @@
     <title>TripCanvas - AI 기반 여행 플래너</title>
     <script
       type="text/javascript"
-      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
+      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
     ></script>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <!-- 헤더 -->
-    <header class="header">
-      <div class="header-left">
-        <div class="logo" onclick="location.href='/dashboard.html'">
-          🗺️ TripCanvas
-        </div>
-        <div class="trip-title">여기에 trip title 렌더링</div>
-      </div>
-      <div class="header-right">
-        <div class="collab-users">
-          <div class="user-avatar" title="김철수">김</div>
-          <div class="user-avatar" title="김민수">김</div>
-          <div class="user-avatar" title="이지은">이</div>
-        </div>
-        <button class="btn btn-primary" id="saveBtn">💾 저장하기</button>
-        <button class="btn btn-secondary" id="logoutBtn">🚪 로그아웃</button>
-      </div>
-    </header>
+    <!-- 네비게이션 -->
+    <div id="navbar"></div>
 
     <script type="module">
       import { loadNavbar } from "./js/navbar.js";

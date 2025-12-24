@@ -31,7 +31,7 @@ signupForm.addEventListener("submit", async (e) => {
   }
 
   try {
-    const API_BASE_URL = "http://localhost:8080";
+    const API_BASE_URL = "";
 
     const res = await fetch(`${API_BASE_URL}/user/signup`, {
       method: "POST",
