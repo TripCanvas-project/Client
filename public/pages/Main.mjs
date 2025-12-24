@@ -2609,12 +2609,9 @@ function handleCanvasTouchEnd(e) {
   });
   e.target.dispatchEvent(mouseEvent);
 }
-<<<<<<< HEAD
 // =====================================================
 // 예산 & 일정 관리 기능 (Main.mjs에 추가할 코드)
 // =====================================================
-
-// 이 파일의 내용을 Main.mjs 파일 끝에 복사해서 붙여넣으세요.
 
 // =====================================================
 // ✅ 여행 정보 불러오기
@@ -3340,5 +3337,3 @@ if (document.readyState === 'loading') {
 } else {
   initBudgetAndSchedule();
 }
-=======
->>>>>>> origin
