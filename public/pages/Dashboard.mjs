@@ -95,6 +95,16 @@ function renderTrips(trips, tripStyles = {}) {
                             maxlength="2"
                         />
                     </div>
+
+                    <div class="palette-section">
+                        <p>여행 제목 변경</p>
+                        <input
+                            type="text"
+                            class="title-input"
+                            placeholder="여행 제목"
+                            value="${trip.title}"
+                        />
+                    </div>
                 </div>
             </div>
         `;
@@ -106,6 +116,24 @@ function renderTrips(trips, tripStyles = {}) {
         const palette = card.querySelector(".trip-palette");
         const thumbnail = card.querySelector(".trip-thumbnail");
         const emojiInput = card.querySelector(".emoji-input");
+
+        const titleInput = card.querySelector(".title-input");
+        const titleElement = card.querySelector(".trip-title");
+
+        // 📝 여행 제목 변경 → 카드 + 서버 저장
+        titleInput.addEventListener("change", async () => {
+            const value = titleInput.value.trim();
+
+            if (!value) {
+                titleInput.value = trip.title; // 빈 값 방지
+                return;
+            }
+
+            // 화면 즉시 반영
+            titleElement.textContent = value;
+
+            await saveTripStyle(trip._id, { title: value });
+        });
 
         // ✏️ 편집 버튼 → 팔레트 토글
         editBtn.addEventListener("click", (e) => {
@@ -147,14 +175,14 @@ function renderTrips(trips, tripStyles = {}) {
     });
 }
 
-async function saveTripStyle(tripId, style) {
+async function saveTripStyle(tripId, style, title = null) {
     try {
         return await fetchWithAuth(`${API_BASE}/user/${tripId}/customize`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(style),
+            body: JSON.stringify({ style, title }),
         });
     } catch (err) {
         console.error("saveTripStyle failed:", err);
