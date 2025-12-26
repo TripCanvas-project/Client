@@ -6,29 +6,14 @@
     <title>TripCanvas - AI 기반 여행 플래너</title>
     <script
       type="text/javascript"
-      src="//dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
+      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
     ></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <!-- 헤더 -->
-    <header class="header">
-      <div class="header-left">
-        <div class="logo" onclick="location.href='/dashboard.html'">
-          🗺️ TripCanvas
-        </div>
-        <div class="trip-title">여기에 trip title 렌더링</div>
-      </div>
-      <div class="header-right">
-        <div class="collab-users">
-          <div class="user-avatar" title="김철수">김</div>
-          <div class="user-avatar" title="김민수">김</div>
-          <div class="user-avatar" title="이지은">이</div>
-        </div>
-        <button class="btn btn-primary" id="saveBtn">💾 저장하기</button>
-        <button class="btn btn-secondary" id="logoutBtn">🚪 로그아웃</button>
-      </div>
-    </header>
+    <!-- 네비게이션 -->
+    <div id="navbar"></div>
 
     <script type="module">
       import { loadNavbar } from "./js/navbar.js";
@@ -218,30 +203,8 @@
               <div class="section-title">📅 내 일정 목록</div>
 
               <!-- ✅ Main.mjs: schedule-list -->
+              <!-- 일정 목록은 Main.mjs의 loadMySchedules()에서 동적으로 추가됩니다 -->
               <div class="schedule-list" id="schedule-list">
-                <div class="schedule-item">
-                  <div class="schedule-info">
-                    <div class="schedule-time">⏰ 10:00 AM</div>
-                    <div class="schedule-title">광안리 해변 산책</div>
-                    <div class="schedule-location">📍 부산 광안리</div>
-                  </div>
-                  <div class="schedule-actions">
-                    <button class="btn-icon" title="수정">✏️</button>
-                    <button class="btn-icon" title="삭제">🗑️</button>
-                  </div>
-                </div>
-
-                <div class="schedule-item">
-                  <div class="schedule-info">
-                    <div class="schedule-time">⏰ 12:30 PM</div>
-                    <div class="schedule-title">자갈치 시장 점심</div>
-                    <div class="schedule-location">📍 자갈치 시장</div>
-                  </div>
-                  <div class="schedule-actions">
-                    <button class="btn-icon" title="수정">✏️</button>
-                    <button class="btn-icon" title="삭제">🗑️</button>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -293,6 +256,60 @@
                   class="btn-secondary"
                   id="cancel-schedule-btn"
                   style="width: 100%; padding: 14px; margin-top: 0"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+
+            <!-- 일정 수정 폼 (숨김 상태) -->
+            <div
+              id="schedule-edit-form"
+              style="
+                display: none;
+                margin-top: 20px;
+                background: var(--bg);
+                padding: 16px;
+                border-radius: 12px;
+              "
+            >
+              <div class="section-title">✏️ 일정 수정</div>
+
+              <div class="input-group">
+                <label>시간</label>
+                <input type="time" id="schedule-edit-time" />
+              </div>
+
+              <div class="input-group">
+                <label>일정 제목</label>
+                <input
+                  type="text"
+                  id="schedule-edit-title"
+                  placeholder="예: 광안리 해변 산책"
+                />
+              </div>
+
+              <div class="input-group">
+                <label>위치</label>
+                <input
+                  type="text"
+                  id="schedule-edit-location"
+                  placeholder="예: 부산 광안리"
+                />
+              </div>
+
+              <div style="display: flex; gap: 8px">
+                <button
+                  class="btn-generate"
+                  id="update-schedule-btn"
+                  style="margin-top: 0; flex: 1; text-align: center"
+                >
+                  💾 저장
+                </button>
+                <button
+                  class="btn-secondary"
+                  id="cancel-edit-schedule-btn"
+                  style="margin-top: 0; flex: 1; padding: 14px; text-align: center"
                 >
                   취소
                 </button>
@@ -389,7 +406,6 @@
                   </div>
                 </div>
               </div>
-
               <div class="video-controls">
                 <button class="video-control-btn">🎤</button>
                 <button class="video-control-btn">📹</button>
@@ -402,35 +418,62 @@
           <!-- 예산 탭 -->
           <div class="panel-tab-content" id="budget-content">
             <div class="budget-summary">
-              <div class="budget-amount">₩523,000</div>
-              <div class="budget-label">총 사용 금액 / ₩800,000</div>
+              <div class="budget-amount" id="remaining-budget">₩0</div>
+              <div class="budget-label" id="total-budget-label">
+                총 예산
+              </div>
             </div>
 
             <div class="section-title">최근 지출 내역</div>
 
-            <div class="expense-item">
-              <div class="expense-info">
-                <div class="expense-name">KTX 왕복 티켓</div>
-                <div class="expense-category">#교통비</div>
-              </div>
-              <div class="expense-amount">₩120,000</div>
-            </div>
+            <!-- 지출 목록은 Main.mjs의 loadMyExpenses()에서 동적으로 추가됩니다 -->
 
-            <div class="expense-item">
-              <div class="expense-info">
-                <div class="expense-name">호텔 2박</div>
-                <div class="expense-category">#숙박비</div>
-              </div>
-              <div class="expense-amount">₩280,000</div>
-            </div>
+            
 
-            <div class="expense-item">
-              <div class="expense-info">
-                <div class="expense-name">자갈치 시장 회</div>
-                <div class="expense-category">#식비</div>
-              </div>
-              <div class="expense-amount">₩89,000</div>
-            </div>
+            <!-- 지출 추가 폼 -->
+            <div id="expense-form-container" style="margin-top: 20px; background: var(--bg); padding: 16px; border-radius: 12px;">
+  <div class="section-title" id="expense-form-title">➕ 지출 추가</div>
+  
+  <div class="input-group">
+    <label>지출 항목</label>
+    <input type="text" id="expense-name" placeholder="예: 바다 앞 카페" />
+  </div>
+
+  <div class="input-group">
+    <label>카테고리</label>
+    <select id="expense-category" required>
+      <option value="">카테고리 선택</option>
+      <option value="식비">🍽️ 식비</option>
+      <option value="교통비">🚗 교통비</option>
+      <option value="숙박비">🏨 숙박비</option>
+      <option value="액티비티">🎢 액티비티</option>
+      <option value="쇼핑">🛍️ 쇼핑</option>
+      <option value="입장권">🎫 입장권</option>
+      <option value="기타">💡 기타</option>
+    </select>
+  </div>
+
+  <div class="input-group">
+    <label>금액 (원)</label>
+    <input type="number" id="expense-amount" placeholder="예: 15000" min="0" />
+  </div>
+
+  <!-- 추가 모드 버튼 -->
+  <button class="btn-generate" id="add-expense-btn" style="margin-top: 0">
+    📝 지출 추가하기
+  </button>
+
+  <!-- 수정 모드 버튼 (기본 숨김) -->
+  <div id="expense-edit-buttons" style="display: none; gap: 10px">
+    <button class="btn-generate" id="save-expense-btn" style="margin-top: 0; flex: 1; text-align: center">
+      💾 저장
+    </button>
+    <button class="btn-secondary" id="cancel-expense-btn" style="margin-top: 0; flex: 1; padding: 14px; text-align: center">
+      취소
+    </button>
+  </div>
+</div>
+
           </div>
         </div>
 

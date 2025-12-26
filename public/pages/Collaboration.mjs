@@ -3,16 +3,15 @@ import socketService from '../services/socket.js';
 const SERVER_URL = 'http://localhost:8080';
 
 class Collaboration {
-    constructor() {
-        this.options = this.options;
+    constructor(options = {}) {
+        this.options = options;
         this.roomId = null;
-        this.userId = nulll;
         this.userId = null; // username
         this.username = null; // name
         this.isConnected = false;
 
         // 콜백 함수들
-        this.onMemoReceived = this.options.onMemoReceived || (() => {});
+        this.onMemoReceived = options.onMemoReceived || (() => {});
         this.onMemoDeleted = options.onMemoDeleted || (() => {});
         this.onChatMessage = options.onChatMessage || (() => {});
 
@@ -30,7 +29,7 @@ class Collaboration {
 
         // 이벤트 리스너 설정
         this.setupSocketListeners();
-        this.setupUIListenrs();
+        this.setupUIListeners();
     }
 
     setupSocketListeners() {
@@ -116,6 +115,8 @@ class Collaboration {
         const message = this.chatInput?.value.trim();
         if (!message) return;
 
+        this.displayChatMessage(this.username, message, Date.now());
+
         socketService.sendMessage(message, this.userId, this.username);
         this.chatInput.value = '';
     }
@@ -131,6 +132,12 @@ class Collaboration {
     displayChatMessage(username, message, timestamp) {
         if (!this.chatContainer) return;
 
+        const messageId = `${username}-${message}-${timestamp}`;
+        if (this.chatContainer.querySelector(`[data-message-id="${messageId}"]`)) {
+            console.log('⚠️ 중복 메시지 무시:', messageId);
+            return;
+        }
+
         // Placeholder 제거
         const placeholder = this.chatContainer.querySelector('.chat-placeholder');
         if (placeholder) {
@@ -139,6 +146,7 @@ class Collaboration {
 
         const messageEl = document.createElement('div');
         messageEl.className = 'message';
+        messageEl.setAttribute('data-message-id', messageId); 
 
         const isMe = username === this.username;
         const displayName = isMe ? '나' : username;

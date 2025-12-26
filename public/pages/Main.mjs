@@ -1,3 +1,6 @@
+import Collaboration from './Collaboration.mjs';
+import VideoChat from './VideoChat.mjs';
+
 // client/public/pages/Main.mjs
 // =====================================================
 // TripCanvas Main Page Script (Cleaned)
@@ -7,10 +10,12 @@
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
+let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
+let isExpenseEditMode = false; // 수정 모드 플래그
+let currentEditingExpenseId = null; // 수정 중인 지출 ID
 
 // =====================================================
 // ✅ Auth / Token helpers
@@ -1532,8 +1537,15 @@ async function loadLatestRouteAndRenderTabs() {
   currentTripId = data.route?.tripId;
 
   if (currentTripId) {
-    console.log(`Current Trip ID: ${currentTripId}`);
+    console.log(`🚀 새 여행 생성됨 - tripId: ${currentTripId}`);
     localStorage.setItem("lastTripId", currentTripId);
+
+    // ✅ 여행 정보 가져오기 (예산 정보 포함)
+    await loadTripData(currentTripId);
+
+    // ✅ 예산과 일정 초기화 (새 여행이므로 빈 상태)
+    await loadMyExpenses();
+    await loadMySchedules();
   }
 
   renderDayTabs(data.route);
@@ -1559,6 +1571,15 @@ async function loadRouteForTripAndRenderTabs(tripId) {
   // tripId 저장
   currentTripId = tripId;
   localStorage.setItem("lastTripId", tripId);
+
+  console.log(`🚀 여행 선택됨 - tripId: ${currentTripId}`);
+
+  // 여행 정보 가져오기 (예산 정보 포함)
+  await loadTripData(tripId);
+
+  // ✅ 여행 선택 시 예산과 일정 다시 불러오기
+  await loadMyExpenses();
+  await loadMySchedules();
 
   renderDayTabs(data.route);
 }
@@ -1658,13 +1679,6 @@ function initKakaoMap() {
     renderMemos();
   });
 
-  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
-  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-    linkClickedPointToAccommodation(clickedLL);
-  });
-
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
@@ -1708,8 +1722,6 @@ document.addEventListener("DOMContentLoaded", () => {
         subSelection.innerHTML =
           '<option value="">선택 가능한 항목이 없습니다</option>';
       }
-
-      initCollaboration();
     });
   }
 
@@ -2007,8 +2019,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("schedule-time").value = "";
       document.getElementById("schedule-title").value = "";
       document.getElementById("schedule-location").value = "";
-
-      alert("일정이 추가되었습니다! ✅");
     });
 
   // -----------------------------
@@ -2047,9 +2057,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // -----------------------------
   if (window.kakao && window.kakao.maps) {
     if (typeof kakao.maps.load === "function") {
-      kakao.maps.load(() => initKakaoMap());
+      kakao.maps.load(() => {
+        initKakaoMap();
+        initCollaboration();
+      });
     } else {
       initKakaoMap();
+      initCollaboration();
     }
   } else {
     console.error("Kakao 지도 스크립트가 로드되지 않았습니다.");
@@ -2067,10 +2081,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-// ==========================================================
-import Collaboration from "./Collaboration.mjs";
-import VideoChat from "./VideoChat.mjs";
 
 // ==================== 지도 & 드로잉 시스템 ====================
 let canvas = null;
@@ -2129,6 +2139,7 @@ function setupDrawingTools() {
   const toolButtons = document.querySelectorAll(".tool-btn");
   const tools = ["pan", "memo", "highlight", "text", "eraser", "undo"];
 
+
   toolButtons.forEach((btn, index) => {
     btn.addEventListener("click", () => {
       const tool = tools[index];
@@ -2167,14 +2178,14 @@ function handleCanvasMouseDown(e) {
   if (currentTool === "pan") return;
 
   const rect = canvas.getBoundingClientRect();
-  const x = e.clinetX - rect.left;
+  const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
   if (currentTool === "eraser") {
     // 지우개: 클릭한 위치의 메모 삭제
     const clickedMemo = findMemoAtPosition(x, y);
     if (clickedMemo) {
-      removeMemo(clickedMemo._id);
+      removeMemo(clickedMemo.id);
     }
     return;
   }
@@ -2268,6 +2279,7 @@ function addMemo(memo) {
   }
 
   renderMemos();
+
   console.log("Memo added:", memo);
 }
 
@@ -2292,13 +2304,13 @@ function addTextMemo(text, latLng) {
 // 메모 삭제
 function removeMemo(memoId) {
   memos = memos.filter((m) => m.id !== memoId);
-
   // Socket으로 전송
   if (collaboration) {
     collaboration.deleteMemo(memoId);
   }
 
   renderMemos();
+
   console.log("Memo removed:", memoId);
 }
 
@@ -2457,7 +2469,7 @@ function pixelToLatLng(x, y) {
   const point = new kakao.maps.Point(x, y);
   // 컨테이너 좌표를 지리 좌표, ex) 현재 화면의 (500, 300)위치는 실제 지구의 북위 37.5, 동경 127.0 위치에 해당
   const coords = projection.coordsFromContainerPoint(point);
-  return { x: point.x, y: point.y };
+  return { lat: coords.getLat(), lng: coords.getLng() }; 
 }
 
 // 좌표 변환: 위경도 -> 픽셀
@@ -2592,53 +2604,790 @@ function handleCanvasTouchEnd(e) {
   e.target.dispatchEvent(mouseEvent);
 }
 
-const API_BASE = "http://localhost:8080";
+// =====================================================
+// 예산 & 일정 관리 기능 (Main.mjs에 추가할 코드)
+// =====================================================
 
-// trip 렌더링
-async function loadTrip() {
-  const tripId = getTripId();
-  if (!tripId) {
-    console.warn("⚠️ 여행 ID가 없습니다.");
-    return;
-  }
+// =====================================================
+// ✅ 여행 정보 불러오기
+// =====================================================
 
+// 여행 정보 불러오기 (예산 정보 포함)
+async function loadTripData(tripId) {
   const token = getToken();
+  if (!token || !tripId) return;
+
   try {
-    const res = await fetch(`${API_BASE}/trip/${tripId}`, {
-      method: "GET",
+    const response = await fetch(`${API_BASE_URL}/trip/${tripId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (!res.ok) throw new Error("여행 불러오기 실패");
+    if (!response.ok) {
+      console.error("여행 정보 조회 실패");
+      return;
+    }
 
-    const trip = await res.json();
+    const data = await response.json();
+    currentTripData = data.trip || data; // 서버 응답 형식에 따라 조정
 
-    // 헤더에 여행 타이틀 렌더링
-    const tripTitleEl = document.querySelector(".trip-title");
-    tripTitleEl.textContent = trip.title || "클릭하여 여행 타이틀 설정";
+    console.log("✅ 여행 정보 불러오기 완료:", currentTripData);
 
-    // 필요한 다른 정보 렌더링 (예: 시작/종료 날짜, 예산 등)
-    document.getElementById("departure").value = trip.origin?.inputText || "";
-    document.getElementById("destination").value = trip.destination?.city || "";
-
-    document.getElementById("personal-budget").value =
-      trip.constraints?.budget?.perPerson || 0;
-    document.getElementById("people-count").value = trip.peopleCount || 1;
-
-    // 카테고리 chips 렌더링
-    const selectedStylesInput = document.getElementById("selected-styles");
-    selectedStylesInput.value = trip.categories?.join(",") || "";
-
-    // 필요하면 AI 추천 장소, 일정 등도 초기화 가능
-    console.log("trip loaded:", trip);
-  } catch (err) {
-    console.error(err);
+    // 예산 정보가 있으면 업데이트
+    if (currentTripData) {
+      updateBudgetSummary();
+    }
+  } catch (error) {
+    console.error("여행 정보 불러오기 오류:", error);
   }
 }
 
-// 페이지 로드 시 실행
-window.addEventListener("DOMContentLoaded", () => {
-  loadTrip();
-});
+// =====================================================
+// ✅ 예산 관리 (Budget)
+// =====================================================
+
+// 예산 추가
+async function addExpense() {
+  // 수정 모드인 경우 updateExpense 호출
+  if (isExpenseEditMode && currentEditingExpenseId) {
+    await updateExpense();
+    return;
+  }
+
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  // ✅ currentTripId 확인
+  if (!currentTripId) {
+    alert("여행을 먼저 선택해주세요.");
+    console.error("❌ currentTripId가 설정되지 않았습니다.");
+    return;
+  }
+
+  const name = document.getElementById("expense-name")?.value.trim();
+  const category = document.getElementById("expense-category")?.value;
+  const amount = document.getElementById("expense-amount")?.value;
+
+  if (!name || !category || !amount) {
+    alert("모든 항목을 입력해주세요.");
+    return;
+  }
+
+  if (Number(amount) <= 0) {
+    alert("금액은 0보다 커야 합니다.");
+    return;
+  }
+
+  console.log(
+    `💰 지출 추가 - tripId: ${currentTripId}, name: ${name}, amount: ${amount}`
+  );
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tripId: currentTripId,
+        name,
+        category,
+        amount: Number(amount),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "지출 추가에 실패했습니다.");
+      return;
+    }
+
+    alert("지출이 추가되었습니다!");
+
+    // 입력 필드 초기화
+    document.getElementById("expense-name").value = "";
+    document.getElementById("expense-category").value = "";
+    document.getElementById("expense-amount").value = "";
+
+    // 지출 목록 다시 불러오기
+    await loadMyExpenses();
+  } catch (error) {
+    console.error("지출 추가 오류:", error);
+    alert("지출 추가 중 오류가 발생했습니다.");
+  }
+}
+
+// 내 지출 불러오기
+async function loadMyExpenses() {
+  const token = getToken();
+  if (!token || !currentTripId) {
+    console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
+    console.log(`   - token: ${token ? "있음" : "없음"}`);
+    console.log(`   - currentTripId: ${currentTripId || "없음"}`);
+    return;
+  }
+
+  console.log(`📊 지출 불러오기 - tripId: ${currentTripId}`);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget/my/${currentTripId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error("지출 조회 실패");
+      return;
+    }
+
+    const data = await response.json();
+    const expenses = data.expenses || [];
+
+    // 기존 동적으로 추가된 지출 항목 제거 (기본 예시 항목은 유지)
+    const budgetContent = document.getElementById("budget-content");
+    const existingExpenses = budgetContent?.querySelectorAll(
+      ".expense-item.dynamic"
+    );
+    existingExpenses?.forEach((item) => item.remove());
+
+    // 불러온 지출 내역 표시
+    const expenseForm = budgetContent?.querySelector(
+      "div[style*='margin-top: 20px']"
+    );
+
+    expenses.forEach((expense) => {
+      const expenseItem = document.createElement("div");
+      expenseItem.className = "expense-item dynamic"; // 동적 아이템 표시
+      expenseItem.dataset.expenseId = expense._id;
+      expenseItem.innerHTML = `
+        <div class="expense-info">
+          <div class="expense-name">${escapeHtml(expense.name)}</div>
+          <div class="expense-category">#${escapeHtml(expense.category)}</div>
+        </div>
+        <div class="expense-right">
+          <div class="expense-amount">₩${expense.amount.toLocaleString(
+            "ko-KR"
+          )}</div>
+          <div class="expense-actions">
+            <button class="btn-expense-edit" data-id="${
+              expense._id
+            }">수정</button>
+            <button class="btn-expense-delete" data-id="${
+              expense._id
+            }">삭제</button>
+          </div>
+        </div>
+      `;
+
+      if (expenseForm) {
+        expenseForm.parentNode.insertBefore(expenseItem, expenseForm);
+      }
+    });
+
+    updateBudgetSummary();
+
+    // 수정/삭제 버튼 이벤트 등록
+    attachExpenseActions();
+
+    console.log(`✅ ${expenses.length}개의 지출 내역을 불러왔습니다.`);
+  } catch (error) {
+    console.error("지출 불러오기 오류:", error);
+  }
+}
+
+// 예산 요약 업데이트 (총 사용 금액)
+function updateBudgetSummary() {
+  const expenseItems = document.querySelectorAll(".expense-item");
+  let totalSpent = 0;
+
+  expenseItems.forEach((item) => {
+    const amountText =
+      item.querySelector(".expense-amount")?.textContent || "₩0";
+    const amount = Number(amountText.replace(/[₩,]/g, ""));
+    if (!isNaN(amount)) {
+      totalSpent += amount;
+    }
+  });
+
+  // 개인 예산 가져오기 (여행 데이터에서 또는 입력 필드에서)
+  let personalBudget = 0;
+  if (currentTripData?.constraints?.budget?.perPerson) {
+    // 저장된 여행 데이터에서 가져오기
+    personalBudget = currentTripData.constraints.budget.perPerson;
+  } else {
+    // 입력 필드에서 가져오기 (새로운 여행 생성 중)
+    personalBudget =
+      parseFloat(document.getElementById("personal-budget")?.value) || 0;
+  }
+
+  // 남은 예산 = 개인 예산 - 사용한 금액
+  const remainingBudget = personalBudget - totalSpent;
+
+  // budget-amount: 남은 예산 표시
+  const remainingBudgetEl = document.getElementById("remaining-budget");
+  if (remainingBudgetEl) {
+    remainingBudgetEl.textContent = `₩${remainingBudget.toLocaleString(
+      "ko-KR"
+    )}`;
+  }
+
+  /// budget-label: 총 예산 표시
+  const totalBudgetLabelEl = document.getElementById("total-budget-label");
+  if (totalBudgetLabelEl) {
+    totalBudgetLabelEl.textContent = `총 예산: ₩${personalBudget.toLocaleString(
+      "ko-KR"
+    )}`;
+  }
+}
+
+// 지출 수정/삭제 버튼 이벤트 연결
+function attachExpenseActions() {
+  // 수정 버튼
+  document.querySelectorAll(".btn-expense-edit").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const expenseId = e.target.dataset.id;
+      openEditExpenseForm(expenseId);
+    });
+  });
+
+  // 삭제 버튼
+  document.querySelectorAll(".btn-expense-delete").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const expenseId = e.target.dataset.id;
+      if (confirm("이 지출을 삭제하시겠습니까?")) {
+        await deleteExpense(expenseId);
+      }
+    });
+  });
+}
+
+// 지출 수정 폼 열기 (기존 추가 폼 재사용)
+function openEditExpenseForm(expenseId) {
+  const expenseItem = document.querySelector(
+    `[data-expense-id="${expenseId}"]`
+  );
+  if (!expenseItem) return;
+
+  const name = expenseItem.querySelector(".expense-name")?.textContent;
+  const category = expenseItem
+    .querySelector(".expense-category")
+    ?.textContent.replace("#", "");
+  const amountText = expenseItem.querySelector(".expense-amount")?.textContent;
+  const amount = amountText.replace(/[₩,]/g, "").trim();
+
+  // 폼을 수정 모드로 전환
+  isExpenseEditMode = true;
+  currentEditingExpenseId = expenseId;
+
+  // 폼 제목 변경
+  const formTitle = document.getElementById("expense-form-title");
+  if (formTitle) {
+    formTitle.textContent = "✏️ 지출 수정";
+  }
+
+  // 입력 필드에 기존 값 설정
+  document.getElementById("expense-name").value = name;
+  document.getElementById("expense-category").value = category;
+  document.getElementById("expense-amount").value = amount;
+
+  // 버튼 전환
+  document.getElementById("add-expense-btn").style.display = "none";
+  const editButtons = document.getElementById("expense-edit-buttons");
+  if (editButtons) {
+    editButtons.style.display = "flex";
+  }
+
+  // 폼으로 스크롤
+  document
+    .getElementById("expense-form-container")
+    ?.scrollIntoView({ behavior: "smooth" });
+}
+
+// 지출 수정 모드 취소 (추가 모드로 복귀)
+function closeEditExpenseForm() {
+  // 수정 모드 해제
+  isExpenseEditMode = false;
+  currentEditingExpenseId = null;
+
+  // 폼 제목 원래대로
+  const formTitle = document.getElementById("expense-form-title");
+  if (formTitle) {
+    formTitle.textContent = "➕ 지출 추가";
+  }
+
+  // 입력 필드 초기화
+  document.getElementById("expense-name").value = "";
+  document.getElementById("expense-category").value = "";
+  document.getElementById("expense-amount").value = "";
+
+  // 버튼 원래대로
+  document.getElementById("add-expense-btn").style.display = "block";
+  const editButtons = document.getElementById("expense-edit-buttons");
+  if (editButtons) {
+    editButtons.style.display = "none";
+  }
+}
+
+// 지출 수정
+async function updateExpense() {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  if (!currentEditingExpenseId) {
+    alert("지출 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  const name = document.getElementById("expense-name")?.value.trim();
+  const category = document.getElementById("expense-category")?.value;
+  const amount = document.getElementById("expense-amount")?.value;
+
+  if (!name || !category || !amount) {
+    alert("모든 항목을 입력해주세요.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/budget/${currentEditingExpenseId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          category,
+          amount: Number(amount),
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "지출 수정에 실패했습니다.");
+      return;
+    }
+
+    alert("지출이 수정되었습니다!");
+    closeEditExpenseForm();
+    await loadMyExpenses();
+  } catch (error) {
+    console.error("지출 수정 오류:", error);
+    alert("지출 수정 중 오류가 발생했습니다.");
+  }
+}
+
+// 지출 삭제
+async function deleteExpense(expenseId) {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/budget/${expenseId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "지출 삭제에 실패했습니다.");
+      return;
+    }
+
+    alert("지출이 삭제되었습니다!");
+    await loadMyExpenses();
+  } catch (error) {
+    console.error("지출 삭제 오류:", error);
+    alert("지출 삭제 중 오류가 발생했습니다.");
+  }
+}
+
+// =====================================================
+// ✅ 일정 관리 (Schedule)
+// =====================================================
+
+// 일정 추가 폼 열기/닫기
+function openScheduleForm() {
+  const form = document.getElementById("schedule-form");
+  if (form) {
+    form.style.display = "block";
+  }
+}
+
+function closeScheduleForm() {
+  const form = document.getElementById("schedule-form");
+  if (form) {
+    form.style.display = "none";
+  }
+
+  // 입력 필드 초기화
+  document.getElementById("schedule-time").value = "";
+  document.getElementById("schedule-title").value = "";
+  document.getElementById("schedule-location").value = "";
+}
+
+// 일정 추가
+async function saveSchedule() {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  // ✅ currentTripId 확인
+  if (!currentTripId) {
+    alert("여행을 먼저 선택해주세요.");
+    console.error("❌ currentTripId가 설정되지 않았습니다.");
+    return;
+  }
+
+  const time = document.getElementById("schedule-time")?.value;
+  const title = document.getElementById("schedule-title")?.value.trim();
+  const location = document.getElementById("schedule-location")?.value.trim();
+
+  if (!time || !title || !location) {
+    alert("모든 항목을 입력해주세요.");
+    return;
+  }
+
+  console.log(
+    `📅 일정 추가 - tripId: ${currentTripId}, title: ${title}, time: ${time}`
+  );
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/schedule`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        tripId: currentTripId,
+        time,
+        title,
+        location,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "일정 추가에 실패했습니다.");
+      return;
+    }
+
+    alert("일정이 추가되었습니다! ✅");
+    closeScheduleForm();
+
+    // 일정 목록 다시 불러오기
+    await loadMySchedules();
+  } catch (error) {
+    console.error("일정 추가 오류:", error);
+    alert("일정 추가 중 오류가 발생했습니다.");
+  }
+}
+
+// 내 일정 불러오기
+async function loadMySchedules() {
+  const token = getToken();
+  if (!token || !currentTripId) {
+    console.log("⚠️ 여행 ID가 없거나 로그인이 필요합니다.");
+    console.log(`   - token: ${token ? "있음" : "없음"}`);
+    console.log(`   - currentTripId: ${currentTripId || "없음"}`);
+    return;
+  }
+
+  console.log(`📅 일정 불러오기 - tripId: ${currentTripId}`);
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/schedule/my/${currentTripId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("일정 조회 실패");
+      return;
+    }
+
+    const data = await response.json();
+    const schedules = data.schedules || [];
+
+    // 기존 일정 목록 제거 (동적으로 추가된 것만)
+    const scheduleList = document.getElementById("schedule-list");
+    if (!scheduleList) return;
+
+    // 모든 기존 일정 제거
+    scheduleList.innerHTML = "";
+
+    // 불러온 일정 표시
+    schedules.forEach((schedule) => {
+      const scheduleItem = document.createElement("div");
+      scheduleItem.className = "schedule-item";
+      scheduleItem.dataset.scheduleId = schedule._id;
+      scheduleItem.innerHTML = `
+        <div class="schedule-info">
+          <div class="schedule-time">⏰ ${escapeHtml(schedule.time)}</div>
+          <div class="schedule-title">${escapeHtml(schedule.title)}</div>
+          <div class="schedule-location">📍 ${escapeHtml(
+            schedule.location
+          )}</div>
+        </div>
+        <div class="schedule-actions">
+          <button class="btn-icon btn-edit-schedule" title="수정" data-id="${
+            schedule._id
+          }">✏️</button>
+          <button class="btn-icon btn-delete-schedule" title="삭제" data-id="${
+            schedule._id
+          }">🗑️</button>
+        </div>
+      `;
+
+      scheduleList.appendChild(scheduleItem);
+    });
+
+    // 수정/삭제 버튼 이벤트 등록
+    attachScheduleActions();
+
+    console.log(`✅ ${schedules.length}개의 일정을 불러왔습니다.`);
+  } catch (error) {
+    console.error("일정 불러오기 오류:", error);
+  }
+}
+
+// 일정 수정/삭제 버튼 이벤트 연결
+function attachScheduleActions() {
+  // 수정 버튼
+  document.querySelectorAll(".btn-edit-schedule").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const scheduleId = e.target.dataset.id;
+      openEditScheduleForm(scheduleId);
+    });
+  });
+
+  // 삭제 버튼
+  document.querySelectorAll(".btn-delete-schedule").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const scheduleId = e.target.dataset.id;
+      if (confirm("이 일정을 삭제하시겠습니까?")) {
+        await deleteSchedule(scheduleId);
+      }
+    });
+  });
+}
+
+// 일정 수정 폼 열기
+function openEditScheduleForm(scheduleId) {
+  const scheduleItem = document.querySelector(
+    `[data-schedule-id="${scheduleId}"]`
+  );
+  if (!scheduleItem) return;
+
+  const time = scheduleItem
+    .querySelector(".schedule-time")
+    ?.textContent.replace("⏰ ", "");
+  const title = scheduleItem.querySelector(".schedule-title")?.textContent;
+  const location = scheduleItem
+    .querySelector(".schedule-location")
+    ?.textContent.replace("📍 ", "");
+
+  const editForm = document.getElementById("schedule-edit-form");
+  if (editForm) {
+    editForm.style.display = "block";
+    editForm.dataset.scheduleId = scheduleId;
+
+    document.getElementById("schedule-edit-time").value = time;
+    document.getElementById("schedule-edit-title").value = title;
+    document.getElementById("schedule-edit-location").value = location;
+  }
+}
+
+// 일정 수정 폼 닫기
+function closeEditScheduleForm() {
+  const editForm = document.getElementById("schedule-edit-form");
+  if (editForm) {
+    editForm.style.display = "none";
+    delete editForm.dataset.scheduleId;
+  }
+}
+
+// 일정 수정
+async function updateSchedule() {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  const editForm = document.getElementById("schedule-edit-form");
+  const scheduleId = editForm?.dataset.scheduleId;
+
+  if (!scheduleId) {
+    alert("일정 ID를 찾을 수 없습니다.");
+    return;
+  }
+
+  const time = document.getElementById("schedule-edit-time")?.value;
+  const title = document.getElementById("schedule-edit-title")?.value.trim();
+  const location = document
+    .getElementById("schedule-edit-location")
+    ?.value.trim();
+
+  if (!time || !title || !location) {
+    alert("모든 항목을 입력해주세요.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/schedule/${scheduleId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ time, title, location }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "일정 수정에 실패했습니다.");
+      return;
+    }
+
+    alert("일정이 수정되었습니다!");
+    closeEditScheduleForm();
+    await loadMySchedules();
+  } catch (error) {
+    console.error("일정 수정 오류:", error);
+    alert("일정 수정 중 오류가 발생했습니다.");
+  }
+}
+
+// 일정 삭제
+async function deleteSchedule(scheduleId) {
+  const token = getToken();
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/schedule/${scheduleId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "일정 삭제에 실패했습니다.");
+      return;
+    }
+
+    alert("일정이 삭제되었습니다!");
+    await loadMySchedules();
+  } catch (error) {
+    console.error("일정 삭제 오류:", error);
+    alert("일정 삭제 중 오류가 발생했습니다.");
+  }
+}
+
+// =====================================================
+// ✅ 이벤트 리스너 등록
+// =====================================================
+
+// 예산 추가 버튼
+document
+  .getElementById("add-expense-btn")
+  ?.addEventListener("click", addExpense);
+
+// 지출 저장 버튼 (수정 모드)
+document
+  .getElementById("save-expense-btn")
+  ?.addEventListener("click", updateExpense);
+
+// 지출 취소 버튼 (수정 모드)
+document
+  .getElementById("cancel-expense-btn")
+  ?.addEventListener("click", closeEditExpenseForm);
+
+// 일정 추가 버튼 (폼 열기)
+document
+  .getElementById("add-schedule-btn")
+  ?.addEventListener("click", openScheduleForm);
+
+// 일정 저장 버튼
+document
+  .getElementById("save-schedule-btn")
+  ?.addEventListener("click", saveSchedule);
+
+// 일정 추가 취소 버튼
+document
+  .getElementById("cancel-schedule-btn")
+  ?.addEventListener("click", closeScheduleForm);
+
+// 일정 수정 저장 버튼
+document
+  .getElementById("update-schedule-btn")
+  ?.addEventListener("click", updateSchedule);
+
+// 일정 수정 취소 버튼
+document
+  .getElementById("cancel-edit-schedule-btn")
+  ?.addEventListener("click", closeEditScheduleForm);
+
+// =====================================================
+// ✅ 초기 로드
+// =====================================================
+
+// 페이지 로드 시 예산과 일정 불러오기
+// (Main.mjs의 기존 초기화 함수에서 호출하거나, 여기서 직접 호출)
+async function initBudgetAndSchedule() {
+  // currentTripId가 설정될 때까지 대기
+  let attempts = 0;
+  while (!currentTripId && attempts < 50) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    attempts++;
+  }
+
+  if (currentTripId) {
+    // 여행 정보 먼저 불러오기 (예산 정보 포함)
+    await loadTripData(currentTripId);
+    // 예산과 일정 불러오기
+    await loadMyExpenses();
+    await loadMySchedules();
+  }
+}
+
+// DOM이 준비되면 초기화
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBudgetAndSchedule);
+} else {
+  initBudgetAndSchedule();
+}
