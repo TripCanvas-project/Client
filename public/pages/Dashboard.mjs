@@ -312,21 +312,21 @@ function getStatusLabel(status) {
 // }
 
 // 새 여행 만들기 버튼
-// const createNewTripBtn = document.querySelector(".createNewTripBtn");
-// createNewTripBtn.addEventListener("click", async () => {
-//     try {
-//         const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
+const createNewTripBtn = document.querySelector(".createNewTripBtn");
+createNewTripBtn.addEventListener("click", async () => {
+  try {
+    const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
 
-//         if (!newTrip.ok) throw new Error("새 여행 생성 실패");
+    if (!newTrip.ok) throw new Error("새 여행 생성 실패");
 
-//         const data = await newTrip.json(); // { tripId: "..." }
-//         console.log("New trip created:", data);
-//         const tripId = data.tripId;
+    const data = await newTrip.json(); // { tripId: "..." }
+    console.log("New trip created:", data);
+    const tripId = data.tripId;
 
-//         // tripId에 해당하는 main.html로 이동
-//         window.location.href = `/main.html?tripId=${tripId}`;
-//     } catch (err) {
-//         console.error(err);
-//         alert("새 여행 생성 중 오류가 발생했습니다.");
-//     }
-// });
+    // tripId에 해당하는 main.html로 이동
+    window.location.href = `/main.html?tripId=${tripId}`;
+  } catch (err) {
+    console.error(err);
+    alert("새 여행 생성 중 오류가 발생했습니다.");
+  }
+});
