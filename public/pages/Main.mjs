@@ -1,4 +1,4 @@
-import Collaboration from `./Collaboration.mjs`;
+import Collaboration from "./Collaboration.mjs";
 import VideoChat from "./VideoChat.mjs";
 
 // client/public/pages/Main.mjs
@@ -1945,12 +1945,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    console.log(document.querySelectorAll(".sidebar-tabs .tab"));
     // -----------------------------
     // 사이드바 탭 전환
     // -----------------------------
     document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
         tab.addEventListener("click", () => {
             const tabName = tab.dataset.tab;
+            console.log("clicked tab:", tabName);
 
             document
                 .querySelectorAll(".sidebar-tabs .tab")
