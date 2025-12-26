@@ -166,7 +166,6 @@ function renderTrips(trips, tripStyles = {}) {
 
             await saveTripStyle(trip._id, { emoji: value });
         });
-
         container.appendChild(card);
     });
 }
