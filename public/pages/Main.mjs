@@ -1,4 +1,4 @@
-import Collaboration from `./Collaboration.mjs`;
+import Collaboration from './Collaboration.mjs';
 import VideoChat from "./VideoChat.mjs";
 
 // client/public/pages/Main.mjs
