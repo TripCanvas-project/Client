@@ -53,7 +53,6 @@ function renderTrips(trips, tripStyles = {}) {
     trips.forEach((trip) => {
         const card = document.createElement("div");
         card.className = "trip-card";
-        card.dataset.tripId = trip._id;
 
         card.innerHTML = `
             <div class="trip-thumbnail">
@@ -105,8 +104,12 @@ function renderTrips(trips, tripStyles = {}) {
             </div>
         `;
 
+        card.addEventListener("click", () => {
+            window.location.href = `/main.html?tripId=${trip._id}`;
+        });
+
         // 저장된 스타일 복원
-        applyTripStyle(card, tripStyles[trip._id]);
+        applyTripStyle(card, tripStyles[trip._id], trip.title);
 
         const editBtn = card.querySelector(".edit-btn");
         const palette = card.querySelector(".trip-palette");
@@ -117,8 +120,9 @@ function renderTrips(trips, tripStyles = {}) {
         const titleElement = card.querySelector(".trip-title");
 
         // 📝 여행 제목 변경 → 카드 + 서버 저장
-        titleInput.addEventListener("change", async () => {
+        titleInput.addEventListener("change", async (e) => {
             const value = titleInput.value.trim();
+            e.stopPropagation(); // 카드 클릭 방지
 
             if (!value) {
                 titleInput.value = trip.title; // 빈 값 방지
@@ -198,7 +202,7 @@ async function fetchMyTripStyles() {
     }
 }
 
-function applyTripStyle(card, style) {
+function applyTripStyle(card, style, title) {
     if (!style) return;
 
     const thumbnail = card.querySelector(".trip-thumbnail");
@@ -209,6 +213,11 @@ function applyTripStyle(card, style) {
 
     if (style.emoji) {
         thumbnail.firstChild.textContent = style.emoji;
+    }
+
+    if (title) {
+        const titleElement = card.querySelector(".trip-title");
+        titleElement.textContent = title;
     }
 }
 
