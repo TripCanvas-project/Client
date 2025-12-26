@@ -1,3 +1,6 @@
+import Collaboration from './Collaboration.mjs';
+import VideoChat from './VideoChat.mjs';
+
 // client/public/pages/Main.mjs
 // =====================================================
 // TripCanvas Main Page Script (Cleaned)
@@ -7,7 +10,6 @@
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-
 const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
@@ -1720,8 +1722,6 @@ document.addEventListener("DOMContentLoaded", () => {
         subSelection.innerHTML =
           '<option value="">선택 가능한 항목이 없습니다</option>';
       }
-
-      initCollaboration();
     });
   }
 
@@ -2101,9 +2101,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // -----------------------------
   if (window.kakao && window.kakao.maps) {
     if (typeof kakao.maps.load === "function") {
-      kakao.maps.load(() => initKakaoMap());
+      kakao.maps.load(() => {
+        initKakaoMap();
+        initCollaboration();
+      });
     } else {
       initKakaoMap();
+      initCollaboration();
     }
   } else {
     console.error("Kakao 지도 스크립트가 로드되지 않았습니다.");
@@ -2121,10 +2125,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-// ==========================================================
-import Collaboration from "./Collaboration.mjs";
-import VideoChat from "./VideoChat.mjs";
 
 // ==================== 지도 & 드로잉 시스템 ====================
 let canvas = null;
@@ -2183,6 +2183,7 @@ function setupDrawingTools() {
   const toolButtons = document.querySelectorAll(".tool-btn");
   const tools = ["pan", "memo", "highlight", "text", "eraser", "undo"];
 
+
   toolButtons.forEach((btn, index) => {
     btn.addEventListener("click", () => {
       const tool = tools[index];
@@ -2228,7 +2229,7 @@ function handleCanvasMouseDown(e) {
     // 지우개: 클릭한 위치의 메모 삭제
     const clickedMemo = findMemoAtPosition(x, y);
     if (clickedMemo) {
-      removeMemo(clickedMemo._id);
+      removeMemo(clickedMemo.id);
     }
     return;
   }
@@ -2322,6 +2323,7 @@ function addMemo(memo) {
   }
 
   renderMemos();
+
   console.log("Memo added:", memo);
 }
 
@@ -2346,13 +2348,13 @@ function addTextMemo(text, latLng) {
 // 메모 삭제
 function removeMemo(memoId) {
   memos = memos.filter((m) => m.id !== memoId);
-
   // Socket으로 전송
   if (collaboration) {
     collaboration.deleteMemo(memoId);
   }
 
   renderMemos();
+
   console.log("Memo removed:", memoId);
 }
 
@@ -2511,7 +2513,7 @@ function pixelToLatLng(x, y) {
   const point = new kakao.maps.Point(x, y);
   // 컨테이너 좌표를 지리 좌표, ex) 현재 화면의 (500, 300)위치는 실제 지구의 북위 37.5, 동경 127.0 위치에 해당
   const coords = projection.coordsFromContainerPoint(point);
-  return { x: point.x, y: point.y };
+  return { lat: coords.getLat(), lng: coords.getLng() }; 
 }
 
 // 좌표 변환: 위경도 -> 픽셀
