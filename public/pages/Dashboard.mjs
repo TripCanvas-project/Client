@@ -17,6 +17,7 @@ async function fetchWithAuth(url, method = "GET", options = {}) {
         if (res.status === 401) {
             localStorage.removeItem("token");
             alert("로그인이 필요합니다");
+            console.log(res.json().message);
             location.href = "/login.html";
         }
         throw new Error("API 요청 실패");

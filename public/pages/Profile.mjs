@@ -66,7 +66,6 @@ async function loadTripHistory() {
         }
 
         const histories = await response.json();
-        console.log("여행 히스토리:", histories);
 
         const container = document.getElementById("tripHistoryContainer");
 
