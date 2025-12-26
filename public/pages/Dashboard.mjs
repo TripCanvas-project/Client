@@ -299,63 +299,6 @@ function getStatusLabel(status) {
     }[status];
 }
 
-// 버킷리스트 로드
-// async function loadMyBucketlists() {
-//     const data = await fetchWithAuth(`${API_BASE}/trips/bucketlists`);
-
-//     renderBucketlists(data.bucketlists);
-// }
-
-// 버킷리스트 렌더링
-// function renderBucketlists(bucketlists) {
-//     const grid = document.getElementById("bucketlistGrid");
-//     if (!grid) return;
-
-//     grid.innerHTML = "";
-
-//     if (!bucketlists || bucketlists.length === 0) {
-//         grid.innerHTML = `<p style="opacity:0.6">버킷리스트가 없습니다.</p>`;
-//         return;
-//     }
-
-//     bucketlists.forEach((item) => {
-//         const card = document.createElement("div");
-//         card.className = "bucketlist-card";
-
-//         card.innerHTML = `
-//             <div class="bucketlist-title">${item.title}</div>
-//             <div class="bucketlist-desc">
-//                 ${item.description || ""}
-//             </div>
-//             <div class="bucketlist-status">
-//                 ${item.isCompleted ? "✅ 완료" : "⏳ 진행중"}
-//             </div>
-//         `;
-
-//         grid.appendChild(card);
-//     });
-// }
-
-// 새 여행 만들기 버튼
-// const createNewTripBtn = document.querySelector(".createNewTripBtn");
-// createNewTripBtn.addEventListener("click", async () => {
-//     try {
-//         const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
-
-//         if (!newTrip.ok) throw new Error("새 여행 생성 실패");
-
-//         const data = await newTrip.json(); // { tripId: "..." }
-//         console.log("New trip created:", data);
-//         const tripId = data.tripId;
-
-//         // tripId에 해당하는 main.html로 이동
-//         window.location.href = `/main.html?tripId=${tripId}`;
-//     } catch (err) {
-//         console.error(err);
-//         alert("새 여행 생성 중 오류가 발생했습니다.");
-//     }
-// });
-
 async function loadMyChallenges() {
     try {
         const challenges = await fetchWithAuth(`${API_BASE}/bucket/`);
