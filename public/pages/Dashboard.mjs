@@ -1,10 +1,11 @@
 const API_BASE = "http://localhost:8080";
 
 // 공통 fetch
-async function fetchWithAuth(url, options = {}) {
+async function fetchWithAuth(url, method = "GET", options = {}) {
     const token = localStorage.getItem("token");
 
     const res = await fetch(url, {
+        method,
         ...options,
         headers: {
             Authorization: `Bearer ${token}`,
@@ -26,22 +27,17 @@ async function fetchWithAuth(url, options = {}) {
 
 // 유저 정보 + 통계
 async function loadMyTrips() {
-    const { user } = await fetchWithAuth(`${API_BASE}/user/me`, {
-        method: "POST",
-    });
+    const { user } = await fetchWithAuth(`${API_BASE}/user/me`, "POST");
 
     document.querySelector(
         ".welcome-title"
     ).innerText = `안녕하세요, ${user.nickname}님! 👋`;
 
     document.querySelector(".allTrips").innerText = user.stats.totalTrips;
-
     document.querySelector(".completedTrips").innerText =
         user.stats.completedTrips;
-
     document.querySelector(".achivedBucket").innerText =
         user.stats.completedBucketlists;
-
     document.querySelector(".visitedPlaces").innerText = user.stats.totalPlaces;
 }
 
@@ -175,15 +171,18 @@ function renderTrips(trips, tripStyles = {}) {
     });
 }
 
-async function saveTripStyle(tripId, style, title = null) {
+async function saveTripStyle(tripId, payload) {
     try {
-        return await fetchWithAuth(`${API_BASE}/user/${tripId}/customize`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ style, title }),
-        });
+        return await fetchWithAuth(
+            `${API_BASE}/user/${tripId}/customize`,
+            "PATCH",
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            }
+        );
     } catch (err) {
         console.error("saveTripStyle failed:", err);
         return null;
@@ -262,7 +261,6 @@ async function initDashboard() {
         const activeTrips = await fetchWithAuth(
             `${API_BASE}/trip?status=active`
         );
-
         updateTabCount("active", activeTrips.length);
 
         // planning 카운트
@@ -340,29 +338,28 @@ function getStatusLabel(status) {
 // }
 
 // 새 여행 만들기 버튼
-const createNewTripBtn = document.querySelector(".createNewTripBtn");
-createNewTripBtn.addEventListener("click", async () => {
-    try {
-        const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
+// const createNewTripBtn = document.querySelector(".createNewTripBtn");
+// createNewTripBtn.addEventListener("click", async () => {
+//     try {
+//         const newTrip = await fetchWithAuth(`${API_BASE}/trip/create`);
 
-        if (!newTrip.ok) throw new Error("새 여행 생성 실패");
+//         if (!newTrip.ok) throw new Error("새 여행 생성 실패");
 
-        const data = await newTrip.json(); // { tripId: "..." }
-        console.log("New trip created:", data);
-        const tripId = data.tripId;
+//         const data = await newTrip.json(); // { tripId: "..." }
+//         console.log("New trip created:", data);
+//         const tripId = data.tripId;
 
-        // tripId에 해당하는 main.html로 이동
-        window.location.href = `/main.html?tripId=${tripId}`;
-    } catch (err) {
-        console.error(err);
-        alert("새 여행 생성 중 오류가 발생했습니다.");
-    }
-});
+//         // tripId에 해당하는 main.html로 이동
+//         window.location.href = `/main.html?tripId=${tripId}`;
+//     } catch (err) {
+//         console.error(err);
+//         alert("새 여행 생성 중 오류가 발생했습니다.");
+//     }
+// });
 
 async function loadMyChallenges() {
     try {
         const challenges = await fetchWithAuth(`${API_BASE}/bucket/`);
-
         console.log("챌린지 데이터:", challenges);
         renderChallenges(challenges);
     } catch (err) {
