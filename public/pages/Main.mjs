@@ -2082,10 +2082,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ==========================================================
-import Collaboration from "./Collaboration.mjs";
-import VideoChat from "./VideoChat.mjs";
-
 // ==================== 지도 & 드로잉 시스템 ====================
 let canvas = null;
 let ctx = null;
