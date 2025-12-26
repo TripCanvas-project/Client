@@ -1677,13 +1677,6 @@ function initKakaoMap() {
     renderMemos();
   });
 
-  // ✅ 지도 클릭하면: 마커 찍고 숙소와 연결
-  kakao.maps.event.addListener(currentMap, "click", (mouseEvent) => {
-    const latlng = mouseEvent.latLng;
-    const clickedLL = { lat: latlng.getLat(), lng: latlng.getLng() };
-    linkClickedPointToAccommodation(clickedLL);
-  });
-
   if (pendingDayToRender) {
     renderMarkersForDay(
       pendingDayToRender.dayPlan,
@@ -1881,51 +1874,95 @@ document.addEventListener("DOMContentLoaded", () => {
       const prevText = btn.textContent;
       btn.textContent = "…";
 
+      const geoOptsHigh = {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0,
+      };
+      const geoOptsLow = {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 60000,
+      };
+
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          // 1) 지도 이동
-          if (currentMap && window.kakao?.maps?.LatLng) {
-            try {
-              currentMap.panTo(new kakao.maps.LatLng(lat, lng));
-            } catch {}
-          }
-
-          // 2) 지도 클릭과 동일 동작 (마커 + 선택→숙소 경로)
-          linkClickedPointToAccommodation({ lat, lng });
-
-          // 3) 출발지 input 채우기(주소/좌표)
-          if (window.kakao?.maps?.services?.Geocoder) {
-            const geocoder = new kakao.maps.services.Geocoder();
-            geocoder.coord2Address(lng, lat, (result, status) => {
-              if (
-                status === kakao.maps.services.Status.OK &&
-                result?.[0]?.address?.address_name
-              ) {
-                depInput.value = result[0].address.address_name;
-              } else {
-                depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-              }
-            });
-          } else {
-            depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-          }
-
-          btn.disabled = false;
-          btn.textContent = prevText;
-        },
+        onSuccess,
         (err) => {
-          console.warn("geolocation error:", err);
+          console.warn("geolocation(1차) error:", err);
+
+          // ✅ 1차가 timeout/position_unavailable면 2차로 완화해서 재시도
+          if (err.code === 2 || err.code === 3) {
+            navigator.geolocation.getCurrentPosition(
+              onSuccess,
+              (err2) => {
+                console.warn("geolocation(2차) error:", err2);
+
+                if (err2.code === 1) {
+                  alert(
+                    "위치 권한이 거부됐어요. 브라우저 권한을 허용해 주세요."
+                  );
+                } else if (err2.code === 2) {
+                  alert("위치를 가져올 수 없어요. (GPS/네트워크 설정 확인)");
+                } else {
+                  alert(
+                    "현재 위치 요청이 시간 초과됐어요. 실외/와이파이 변경 후 다시 시도해 주세요."
+                  );
+                }
+
+                btn.disabled = false;
+                btn.textContent = prevText;
+              },
+              geoOptsLow
+            );
+            return;
+          }
+
+          // 그 외 에러(권한 거부 등)
           if (err.code === 1)
             alert("위치 권한이 거부됐어요. 브라우저 권한을 허용해 주세요.");
           else alert("현재 위치를 가져오지 못했어요.");
+
           btn.disabled = false;
           btn.textContent = prevText;
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        geoOptsHigh
       );
+
+      // ✅ 성공 콜백은 기존 로직 그대로 쓰되, 함수로 빼서 재사용
+      function onSuccess(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // 1) 지도 이동
+        if (currentMap && window.kakao?.maps?.LatLng) {
+          try {
+            currentMap.panTo(new kakao.maps.LatLng(lat, lng));
+          } catch {}
+        }
+
+        // 2) 지도 클릭과 동일 동작 (마커 + 선택→숙소 경로)
+        linkClickedPointToAccommodation({ lat, lng });
+
+        // 3) 출발지 input 채우기(주소/좌표)
+        if (window.kakao?.maps?.services?.Geocoder) {
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.coord2Address(lng, lat, (result, status) => {
+            if (
+              status === kakao.maps.services.Status.OK &&
+              result?.[0]?.address?.address_name
+            ) {
+              depInput.value = result[0].address.address_name;
+            } else {
+              depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+          });
+        } else {
+          depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+
+        btn.disabled = false;
+        btn.textContent = prevText;
+      }
     });
   }
 
@@ -2184,7 +2221,7 @@ function handleCanvasMouseDown(e) {
   if (currentTool === "pan") return;
 
   const rect = canvas.getBoundingClientRect();
-  const x = e.clinetX - rect.left;
+  const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
   if (currentTool === "eraser") {
