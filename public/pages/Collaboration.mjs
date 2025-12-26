@@ -6,7 +6,7 @@ class Collaboration {
     constructor(options = {}) {
         this.options = options;
         this.roomId = null;
-        this.userId = null; // username
+        this.userId = null; 
         this.username = null; // name
         this.isConnected = false;
 
@@ -104,19 +104,65 @@ class Collaboration {
         if (socketService.isConnected()) {
             socketService.joinRoom(roomId, userId, username);
             console.log(`Joined room: ${roomId}`);
+
+            // 채팅 기록 불러오기
+            this.loadChatHistory(roomId);
         } else {
             // 연결될 때까지 대기
             setTimeout(() => this.joinRoom(roomId, userId, username), 500);
         }
     }
 
+    // 채팅 기록 불러오기
+    async loadChatHistory(tripId) {
+        try {
+            const response = await fetch(`${SERVER_URL}/chat/${tripId}`);
+            if (!response.ok) {
+                throw new Error(`Failed to load chat history: ${response.status}`)
+            }
+
+            const messages = await response.json();
+
+            // 기존 메시지 표시
+            messages.forEach(msg => {
+                this.displayChatMessage(msg.username, msg.message, msg.timestamp);
+            });
+
+            console.log(`Loaded ${messages.length} chat messages from server`);
+        } catch (error) {
+            console.error('Failed to load chat history', error);
+        }
+    }
+
     // 채팅 메시지 전송
-    sendChatMessage() {
+    async sendChatMessage() {
         const message = this.chatInput?.value.trim();
         if (!message) return;
 
+        // 즉시 화면에 표시
         this.displayChatMessage(this.username, message, Date.now());
 
+        // 서버에 저장
+        try {
+            await fetch(`${SERVER_URL}/chat`, {
+                method: 'Post',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tripId: this.roomId,
+                    username: this.username,
+                    message: message,
+                    timestamp
+                })
+            });
+
+            console.log('Chat message saved to server');
+        } catch (error) {
+            console.error('Failed to save chat message', error);
+        }
+
+        // Socket으로 전송
         socketService.sendMessage(message, this.userId, this.username);
         this.chatInput.value = '';
     }

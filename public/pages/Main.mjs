@@ -10,7 +10,7 @@ import VideoChat from './VideoChat.mjs';
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-const API_BASE_URL = "";
+const API_BASE_URL = "http://localhost:8080";
 let currentTripId = null;
 let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
@@ -110,7 +110,7 @@ async function checkMe() {
     // 사용자 정보 저장
     currentUserData = data.user;
     localStorage.setItem("userId", data.user._id || data.user.userid);
-    localStorage.setItem("username", data.user.nickname || "사용자");
+    localStorage.setItem("username", data.user.nickname);
   } catch (e) {
     console.error("me error:", e);
     alert("서버 통신 중 오류가 발생했습니다.");
@@ -1696,7 +1696,28 @@ function initKakaoMap() {
 // =====================================================
 // ✅ DOMContentLoaded (Main Wiring)
 // =====================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async() => {
+  // 사용자 정보 확인
+  await checkMe();
+
+  // tripId 확보
+  let tripId = localStorage.getItem('currentTripId');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('tripId')) {
+    tripId = urlParams.get('tripId');
+    localStorage.setItem('currentTripId', tripId);
+  }
+
+  if (!tripId) {
+    tripId = await createNewTrip();
+
+    if (!tripId) {
+      alert('여행 생성에 실패했습니다.')
+    }
+  } else {
+    currentTripId = tripId;
+  }
   // -----------------------------
   // 도착지 선택(세부사항)
   // -----------------------------
@@ -1788,9 +1809,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      if (!currentTripId) {
+        hideLoading();
+        alert("여행 ID가 없습니다. 페이지를 새로고침해주세요.");
+        return;
+      }
+
       const token = getToken();
 
       const tripData = {
+        tripId: currentTripId,
         start_loc: departure,
         end_area: destination,
         detail_addr: document.getElementById("sub-destination")?.value || "",
@@ -1822,6 +1850,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (response.ok) {
           console.log("여행 계획 생성 성공:", data);
+
+          try {
+            await updateTripStatus(currentTripId, 'active', {
+              destination: destination,
+              start_date: startDate,
+              end_date: endDate,
+            });
+          } catch (error) {
+            console.error('Failed to update trip status', error);
+          }
+
           await loadLatestRouteAndRenderTabs();
         } else {
           alert(`계획 생성 실패: ${data.message || "오류"}`);
@@ -2312,10 +2351,55 @@ function drawPathPreview(path) {
   ctx.stroke(); // 선 그리기
 }
 
+// ==================== 서버 메모 관리 ====================
+// 서버에서 메모 불러오기
+async function loadMemoFromServer() {
+  if (!currentTripId) {
+    console.warn('No trip ID available, skipping memo load');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/memo/${currentTripId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to load memos: ${response.status}`)
+    }
+
+    const savedMemos = await response.json();
+    memos = savedMemos;
+    renderMemos();
+    console.log("Loasded memos from server");
+  } catch (error) {
+    console.error('Failed to load memos');
+  }
+}
+
 // 메모 추가
-function addMemo(memo) {
+async function addMemo(memo) {
   memos.push(memo); // 메모 배열에 추가
   undoStack.push(memo); // 되돌리기 스택에 추가
+
+  // 서버에 저장
+  try {
+    const response = await fetch(`${API_BASE_URL}/memo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tripId: currentTripId,
+        ...memo
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save memo: ${response.status}`)
+    }
+
+    console.log('Memo saved to server');
+  } catch (error) {
+    console.error('Failed to save memo');
+  }
 
   // Socket으로 전송
   if (collaboration) {
@@ -2346,11 +2430,26 @@ function addTextMemo(text, latLng) {
 }
 
 // 메모 삭제
-function removeMemo(memoId) {
+async function removeMemo(memoId) {
   memos = memos.filter((m) => m.id !== memoId);
   // Socket으로 전송
   if (collaboration) {
     collaboration.deleteMemo(memoId);
+  }
+
+  // 서버에서 삭제
+  try {
+    const response = await fetch(`${API_BASE_URL}/memo/${memoId}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete memo: ${response.status}`)
+    }
+
+    console.log('Memo deleted from server');
+  } catch (error) {
+    console.error('Failed to delete memo');
   }
 
   renderMemos();
@@ -2537,18 +2636,13 @@ function hexToRgb(hex) {
 
 // ==================== getTripId 헬퍼 함수 추가 ===========
 function getTripId() {
-  // 1. URL 파라미터 우선
+  // URL 파라미터 우선
   const urlParams = new URLSearchParams(window.location.search);
-  const urlTripId = urlParams.get("tripId");
-  if (urlTripId) {
-    currentTripId = urlTripId;
-    return urlTripId;
+  if (urlParams.has("tripId")) {
+    currentTripId = urlParams.get("tripId");
   }
 
-  // 2. 전역 변수 (route 로드 시 설정됨)
-  if (currentTripId) return currentTripId;
-
-  // 3. localStorage (마지막 방문한 여행)
+  // localStorage (마지막 방문한 여행)
   const lastTripId = localStorage.getItem("lastTripId");
   if (lastTripId) {
     currentTripId = lastTripId;
@@ -2580,7 +2674,10 @@ async function initCollaboration() {
 
     // 사용자 정보 가져오기 (checkMe에서 설정됨)
     const userId = localStorage.getItem("userId") || crypto.randomUUID();
-    const userName = localStorage.getItem("username") || "사용자";
+    const username = localStorage.getItem("username") || "사용자";
+
+    // 서버에서 기존 메모 불러오기
+    await loadMemoFromServer();
 
     // Collaboration 초기화
     collaboration = new Collaboration({
@@ -3434,4 +3531,76 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initBudgetAndSchedule);
 } else {
   initBudgetAndSchedule();
+}
+
+// ==================== 여행 자동 생성 ====================
+// 새 여행 자동 생성
+async function createNewTrip() {
+  try {
+    const userId = localStorage.getItem('userId');
+    const username = localStorage.getItem('username');
+
+    const response = await fetch(`${API_BASE_URL}/trip`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        userId: userId,
+        title: `${username}의 여행 - ${new Date().toLocaleDateString()}`,
+        destination: {
+          name: '미정',
+          district: '미정',
+          city: '미정'
+        },
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'planning'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create trip: ${response.status}`);
+    }
+
+    const trip = await response.json();
+    const tripId = trip._id || trip.id;
+
+    currentTripId = tripId;
+    localStorage.setItem('lastTripId', tripId);
+    localStorage.setItem('currentTripId', tripId);
+
+    console.log(`New trip created: ${tripId}`);
+    return tripId;
+  } catch (error) {
+    console.error('Failed to create new trip', error);
+  }
+}
+
+async function updateTripStatus(tripId, status, details={}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/trip/${tripId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({
+        status: status,
+        ...details
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update trip`)
+    }
+
+    const updatedTrip = await response.json();
+    
+    return updatedTrip;
+  } catch (error) {
+    console.error('Failed to update trip status', error);
+    throw error;
+  }
 }
