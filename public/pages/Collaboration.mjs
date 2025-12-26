@@ -16,7 +16,7 @@ class Collaboration {
         this.onChatMessage = options.onChatMessage || (() => {});
 
         // UI 요소들
-        this.chatContainer = document.querySelector(options.chatContainer || '#chat-messages');
+        this.chatContainer = document.querySelector(options.chatContainer || '.chat-messages');
         this.chatInput = document.querySelector(options.chatInput || '#chat-input')
         this.chatSendBtn = document.querySelector('#chat-send-btn');
 
@@ -80,7 +80,8 @@ class Collaboration {
     setupUIListeners() {
         // 채팅 전송 버튼
         if (this.chatSendBtn) {
-            this.chatSendBtn.addEventListener('click', () => {
+            this.chatSendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 this.sendChatMessage();
             });
         }
@@ -89,6 +90,7 @@ class Collaboration {
         if (this.chatInput) {
             this.chatInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     this.sendChatMessage();
                 }
             })
@@ -153,7 +155,7 @@ class Collaboration {
                     tripId: this.roomId,
                     username: this.username,
                     message: message,
-                    timestamp
+                    timestamp: Date.now()
                 })
             });
 

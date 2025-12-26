@@ -2044,9 +2044,9 @@ document.addEventListener("DOMContentLoaded", async() => {
       tab.classList.add("active");
       document.getElementById(`${panelName}-content`)?.classList.add("active");
 
-      const chatInput = document.querySelector(".chat-input");
-      if (chatInput)
-        chatInput.style.display = panelName === "chat" ? "flex" : "none";
+      const chatInputBox = document.querySelector(".chat-input");
+      if (chatInputBox)
+        chatInputBox.style.display = panelName === "chat" ? "flex" : "none";
     });
   });
 
@@ -2103,32 +2103,6 @@ document.addEventListener("DOMContentLoaded", async() => {
       document.getElementById("schedule-title").value = "";
       document.getElementById("schedule-location").value = "";
     });
-
-  // -----------------------------
-  // 채팅 전송
-  // -----------------------------
-  document.getElementById("chat-send-btn")?.addEventListener("click", () => {
-    const input = document.getElementById("chat-input");
-    const message = input.value.trim();
-
-    if (message) {
-      const chatMessages = document.getElementById("chat-messages");
-      const newMessage = document.createElement("div");
-      newMessage.className = "message";
-      newMessage.innerHTML = `
-        <div class="message-author">나</div>
-        <div class="message-text">${escapeHtml(message)}</div>
-        <div class="message-time">방금</div>
-      `;
-      chatMessages.appendChild(newMessage);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-      input.value = "";
-    }
-  });
-
-  document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") document.getElementById("chat-send-btn")?.click();
-  });
 
   // -----------------------------
   // 초기 루트 로드
@@ -2322,7 +2296,7 @@ function handleCanvasMouseUp(e) {
         opacity: currentTool === "highlight" ? 0.6 : 1,
       },
       createdBy: localStorage.getItem("userId") || "anonymous", // 메모 생성자
-      timeStamp: Date.now(), // 메모 생성 시간
+      timestamp: Date.now(), // 메모 생성 시간
     };
 
     addMemo(memo);
