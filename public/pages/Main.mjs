@@ -1,4 +1,4 @@
-import Collaboration from `./Collaboration.mjs`;
+import Collaboration from "./Collaboration.mjs";
 import VideoChat from "./VideoChat.mjs";
 
 // client/public/pages/Main.mjs
@@ -3531,3 +3531,44 @@ async function updateTripStatus(tripId, status, details = {}) {
         throw error;
     }
 }
+
+// ==============================
+// ✅ 초대하기 버튼/모달 이벤트
+// ==============================
+// pages/Main.mjs
+import { sendInviteMail } from "./Invite.mjs";
+
+// ✅ main.html에서만 설정
+window.currentTripId = new URLSearchParams(location.search).get("tripId");
+
+// 초대 버튼 표시
+const inviteBtn = document.getElementById("invite-btn");
+if (inviteBtn) {
+    inviteBtn.style.display = "inline-block";
+
+    inviteBtn.addEventListener("click", () => {
+        const modal = document.getElementById("inviteModal");
+        modal?.classList.remove("hidden");
+    });
+}
+
+// 초대 메일 전송
+const sendBtn = document.getElementById("sendInviteBtn");
+sendBtn?.addEventListener("click", async () => {
+    const emailInput = document.getElementById("inviteEmailInput");
+    const email = emailInput.value.trim();
+
+    if (!email) {
+        alert("이메일을 입력하세요");
+        return;
+    }
+
+    try {
+        await sendInviteMail(email);
+        alert("초대 메일을 보냈어요 ✉️");
+        emailInput.value = "";
+        document.getElementById("inviteModal")?.classList.add("hidden");
+    } catch (err) {
+        alert(err.message);
+    }
+});
