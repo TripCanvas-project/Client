@@ -1731,7 +1731,11 @@ document.addEventListener("DOMContentLoaded", () => {
         linkInput.value = "초대 링크 생성 중...";
 
         try {
-            const tripId = new URLSearchParams(location.search).get("tripId");
+            const tripId = getTripId();
+
+            if (tripId === null) {
+                throw new Error("유효한 여행 ID가 없습니다.");
+            }
 
             const res = await fetch(`/trip/${tripId}/invite-link`, {
                 method: "POST",
@@ -1743,7 +1747,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message);
 
-            linkInput.value = data.inviteLink;
+            linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
         } catch (err) {
             console.error(err);
             linkInput.value = "초대 링크 생성 실패";
@@ -1754,8 +1758,10 @@ document.addEventListener("DOMContentLoaded", () => {
     copyBtn?.addEventListener("click", async () => {
         if (!linkInput.value) return;
 
+        // 클립보드에 복사
         await navigator.clipboard.writeText(linkInput.value);
         copyBtn.textContent = "✅";
+        // 복사 완료 후 버튼 텍스트 변경
         setTimeout(() => (copyBtn.textContent = "📋"), 1200);
     });
 
