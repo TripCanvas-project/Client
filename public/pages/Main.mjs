@@ -1709,6 +1709,65 @@ function initKakaoMap() {
 // ✅ DOMContentLoaded (Main Wiring)
 // =====================================================
 document.addEventListener("DOMContentLoaded", () => {
+    // 초대 링크 생성 및 모달 관리
+    const inviteBtn = document.getElementById("invite-btn");
+    const inviteModal = document.getElementById("invite-modal");
+    const closeBtn = document.getElementById("closeInviteModal");
+    const cancelBtn = document.getElementById("invite-cancel-btn");
+    const linkInput = document.getElementById("inviteLinkInput");
+    const copyBtn = document.getElementById("copyInviteLinkBtn");
+
+    // main.html에서만 초대 버튼 노출
+    if (location.pathname.endsWith("main.html") && inviteBtn) {
+        inviteBtn.style.display = "inline-block";
+    } else if (inviteBtn) {
+        inviteBtn.style.display = "none";
+        return;
+    }
+
+    // 초대 버튼 클릭 → 링크 생성 + 모달 열기
+    inviteBtn.addEventListener("click", async () => {
+        inviteModal.classList.remove("hidden");
+        linkInput.value = "초대 링크 생성 중...";
+
+        try {
+            const tripId = new URLSearchParams(location.search).get("tripId");
+
+            const res = await fetch(`/trip/${tripId}/invite-link`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+
+            linkInput.value = data.inviteLink;
+        } catch (err) {
+            console.error(err);
+            linkInput.value = "초대 링크 생성 실패";
+        }
+    });
+
+    // 복사 버튼
+    copyBtn?.addEventListener("click", async () => {
+        if (!linkInput.value) return;
+
+        await navigator.clipboard.writeText(linkInput.value);
+        copyBtn.textContent = "✅";
+        setTimeout(() => (copyBtn.textContent = "📋"), 1200);
+    });
+
+    // 닫기 / 취소
+    closeBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+
     // -----------------------------
     // 도착지 선택(세부사항)
     // -----------------------------
@@ -3531,44 +3590,3 @@ async function updateTripStatus(tripId, status, details = {}) {
         throw error;
     }
 }
-
-// ==============================
-// ✅ 초대하기 버튼/모달 이벤트
-// ==============================
-// pages/Main.mjs
-import { sendInviteMail } from "./Invite.mjs";
-
-// ✅ main.html에서만 설정
-window.currentTripId = new URLSearchParams(location.search).get("tripId");
-
-// 초대 버튼 표시
-const inviteBtn = document.getElementById("invite-btn");
-if (inviteBtn) {
-    inviteBtn.style.display = "inline-block";
-
-    inviteBtn.addEventListener("click", () => {
-        const modal = document.getElementById("inviteModal");
-        modal?.classList.remove("hidden");
-    });
-}
-
-// 초대 메일 전송
-const sendBtn = document.getElementById("sendInviteBtn");
-sendBtn?.addEventListener("click", async () => {
-    const emailInput = document.getElementById("inviteEmailInput");
-    const email = emailInput.value.trim();
-
-    if (!email) {
-        alert("이메일을 입력하세요");
-        return;
-    }
-
-    try {
-        await sendInviteMail(email);
-        alert("초대 메일을 보냈어요 ✉️");
-        emailInput.value = "";
-        document.getElementById("inviteModal")?.classList.add("hidden");
-    } catch (err) {
-        alert(err.message);
-    }
-});

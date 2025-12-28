@@ -584,80 +584,6 @@
                     </div>
                 </div>
             </aside>
-
-            <!-- 이메일 입력 모달 -->
-            <div
-                id="invite-modal"
-                class="modal hidden"
-                style="
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    background: rgba(0, 0, 0, 0.4);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9999;
-                "
-            >
-                <div
-                    style="
-                        background: white;
-                        border-radius: 12px;
-                        padding: 32px 24px;
-                        min-width: 320px;
-                        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-                        text-align: center;
-                    "
-                >
-                    <div
-                        style="
-                            font-size: 20px;
-                            font-weight: bold;
-                            margin-bottom: 16px;
-                        "
-                    >
-                        이메일로 동행자 초대
-                    </div>
-                    <input
-                        type="email"
-                        id="invite-email"
-                        placeholder="이메일 입력"
-                        style="
-                            width: 100%;
-                            padding: 12px;
-                            font-size: 16px;
-                            border-radius: 8px;
-                            border: 1px solid #ddd;
-                            margin-bottom: 20px;
-                        "
-                    />
-                    <div
-                        style="
-                            display: flex;
-                            gap: 10px;
-                            justify-content: center;
-                        "
-                    >
-                        <button
-                            id="invite-confirm-btn"
-                            class="btn-generate"
-                            style="flex: 1"
-                        >
-                            초대
-                        </button>
-                        <button
-                            id="invite-cancel-btn"
-                            class="btn-secondary"
-                            style="flex: 1"
-                        >
-                            취소
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- ✅ Main.mjs: loading-overlay -->
@@ -675,13 +601,38 @@
                 .then((res) => res.text())
                 .then((html) => {
                     document.getElementById("navbar").innerHTML = html;
-                    // navbar 삽입 후 user info 로드
                     import("./pages/NavbarUserInfo.js").then((m) =>
                         m.loadNavbarUser()
                     );
                 });
         </script>
 
-        <!-- <script type="module" src="./pages/NavbarUserInfo.js"></script> -->
+        <!-- 초대 링크 모달 -->
+        <div id="invite-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+
+            <div class="modal-content">
+                <h2>여행 초대 링크</h2>
+                <p class="modal-desc">
+                    아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
+                </p>
+
+                <div class="invite-link-box">
+                    <input
+                        type="text"
+                        id="inviteLinkInput"
+                        readonly
+                        placeholder="초대 링크 생성 중..."
+                    />
+                    <button id="copyInviteLinkBtn" title="복사">📋</button>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-close" id="closeInviteModal">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
