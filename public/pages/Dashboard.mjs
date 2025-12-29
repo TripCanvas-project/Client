@@ -35,11 +35,12 @@ async function loadMyTrips() {
     ).innerText = `안녕하세요, ${user.nickname}님! 👋`;
 
     document.querySelector(".allTrips").innerText = user.stats.totalTrips;
+    document.querySelector(".planningTrips").innerText =
+        user.stats.planningTrips;
     document.querySelector(".completedTrips").innerText =
         user.stats.completedTrips;
     document.querySelector(".achivedBucket").innerText =
         user.stats.completedBucketlists;
-    document.querySelector(".visitedPlaces").innerText = user.stats.totalPlaces;
 }
 
 function renderTrips(trips, tripStyles = {}) {
