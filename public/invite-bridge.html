@@ -1,0 +1,19 @@
+<script>
+    const invite = new URLSearchParams(location.search).get("invite");
+    const token = localStorage.getItem("token");
+
+    if (!invite) {
+        document.body.innerText = "잘못된 접근입니다.";
+    } else if (!token) {
+        location.href = `/login.html?invite=${invite}`;
+    } else {
+        fetch(`/trip/join/${invite}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((res) => res.json())
+            .then(() => (location.href = "/dashboard.html"));
+    }
+</script>

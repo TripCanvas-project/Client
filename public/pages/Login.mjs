@@ -1,13 +1,20 @@
 const loginForm = document.getElementById("loginForm");
 const errorMessage = document.getElementById("errorMessage");
 
+const params = new URLSearchParams(location.search);
+const inviteToken = params.get("invite"); // 초대 토큰
+
+const API_BASE_URL =
+    location.hostname === "localhost"
+        ? "http://localhost:8080"
+        : "https://ferly-coxcombic-elroy.ngrok-free.dev";
+
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorMessage.style.display = "none";
 
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
-    // const rememberMe = document.getElementById("rememberMe").checked;
 
     if (!username || !password) {
         errorMessage.textContent = "아이디 또는 비밀번호를 입력해주세요.";
@@ -15,7 +22,6 @@ loginForm.addEventListener("submit", async (e) => {
         return;
     }
 
-    // 이메일인지 아이디인지 판별
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username);
 
     const payload = {
@@ -24,16 +30,13 @@ loginForm.addEventListener("submit", async (e) => {
     };
 
     try {
-        const API_BASE_URL = "";
         const res = await fetch(`${API_BASE_URL}/user/login`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
 
-        const data = await res.json(); // message, token, user
+        const data = await res.json();
 
         if (!res.ok) {
             errorMessage.textContent =
@@ -42,13 +45,15 @@ loginForm.addEventListener("submit", async (e) => {
             return;
         }
 
-        // 토큰과 유저 정보 저장
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        // 이동
-        window.location.href = "./dashboard.html";
-        console.log(window.location.href);
+        // 초대 링크 타고 들어왔는지에 대한 여부에 따라 분기
+        if (inviteToken) {
+            location.href = `${API_BASE_URL}/join/${inviteToken}`;
+        } else {
+            location.href = "./dashboard.html";
+        }
     } catch (err) {
         console.error("login error:", err);
         errorMessage.textContent = "서버와 통신 중 오류가 발생했습니다.";
