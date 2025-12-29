@@ -68,6 +68,7 @@ function renderTrips(trips, tripStyles = {}) {
 
                 <div class="trip-actions">
                     <button class="trip-action-btn edit-btn">✏️ 편집</button>
+                    <button class="trip-action-btn delete-btn">❌ 삭제</button>
                 </div>
 
                 <div class="trip-palette hidden">
@@ -113,6 +114,7 @@ function renderTrips(trips, tripStyles = {}) {
         applyTripStyle(card, tripStyles[trip._id], trip.title);
 
         const editBtn = card.querySelector(".edit-btn");
+        const deleteBtn = card.querySelector(".delete-btn");
         const palette = card.querySelector(".trip-palette");
         const thumbnail = card.querySelector(".trip-thumbnail");
         const emojiInput = card.querySelector(".emoji-input");
@@ -135,6 +137,12 @@ function renderTrips(trips, tripStyles = {}) {
 
             await saveTripStyle(trip._id, { title: value });
         });
+
+        // 삭제버튼
+        deleteBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await deleteTrip(trip._id);
+        })
 
         // ✏️ 편집 버튼 → 팔레트 토글
         editBtn.addEventListener("click", (e) => {
@@ -409,3 +417,27 @@ document.getElementById('create-new-trip-btn')?.addEventListener('click', async 
         alert('여행 생성 중 오류가 발생했습니다.');
     }
 });
+
+async function deleteTrip(tripId) {
+    const token = localStorage.getItem('token');
+    
+    try {
+        const response = await fetch(`http://localhost:8080/trip/${tripId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            alert('여행이 삭제되었습니다.');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('여행 삭제 실패: ' + error.message);
+        }
+    } catch (err) {
+        console.error("deleteTrip failed:", err);
+        return null;
+    }
+}
