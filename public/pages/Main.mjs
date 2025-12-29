@@ -1970,26 +1970,68 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // ==================== 사이드바 토글 기능 ====================
+    // ==================== 사이드바 3단계 토글 ====================
     const sidebar = document.querySelector('.sidebar');
     const rightPanel = document.querySelector('.right-panel');
     const toggleLeftBtn = document.getElementById('toggle-left-btn');
     const toggleRightBtn = document.getElementById('toggle-right-btn');
 
-    // 왼쪽 패널 토글
+    // 왼쪽 패널: 기본 → 접힘 → 최대화 → 기본
     if (toggleLeftBtn && sidebar) {
-        toggleLeftBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        toggleLeftBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
-        });
+    toggleLeftBtn.addEventListener('click', () => {
+        if (sidebar.classList.contains('maximized')) {
+        // 최대화 → 기본
+        sidebar.classList.remove('maximized');
+        toggleLeftBtn.textContent = '◀';
+        toggleLeftBtn.style.left = '400px';
+        toggleRightBtn.style.display = ''; // 오른쪽 버튼 복원
+        } else if (sidebar.classList.contains('collapsed')) {
+        // 접힌 → 최대화
+        sidebar.classList.remove('collapsed');
+        sidebar.classList.add('maximized');
+        toggleLeftBtn.textContent = '⊗';
+        toggleLeftBtn.style.left = 'calc(100vw - 32px)';
+        toggleRightBtn.style.display = 'none'; // 오른쪽 버튼 숨김
+        } else {
+        // 기본 → 접힘
+        sidebar.classList.add('collapsed');
+        toggleLeftBtn.textContent = '▶';
+        toggleLeftBtn.style.left = '0';
+        }
+        
+        setTimeout(() => {
+        if (currentMap) currentMap.relayout();
+        }, 300);
+    });
     }
 
-    // 오른쪽 패널 토글
+    // 오른쪽 패널: 기본 → 접힘 → 최대화 → 기본
     if (toggleRightBtn && rightPanel) {
-        toggleRightBtn.addEventListener('click', () => {
-        rightPanel.classList.toggle('collapsed');
-        toggleRightBtn.textContent = rightPanel.classList.contains('collapsed') ? '◀' : '▶';
-        });
+    toggleRightBtn.addEventListener('click', () => {
+        if (rightPanel.classList.contains('maximized')) {
+        // 최대화 → 기본
+        rightPanel.classList.remove('maximized');
+        toggleRightBtn.textContent = '▶';
+        toggleRightBtn.style.right = '350px';
+        toggleLeftBtn.style.display = ''; // 왼쪽 버튼 복원
+        } else if (rightPanel.classList.contains('collapsed')) {
+        // 접힌 → 최대화
+        rightPanel.classList.remove('collapsed');
+        rightPanel.classList.add('maximized');
+        toggleRightBtn.textContent = '⊗';
+        toggleRightBtn.style.right = 'calc(100vw - 32px)';
+        toggleLeftBtn.style.display = 'none'; // 왼쪽 버튼 숨김
+        } else {
+        // 기본 → 접힘
+        rightPanel.classList.add('collapsed');
+        toggleRightBtn.textContent = '◀';
+        toggleRightBtn.style.right = '0';
+        }
+        
+        setTimeout(() => {
+        if (currentMap) currentMap.relayout();
+        }, 300);
+    });
     }
 
     // -----------------------------
