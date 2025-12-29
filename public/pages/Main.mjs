@@ -1708,7 +1708,35 @@ function initKakaoMap() {
 // =====================================================
 // ✅ DOMContentLoaded (Main Wiring)
 // =====================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+    // ==================== Trip ID 확인 및 자동 생성 ====================
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripIdFromUrl = urlParams.get('tripId');
+    const tripIdFromStorage = localStorage.getItem('currentTripId');
+
+    if (tripIdFromUrl) {
+        // URL에 tripId가 있으면 우선 사용
+        currentTripId = tripIdFromUrl;
+        localStorage.setItem('currentTripId', tripIdFromUrl);
+        localStorage.setItem('lastTripId', tripIdFromUrl);
+        console.log('Using tripId from URL:', currentTripId);
+    } else if (tripIdFromStorage && tripIdFromStorage !== 'null' && tripIdFromStorage !== 'undefined') {
+        // localStorage에 유효한 tripId가 있으면 사용
+        currentTripId = tripIdFromStorage;
+        console.log('Using tripId from storage:', currentTripId);
+    } else {
+        // tripId가 없으면 자동 생성
+        console.log('No tripId found, creating new trip...');
+        currentTripId = await createNewTrip();
+        
+        if (!currentTripId) {
+            alert('여행 생성에 실패했습니다. 대시보드로 이동합니다.');
+            window.location.href = '/dashboard.html';
+            return;
+        }
+        
+        console.log('New trip created:', currentTripId);
+    }
     // -----------------------------
     // 도착지 선택(세부사항)
     // -----------------------------
@@ -1808,7 +1836,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const token = getToken();
 
             const tripData = {
-                tripId: currentTripId,
+                tripId: localStorage.getItem("currentTripId"),
                 start_loc: departure,
                 end_area: destination,
                 detail_addr:
