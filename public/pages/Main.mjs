@@ -1995,6 +1995,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // ✅ (추가) 템플릿 탭 클릭 시 내 여행 목록 로드
             if (tabName === "template") loadMyTripsIntoTemplate();
+
+            // ✅ 일정 탭 클릭 시 이벤트 리스너 재등록
+            if (tabName === "schedule") {
+                console.log("📅 왼쪽 사이드바 일정 탭 활성화 - 이벤트 리스너 재등록");
+                attachScheduleEventListeners();
+            }
         });
     });
 
@@ -2085,6 +2091,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (chatInput)
                 chatInput.style.display =
                     panelName === "chat" ? "flex" : "none";
+
+            // ✅ 예산 탭으로 전환 시 이벤트 리스너 재등록
+            if (panelName === "budget") {
+                console.log("💰 예산 탭 활성화 - 이벤트 리스너 재등록");
+                attachBudgetEventListeners();
+            }
+
+            // ✅ 일정 탭으로 전환 시 이벤트 리스너 재등록
+            if (panelName === "schedule") {
+                console.log("📅 일정 탭 활성화 - 이벤트 리스너 재등록");
+                attachScheduleEventListeners();
+            }
         });
     });
 
@@ -3630,48 +3648,111 @@ async function deleteSchedule(scheduleId) {
 }
 
 // =====================================================
-// ✅ 이벤트 리스너 등록
+// ✅ 예산 탭 이벤트 리스너 연결 함수
 // =====================================================
+function attachBudgetEventListeners() {
+    // 예산 추가 버튼
+    const addExpenseBtn = document.getElementById("add-expense-btn");
+    if (addExpenseBtn) {
+        // 기존 이벤트 리스너 제거 후 재등록 (중복 방지)
+        addExpenseBtn.replaceWith(addExpenseBtn.cloneNode(true));
+        const newBtn = document.getElementById("add-expense-btn");
+        newBtn.addEventListener("click", addExpense);
+    }
 
-// 예산 추가 버튼
-document
-    .getElementById("add-expense-btn")
-    ?.addEventListener("click", addExpense);
+    // 지출 저장 버튼 (수정 모드)
+    const saveExpenseBtn = document.getElementById("save-expense-btn");
+    if (saveExpenseBtn) {
+        saveExpenseBtn.replaceWith(saveExpenseBtn.cloneNode(true));
+        document.getElementById("save-expense-btn")
+            ?.addEventListener("click", updateExpense);
+    }
 
-// 지출 저장 버튼 (수정 모드)
-document
-    .getElementById("save-expense-btn")
-    ?.addEventListener("click", updateExpense);
+    // 지출 취소 버튼 (수정 모드)
+    const cancelExpenseBtn = document.getElementById("cancel-expense-btn");
+    if (cancelExpenseBtn) {
+        cancelExpenseBtn.replaceWith(cancelExpenseBtn.cloneNode(true));
+        document.getElementById("cancel-expense-btn")
+            ?.addEventListener("click", closeEditExpenseForm);
+    }
+}
 
-// 지출 취소 버튼 (수정 모드)
-document
-    .getElementById("cancel-expense-btn")
-    ?.addEventListener("click", closeEditExpenseForm);
+// =====================================================
+// ✅ 일정 탭 이벤트 리스너 연결 함수
+// =====================================================
+function attachScheduleEventListeners() {
+    // 일정 추가 버튼
+    const addScheduleBtn = document.getElementById("add-schedule-btn");
+    if (addScheduleBtn) {
+        addScheduleBtn.replaceWith(addScheduleBtn.cloneNode(true));
+        document.getElementById("add-schedule-btn")
+            ?.addEventListener("click", openScheduleForm);
+    }
 
-// 일정 추가 버튼 (폼 열기)
-document
-    .getElementById("add-schedule-btn")
-    ?.addEventListener("click", openScheduleForm);
+    // 일정 저장 버튼
+    const saveScheduleBtn = document.getElementById("save-schedule-btn");
+    if (saveScheduleBtn) {
+        saveScheduleBtn.replaceWith(saveScheduleBtn.cloneNode(true));
+        document.getElementById("save-schedule-btn")
+            ?.addEventListener("click", saveSchedule);
+    }
 
-// 일정 저장 버튼
-document
-    .getElementById("save-schedule-btn")
-    ?.addEventListener("click", saveSchedule);
+    // 일정 취소 버튼
+    const cancelScheduleBtn = document.getElementById("cancel-schedule-btn");
+    if (cancelScheduleBtn) {
+        cancelScheduleBtn.replaceWith(cancelScheduleBtn.cloneNode(true));
+        document.getElementById("cancel-schedule-btn")
+            ?.addEventListener("click", closeScheduleForm);
+    }
 
-// 일정 추가 취소 버튼
-document
-    .getElementById("cancel-schedule-btn")
-    ?.addEventListener("click", closeScheduleForm);
+    // 일정 수정 저장 버튼
+    const updateScheduleBtn = document.getElementById("update-schedule-btn");
+    if (updateScheduleBtn) {
+        updateScheduleBtn.replaceWith(updateScheduleBtn.cloneNode(true));
+        document.getElementById("update-schedule-btn")
+            ?.addEventListener("click", updateSchedule);
+    }
 
-// 일정 수정 저장 버튼
-document
-    .getElementById("update-schedule-btn")
-    ?.addEventListener("click", updateSchedule);
+    // 일정 수정 취소 버튼
+    const cancelEditBtn = document.getElementById("cancel-edit-schedule-btn");
+    if (cancelEditBtn) {
+        cancelEditBtn.replaceWith(cancelEditBtn.cloneNode(true));
+        document.getElementById("cancel-edit-schedule-btn")
+            ?.addEventListener("click", closeEditScheduleForm);
+    }
+}
 
-// 일정 수정 취소 버튼
-document
-    .getElementById("cancel-edit-schedule-btn")
-    ?.addEventListener("click", closeEditScheduleForm);
+// =====================================================
+// ✅ 이벤트 리스너 등록 (DOMContentLoaded 후 실행)
+// =====================================================
+window.addEventListener("DOMContentLoaded", () => {
+    // 예산 탭 이벤트 리스너는 탭 전환 시 등록되므로 여기서는 생략
+
+    // 일정 추가 버튼 (폼 열기)
+    document
+        .getElementById("add-schedule-btn")
+        ?.addEventListener("click", openScheduleForm);
+
+    // 일정 저장 버튼
+    document
+        .getElementById("save-schedule-btn")
+        ?.addEventListener("click", saveSchedule);
+
+    // 일정 추가 취소 버튼
+    document
+        .getElementById("cancel-schedule-btn")
+        ?.addEventListener("click", closeScheduleForm);
+
+    // 일정 수정 저장 버튼
+    document
+        .getElementById("update-schedule-btn")
+        ?.addEventListener("click", updateSchedule);
+
+    // 일정 수정 취소 버튼
+    document
+        .getElementById("cancel-edit-schedule-btn")
+        ?.addEventListener("click", closeEditScheduleForm);
+});
 
 // =====================================================
 // ✅ 초기 로드
