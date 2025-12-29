@@ -213,6 +213,14 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0;
+  border-right: none;
+  overflow: hidden;
 }
 
 .sidebar-tabs {
@@ -652,6 +660,14 @@ width: 35px;
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease;
+}
+
+.right-panel.collapsed {
+  width: 0 !important;
+  min-width: 0;
+  border-left: none;
+  overflow: hidden;
 }
 
 .panel-tabs {
@@ -1035,4 +1051,103 @@ width: 35px;
   padding: 20px 40px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 포스트잇 스타일 */
+.sticky-note {
+  position: absolute;
+  width: 200px;
+  min-height: 150px;
+  background: rgba(255, 251, 179, 0.95); /* 반투명 노란색 */
+  border: 1px solid rgba(255, 200, 87, 0.8);
+  border-radius: 4px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  cursor: move;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  z-index: 1000;
+  user-select: none;
+}
+
+.sticky-note-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.sticky-note-delete {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sticky-note-delete:hover {
+  background: rgba(220, 38, 38, 0.9);
+}
+
+.sticky-note-content {
+  min-height: 120px;
+  padding: 8px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #333;
+  overflow-y: auto;
+  word-wrap: break-word;
+}
+
+.sticky-note-content:empty:before {
+  content: '텍스트를 입력하세요...';
+  color: #999;
+}
+
+.sticky-note.dragging {
+  cursor: grabbing;
+  opacity: 0.8;
+}
+
+/* 토글 버튼 스타일 - map-toolbar 스타일 뒤에 추가 */
+.toggle-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 80px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-btn:hover {
+  background: var(--bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-left {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+}
+
+.toggle-right {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+  border-right: none;
 }

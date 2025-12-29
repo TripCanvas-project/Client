@@ -1808,6 +1808,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const token = getToken();
 
             const tripData = {
+                tripId: currentTripId,
                 start_loc: departure,
                 end_area: destination,
                 detail_addr:
@@ -1969,6 +1970,28 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // ==================== 사이드바 토글 기능 ====================
+    const sidebar = document.querySelector('.sidebar');
+    const rightPanel = document.querySelector('.right-panel');
+    const toggleLeftBtn = document.getElementById('toggle-left-btn');
+    const toggleRightBtn = document.getElementById('toggle-right-btn');
+
+    // 왼쪽 패널 토글
+    if (toggleLeftBtn && sidebar) {
+        toggleLeftBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        toggleLeftBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+        });
+    }
+
+    // 오른쪽 패널 토글
+    if (toggleRightBtn && rightPanel) {
+        toggleRightBtn.addEventListener('click', () => {
+        rightPanel.classList.toggle('collapsed');
+        toggleRightBtn.textContent = rightPanel.classList.contains('collapsed') ? '◀' : '▶';
+        });
+    }
+
     // -----------------------------
     // 패널 탭 전환
     // -----------------------------
@@ -2050,33 +2073,6 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("schedule-title").value = "";
             document.getElementById("schedule-location").value = "";
         });
-
-    // -----------------------------
-    // 채팅 전송
-    // -----------------------------
-    document.getElementById("chat-send-btn")?.addEventListener("click", () => {
-        const input = document.getElementById("chat-input");
-        const message = input.value.trim();
-
-        if (message) {
-            const chatMessages = document.getElementById("chat-messages");
-            const newMessage = document.createElement("div");
-            newMessage.className = "message";
-            newMessage.innerHTML = `
-        <div class="message-author">나</div>
-        <div class="message-text">${escapeHtml(message)}</div>
-        <div class="message-time">방금</div>
-      `;
-            chatMessages.appendChild(newMessage);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            input.value = "";
-        }
-    });
-
-    document.getElementById("chat-input")?.addEventListener("keypress", (e) => {
-        if (e.key === "Enter")
-            document.getElementById("chat-send-btn")?.click();
-    });
 
     // -----------------------------
     // 초기 루트 로드
@@ -2221,12 +2217,8 @@ function handleCanvasMouseDown(e) {
     }
 
     if (currentTool === "text") {
-        // 텍스트 입력
-        const text = prompt("메모 내용을 입력하세요:");
-        if (text) {
-            const latLng = pixelToLatLng(x, y);
-            addTextMemo(text, latLng);
-        }
+       // 포스트잇 생성
+        createStickyNote(x, y);
         return;
     }
 
@@ -2314,7 +2306,16 @@ async function loadMemoFromServer() {
 
     const savedMemos = await response.json();
     memos = savedMemos;
-    renderMemos();
+
+    // 텍스트 메모는 포스트잇으로 생성
+    memos.forEach(memo => {
+      if (memo.type === 'text' && memo.coords && memo.coords[0]) {
+        const pixel = latLngToPixel(memo.coords[0]);
+        createStickyNote(pixel.x, pixel.y, memo.text, memo);
+      }
+    });
+
+    renderMemos(); // path 메모만 Canvas에 렌더링
     console.log("Loasded memos from server");
   } catch (error) {
     console.error('Failed to load memos');
@@ -2336,23 +2337,189 @@ function addMemo(memo) {
     console.log("Memo added:", memo);
 }
 
-// 텍스트 메모 추가
-function addTextMemo(text, latLng) {
-    const memo = {
-        id: crypto.randomUUID(),
-        type: "text",
-        coords: [latLng],
-        text: text,
-        style: {
-            color: "#000000",
-            fontSize: 16,
-        },
-        createdBy: localStorage.getItem("userId") || "anonymous",
-        timestamp: Date.now(),
+// 포스트잇 생성
+function createStickyNote(x, y, text = '', memo = null) {
+  const memoId = memo?.id || crypto.randomUUID();
+  const latLng = memo?.coords?.[0] || pixelToLatLng(x, y);
+
+  // 포스트잇 DOM 요소 생성
+  const stickyNote = document.createElement('div');
+  stickyNote.className = 'sticky-note';
+  stickyNote.setAttribute('data-memo-id', memoId);
+
+  // 위치 설정
+  const pixel = latLngToPixel(latLng);
+  stickyNote.style.left = `${pixel.x}px`;
+  stickyNote.style.top = `${pixel.y}px`;
+
+  // 헤더 (삭제 버튼)
+  const header = document.createElement('div');
+  header.className = 'sticky-note-header';
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'sticky-note-delete';
+  deleteBtn.textContent = 'x';
+  deleteBtn.onclick = (e) => {
+    e.stopPropagation();
+    removeMemo(memoId);
+    stickyNote.remove();
+  };
+
+  header.appendChild(deleteBtn);
+
+  // 내용
+  const content = document.createElement('div');
+  content.className = 'sticky-note-content';
+  content.contentEditable = true;
+  content.textContent = text || memo?.text || '';
+
+  // 텍스트 변경 시 저장
+  let saveTimeout;
+  content.addEventListener('input', () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      updateStickyNoteText(memoId, content.textContent);
+    }, 500);
+  });
+
+  // 포커스 잃으면 저장
+  content.addEventListener('blur', () => {
+    updateStickyNoteText(memoId, content.textContent);
+  });
+
+  stickyNote.appendChild(header);
+  stickyNote.appendChild(content);
+
+  // 드래그 기능 추가
+  makeDraggable(stickyNote, memoId);
+
+  // 지도 컨테이너에 추가
+  document.querySelector('#kakao-map').appendChild(stickyNote);
+
+  // 새 메모면 자동 포커스
+  if (!text && !memo) {
+    content.focus();
+
+    // 메모 데이터 저장
+    const newMemo = {
+      id: memoId,
+      type: 'text',
+      coords: [latLng],
+      test: '',
+      style: { fontSize: 14, color: '#333' },
+      createdBy: localStorage.getItem('userId') || 'anonymous',
+      timestamp: Date.now()
     };
 
-    addMemo(memo);
+    addMemo(newMemo);
+  }
+
+  return stickyNote;
 }
+
+// 포스트잇 텍스트 업데이트
+function updateStickyNoteText(memoId, text) {
+  const memo = memos.find(m => m.id === memoId);
+  if (memo) {
+    memo.text = text;
+
+    // 서버에 업데이트 (선택사항)
+    if (collaboration) {
+      collaboration.sendMemo(memo);
+    }
+  }
+}
+
+// 포스트잇 드래그 기능
+function makeDraggable(element, memoId) {
+  let isDragging = false;
+  let startX, startY;
+  let initialLeft, initialTop;
+
+  const onMouseDown = (e) => {
+    // 내용 영역 클릭 시에는 드래그 하지 않음
+    if (e.target.classList.contains('sticky-note-content')) return;
+    if (e.target.classList.contains('sticky-note-delete')) return;
+
+    isDragging = true;
+    element.classList.add('dragging');
+
+    startX = e.clientX;
+    startY = e.clientY;
+    initialLeft = parseInt(element.style.left) || 0;
+    initialTop = parseInt(element.style.top) || 0;
+
+    e.preventDefault();
+  };
+
+  const onMouseMove = (e) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    const newLeft = initialLeft + deltaX;
+    const newTop = initialTop + deltaY;
+    
+    element.style.left = `${newLeft}px`;
+    element.style.top = `${newTop}px`;
+  };
+
+  const onMouseUp = () => {
+    if (!isDragging) return;
+
+    isDragging = false;
+    element.classList.remove('dragging');
+
+    // 새 위치를 위경도로 변환하여 메모 업데이트
+    const x = parseInt(element.style.left);
+    const y = parseInt(element.style.top);
+    const newLatLng = pixelToLatLng(x, y);
+
+    const memo = memos.find(m => m.id === memoId);
+    if (memo) {
+      memo.coords = [newLatLng];
+
+      // 서버에 업데이트
+      if (collaboration) {
+        collaboration.sendMemo(memo);
+      }
+    }
+  };
+
+  element.addEventListener('mousedown', onMouseDown);
+  element.addEventListener('mousemove', onMouseMove);
+  element.addEventListener('mouseup', onMouseUp);
+}
+
+// 모든 포스트잇 위치 업데이트
+function updateStickyNotesPositions() {
+  document.querySelectorAll('.sticky-note').forEach(note => {
+      const memoId = note.getAttribute('data-memo-id');
+      const memo = memos.find(m => m.id === memoId);
+      
+      if (memo && memo.coords && memo.coords[0]) {
+          const pixel = latLngToPixel(memo.coords[0]);
+          note.style.left = `${pixel.x}px`;
+          note.style.top = `${pixel.y}px`;
+      }
+  });
+}
+
+// 지도 이벤트에 연결 (initKakaoMap 함수 내부에 추가)
+kakao.maps.event.addListener(currentMap, 'zoom_changed', () => {
+  renderMemos();
+  updateStickyNotesPositions();
+});
+
+kakao.maps.event.addListener(currentMap, 'dragend', () => {
+  renderMemos();
+  updateStickyNotesPositions();
+});
+
+kakao.maps.event.addListener(currentMap, 'center_changed', () => {
+  updateStickyNotesPositions();
+});
 
 // 메모 삭제
 function removeMemo(memoId) {
@@ -2420,17 +2587,25 @@ function distanceToSegment(px, py, x1, y1, x2, y2) {
 
 // 위치에서 메모 찾기
 function findMemoAtPosition(x, y) {
+    // 먼저 포스트잇 체크
+    const clickedNote = document.elementFromPoint(
+        x + canvas.getBoundingClientRect().left,
+        y + canvas.getBoundingClientRect().top
+    )
+
+    if (clickedNote && clickedNote.closest('.sticky-note')) {
+        const stickyNote = clickedNote.closest('.sticky-note');
+        const memoId = stickyNote.getAttribute('data-memo-id');
+        return memos.find(m => m.id === memoId);
+    }
+
+    // Canvas의 path 메모 체크
     const CLICK_THRESHOLD = 15; // 클릭 허용 범위 (픽셀)
 
     for (let i = memos.length - 1; i >= 0; i--) {
         const memo = memos[i];
 
-        if (memo.type === "text") {
-            // 텍스트: 사각형 영역 체크
-            const pixel = latLngToPixel(memo.coords[0]); // 메모의 지리적 위치를 픽셀 좌표로 변환
-            const dist = Math.sqrt((pixel.x - x) ** 2 + (pixel.y - y) ** 2); // 픽셀 좌표와 마우스 포인터 사이의 거리 계산
-            if (dist < CLICK_THRESHOLD + 10) return memo; // 텍스트는 조금 더 넓게 (펜 선보다 클릭하기 어려움)
-        } else if (memo.type === "path") {
+        if (memo.type === "path") {
             // 경로: 각 선분과의 최단 거리 계산
             const pixels = memo.coords.map((coord) => latLngToPixel(coord)); // 메모의 지리적 위치를 픽셀 좌표로 변환
 
@@ -2460,10 +2635,10 @@ function renderMemos() {
     memos.forEach((memo) => {
         if (memo.type === "path") {
             drawPathMemo(memo);
-        } else if (memo.type === "text") {
-            drawTextMemo(memo);
         }
     });
+
+    updateStickyNotesPositions();
 }
 
 // 경로 메모 그리기
@@ -2623,6 +2798,8 @@ async function initCollaboration() {
 
         // Room 참가
         collaboration.joinRoom(currentTripId, userId, username);
+
+        loadMemoFromServer();
 
         console.log(`✅ Collaboration initialized`);
         console.log(`   - Trip ID: ${currentTripId}`);

@@ -352,6 +352,29 @@ class VideoChat {
             // 모든 비디오 타일 제거
             if (this.container) {
                 this.container.innerHTML = '';
+
+                // Placeholder 다시 추가
+                const placeholder = document.createElement('div');
+                placeholder.className = 'video-placeholder';
+                placeholder.style.cssText = `
+                    grid-column: 1 / -1;
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: white;
+                    background: #334155;
+                    border-radius: 8px;
+                    margin: 8px;
+                `;
+                placeholder.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 16px">📹</div>
+                    <div style="font-size: 16px; margin-bottom: 8px">
+                        화상 채팅이 시작되지 않았습니다
+                    </div>
+                    <div style="font-size: 13px; opacity: 0.7">
+                        카메라 버튼(📹)을 눌러 통화를 시작하세요
+                    </div>
+                `;
+                this.container.appendChild(placeholder);
             }
 
             this.isVideoEnabled = false;

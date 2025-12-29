@@ -86,8 +86,9 @@ class SocketService {
         // 소켓이 연결되어 있지 않거나 룸에 참가하지 않은 경우
         if (!this.socket || !this.roomId) {
             console.error('Not connected to a room');
-            return;
+            return false;
         }
+        return true;
     }
 
     // 채팅 메시지 전송
