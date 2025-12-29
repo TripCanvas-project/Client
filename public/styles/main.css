@@ -64,7 +64,7 @@ body {
   width: 100vw;
   height: 100vh;
   background: rgba(255, 255, 255, 0.85);
-  z-index: 9999;
+  z-index: 10001;
 
   display: flex;
   align-items: center;
@@ -1032,7 +1032,7 @@ width: 35px;
   padding: 8px;
   cursor: move;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  z-index: 1000;
+  z-index: 30;
   user-select: none;
 }
 
@@ -1085,6 +1085,7 @@ width: 35px;
 
 /* 패널 transition */
 .sidebar {
+  z-index: 31;
   width: 400px;
   background: var(--card);
   border-right: 1px solid var(--border);
@@ -1095,6 +1096,7 @@ width: 35px;
 }
 
 .right-panel {
+  z-index: 31;
   width: 350px;
   background: var(--card);
   border-left: 1px solid var(--border);
@@ -1119,16 +1121,16 @@ width: 35px;
 
 /* 최대화 상태 */
 .sidebar.maximized {
-  width: calc(100vw - 40px);
+  width: calc(95vw - 40px);
   min-width: 100vw;
-  z-index: 9999;
+  z-index: 20;
   height: 100vh;
 }
 
 .right-panel.maximized {
   width: calc(100vw - 40px);
   min-width: 100vw;
-  z-index: 9999;
+  z-index: 20;
   height: 100vh;
 }
 
@@ -1172,7 +1174,7 @@ width: 35px;
   background: var(--card);
   border: 1px solid var(--border);
   cursor: pointer;
-  z-index: 10000;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
