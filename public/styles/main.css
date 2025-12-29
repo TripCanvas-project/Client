@@ -64,7 +64,7 @@ body {
   width: 100vw;
   height: 100vh;
   background: rgba(255, 255, 255, 0.85);
-  z-index: 9999;
+  z-index: 10001;
 
   display: flex;
   align-items: center;
@@ -204,23 +204,6 @@ body {
 .main-container {
   display: flex;
   height: calc(100vh - 68px);
-}
-
-.sidebar {
-  width: 400px;
-  background: var(--card);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: width 0.3s ease;
-}
-
-.sidebar.collapsed {
-  width: 0 !important;
-  min-width: 0;
-  border-right: none;
-  overflow: hidden;
 }
 
 .sidebar-tabs {
@@ -654,22 +637,6 @@ width: 35px;
   color: white;
 }
 
-.right-panel {
-  width: 350px;
-  background: var(--card);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease;
-}
-
-.right-panel.collapsed {
-  width: 0 !important;
-  min-width: 0;
-  border-left: none;
-  overflow: hidden;
-}
-
 .panel-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
@@ -1065,7 +1032,7 @@ width: 35px;
   padding: 8px;
   cursor: move;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  z-index: 1000;
+  z-index: 30;
   user-select: none;
 }
 
@@ -1116,9 +1083,90 @@ width: 35px;
   opacity: 0.8;
 }
 
-/* 토글 버튼 스타일 - map-toolbar 스타일 뒤에 추가 */
+/* 패널 transition */
+.sidebar {
+  z-index: 31;
+  width: 400px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease, border 0.3s ease;
+}
+
+.right-panel {
+  z-index: 31;
+  width: 350px;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease, border 0.3s ease;
+}
+
+/* 접힌 상태 */
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+.right-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  border-left: none;
+}
+
+/* 최대화 상태 */
+.sidebar.maximized {
+  width: calc(95vw - 40px);
+  min-width: 100vw;
+  z-index: 20;
+  height: 100vh;
+}
+
+.right-panel.maximized {
+  width: calc(100vw - 40px);
+  min-width: 100vw;
+  z-index: 20;
+  height: 100vh;
+}
+
+/* 최대화 시 컨텐츠 영역 확장 */
+.right-panel.maximized .panel-content {
+  height: calc(100vh - 60px); /* 탭 높이 제외 */
+  max-height: calc(100vh - 60px);
+}
+
+.right-panel.maximized .video-grid {
+  height: 100%;
+  min-height: calc(80vh - 120px); /* 여유 공간 */
+}
+
+/* 최대화 시 비디오 타일 크기 조정 */
+.right-panel.maximized .video-tile {
+  width: calc(50% - 20px); /* 2열 */
+  height: calc(50vh - 80px); /* 화면 높이의 절반 */
+  max-height: none;
+}
+
+/* 1명일 때는 전체 화면 */
+.right-panel.maximized .video-grid:has(.video-tile:only-child) .video-tile {
+  width: 100%;
+  height: calc(80vh - 120px);
+}
+
+/* 2명일 때는 가로로 나란히 */
+.right-panel.maximized .video-grid:has(.video-tile:nth-child(2):last-child) .video-tile {
+  width: calc(50% - 20px);
+  height: calc(80vh - 120px);
+}
+
+/* 토글 버튼 */
 .toggle-btn {
-  position: absolute;
+  position: fixed;
   top: 50%;
   transform: translateY(-50%);
   width: 32px;
@@ -1126,12 +1174,12 @@ width: 35px;
   background: var(--card);
   border: 1px solid var(--border);
   cursor: pointer;
-  z-index: 1000;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  transition: all 0.3s;
+  transition: left 0.3s ease, right 0.3s ease, background 0.3s, box-shadow 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -1141,13 +1189,13 @@ width: 35px;
 }
 
 .toggle-left {
-  left: 0;
+  left: 400px;
   border-radius: 0 8px 8px 0;
   border-left: none;
 }
 
 .toggle-right {
-  right: 0;
+  right: 350px;
   border-radius: 8px 0 0 8px;
   border-right: none;
 }

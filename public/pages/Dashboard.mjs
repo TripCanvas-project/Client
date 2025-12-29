@@ -357,3 +357,55 @@ function renderChallenges(challenges) {
         grid.appendChild(card);
     });
 }
+
+document.getElementById('create-new-trip-btn')?.addEventListener('click', async () => {
+    try {
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        const username = localStorage.getItem('username');
+        
+        if (!token) {
+            alert('로그인이 필요합니다.');
+            location.href = '/login.html';
+            return;
+        }
+        
+        // 새 여행 생성
+        const response = await fetch('http://localhost:8080/trip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                title: `${username}의 여행 - ${new Date().toLocaleDateString()}`,
+                destination: {
+                    name: '미정',
+                    district: '미정',
+                    city: '미정'
+                },
+                startDate: new Date().toISOString(),
+                endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+                status: 'planning'
+            })
+        });
+        
+        if (response.ok) {
+            const trip = await response.json();
+            const tripId = trip._id || trip.id;
+            
+            // localStorage에 저장
+            localStorage.setItem('currentTripId', tripId);
+            localStorage.setItem('lastTripId', tripId);
+            
+            // main.html로 이동
+            location.href = `main.html?tripId=${tripId}`;
+        } else {
+            const error = await response.json();
+            alert('여행 생성 실패: ' + error.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('여행 생성 중 오류가 발생했습니다.');
+    }
+});
