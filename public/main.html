@@ -15,11 +15,6 @@
     <!-- 네비게이션 -->
     <div id="navbar"></div>
 
-    <script type="module">
-      import { loadNavbar } from "./js/navbar.js";
-      loadNavbar();
-    </script>
-
     <!-- 메인 컨테이너 -->
     <div class="main-container">
       <!-- 왼쪽 사이드바 -->
@@ -204,8 +199,7 @@
 
               <!-- ✅ Main.mjs: schedule-list -->
               <!-- 일정 목록은 Main.mjs의 loadMySchedules()에서 동적으로 추가됩니다 -->
-              <div class="schedule-list" id="schedule-list">
-              </div>
+              <div class="schedule-list" id="schedule-list"></div>
             </div>
 
             <!-- ✅ Main.mjs: schedule-form + schedule-time/title/location + save/cancel -->
@@ -309,7 +303,12 @@
                 <button
                   class="btn-secondary"
                   id="cancel-edit-schedule-btn"
-                  style="margin-top: 0; flex: 1; padding: 14px; text-align: center"
+                  style="
+                    margin-top: 0;
+                    flex: 1;
+                    padding: 14px;
+                    text-align: center;
+                  "
                 >
                   취소
                 </button>
@@ -321,16 +320,6 @@
 
       <!-- 중앙 지도 영역 -->
       <main class="map-container">
-        <!-- 왼쪽 패널 토글 버튼 -->
-        <button class="toggle-btn toggle-left" id="toggle-left-btn" title="왼쪽 패널 토글">
-          ◀
-        </button>
-
-        <!-- 오른쪽 패널 토글 버튼 -->
-        <button class="toggle-btn toggle-right" id="toggle-right-btn" title="오른쪽 패널 토글">
-          ▶
-        </button>
-
         <div class="map-toolbar">
           <button class="tool-btn active" title="이동">🖐️</button>
           <button class="tool-btn" title="메모 작성">✏️</button>
@@ -410,7 +399,6 @@
                   style="
                     grid-column: 1 / -1;
                     text-align: center;
-                    align-content: center;
                     padding: 60px 20px;
                     color: white;
                     background: #334155;
@@ -440,21 +428,33 @@
           <div class="panel-tab-content" id="budget-content">
             <div class="budget-summary">
               <div class="budget-amount" id="remaining-budget">₩0</div>
-              <div class="budget-label" id="total-budget-label">
-                총 예산
-              </div>
+              <div class="budget-label" id="total-budget-label">총 예산</div>
             </div>
 
             <div class="section-title">최근 지출 내역</div>
 
             <!-- 지출 목록은 Main.mjs의 loadMyExpenses()에서 동적으로 추가됩니다 -->
             <!-- 지출 추가 폼 -->
-            <div id="expense-form-container" style="margin-top: 20px; background: var(--bg); padding: 16px; border-radius: 12px;">
-              <div class="section-title" id="expense-form-title">➕ 지출 추가</div>
-              
+            <div
+              id="expense-form-container"
+              style="
+                margin-top: 20px;
+                background: var(--bg);
+                padding: 16px;
+                border-radius: 12px;
+              "
+            >
+              <div class="section-title" id="expense-form-title">
+                ➕ 지출 추가
+              </div>
+
               <div class="input-group">
                 <label>지출 항목</label>
-                <input type="text" id="expense-name" placeholder="예: 바다 앞 카페" />
+                <input
+                  type="text"
+                  id="expense-name"
+                  placeholder="예: 바다 앞 카페"
+                />
               </div>
 
               <div class="input-group">
@@ -473,20 +473,42 @@
 
               <div class="input-group">
                 <label>금액 (원)</label>
-                <input type="number" id="expense-amount" placeholder="예: 15000" min="0" />
+                <input
+                  type="number"
+                  id="expense-amount"
+                  placeholder="예: 15000"
+                  min="0"
+                />
               </div>
 
               <!-- 추가 모드 버튼 -->
-              <button class="btn-generate" id="add-expense-btn" style="margin-top: 0">
+              <button
+                class="btn-generate"
+                id="add-expense-btn"
+                style="margin-top: 0"
+              >
                 📝 지출 추가하기
               </button>
 
               <!-- 수정 모드 버튼 (기본 숨김) -->
               <div id="expense-edit-buttons" style="display: none; gap: 10px">
-                <button class="btn-generate" id="save-expense-btn" style="margin-top: 0; flex: 1; text-align: center">
+                <button
+                  class="btn-generate"
+                  id="save-expense-btn"
+                  style="margin-top: 0; flex: 1; text-align: center"
+                >
                   💾 저장
                 </button>
-                <button class="btn-secondary" id="cancel-expense-btn" style="margin-top: 0; flex: 1; padding: 14px; text-align: center">
+                <button
+                  class="btn-secondary"
+                  id="cancel-expense-btn"
+                  style="
+                    margin-top: 0;
+                    flex: 1;
+                    padding: 14px;
+                    text-align: center;
+                  "
+                >
                   취소
                 </button>
               </div>
@@ -505,6 +527,40 @@
     </div>
 
     <script type="module" src="./pages/Main.mjs"></script>
-    <script type="module" src="./pages/NavbarUserInfo.js"></script>
+
+    <script>
+      fetch("navbar.html")
+        .then((res) => res.text())
+        .then((html) => {
+          document.getElementById("navbar").innerHTML = html;
+          import("./pages/NavbarUserInfo.js").then((m) => m.loadNavbarUser());
+        });
+    </script>
+
+    <!-- 초대 링크 모달 -->
+    <div id="invite-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+
+      <div class="modal-content">
+        <h2>여행 초대 링크</h2>
+        <p class="modal-desc">
+          아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
+        </p>
+
+        <div class="invite-link-box">
+          <input
+            type="text"
+            id="inviteLinkInput"
+            readonly
+            placeholder="초대 링크 생성 중..."
+          />
+          <button id="copyInviteLinkBtn" title="복사">📋</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-close" id="closeInviteModal">닫기</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

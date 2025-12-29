@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 
 // 공통 fetch
 async function fetchWithAuth(url, method = "GET", options = {}) {
