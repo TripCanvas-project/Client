@@ -204,6 +204,15 @@ body {
   border-color: var(--primary-light);
 }
 
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  background: var(--card);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  color: var(--text-light);
+}
+
 /* 챌린지 그리드 */
 .challenges-grid {
   display: grid;
@@ -266,11 +275,6 @@ body {
   color: #4f46e5;
 }
 
-.challenge-status.paused {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
 .challenge-title {
   font-size: 20px;
   font-weight: bold;
@@ -286,6 +290,10 @@ body {
 }
 
 .challenge-progress-section {
+  margin-bottom: 16px;
+}
+
+.progress-section {
   margin-bottom: 16px;
 }
 
@@ -410,6 +418,25 @@ body {
   color: var(--text);
 }
 
+.detail-modal {
+  max-width: 700px;
+}
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-status {
+  font-weight: 700;
+  color: var(--primary-light);
+}
+
+.detail-description {
+  color: var(--text-light);
+}
+
 .modal-close {
   background: none;
   border: none;
@@ -472,6 +499,72 @@ body {
   background: var(--primary-light);
   color: white;
   border-color: var(--primary-light);
+}
+
+.item-input-row {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.item-input-row input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--hover);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.item-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.item-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.item-text.done {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.delete-btn {
+  background: white;
+  border: 2px solid #ef4444;
+  color: #ef4444;
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #b91c1c;
 }
 
 .category-icon {
