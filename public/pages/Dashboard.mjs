@@ -515,7 +515,7 @@ async function deleteTrip(tripId) {
   const token = localStorage.getItem("token");
 
   try {
-    const response = await fetch(`http://localhost:8080/trip/${tripId}`, {
+    const response = await fetch(`${API_BASE}/trip/${tripId}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
