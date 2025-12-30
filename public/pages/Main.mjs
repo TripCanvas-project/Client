@@ -1741,7 +1741,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         console.log("New trip created:", currentTripId);
     }
+
+    // -----------------------------
     // 초대 링크 생성 및 모달 관리
+    // -----------------------------
     const inviteBtn = document.getElementById("invite-btn");
     const inviteModal = document.getElementById("invite-modal");
     const closeBtn = document.getElementById("closeInviteModal");
@@ -1805,7 +1808,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     cancelBtn?.addEventListener("click", () => {
         inviteModal.classList.add("hidden");
     });
-
     // -----------------------------
     // 도착지 선택(세부사항)
     // -----------------------------

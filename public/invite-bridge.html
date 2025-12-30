@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
-  <body></body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+    </head>
+    <body></body>
 </html>
 
 <script>
-  const inviteToken = new URLSearchParams(location.search).get("invite");
-  const token = localStorage.getItem("token");
+    const inviteToken = new URLSearchParams(location.search).get("invite");
+    const token = localStorage.getItem("token");
 
-  if (!inviteToken) {
-    document.body.innerText = "잘못된 접근입니다.";
-  } else if (!token) {
-    location.href = `/login.html?invite=${inviteToken}`;
-  } else {
-    fetch(`/trip/join/${inviteToken}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json()) // 서버에서 반환된 JSON 처리
-      .then((data) => {
-        if (data.redirect) {
-          location.href = data.redirect; // 서버에서 받은 URL로 리디렉션
-        }
-      })
-      .catch((error) => {
-        console.error("Request failed", error);
-        document.body.innerText = "서버와의 통신에 실패했습니다.";
-      });
-  }
+    if (!inviteToken) {
+        document.body.innerText = "잘못된 접근입니다.";
+    } else if (!token) {
+        location.href = `/login.html?invite=${inviteToken}`;
+    } else {
+        fetch(`/trip/join/${inviteToken}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((res) => res.json()) // 서버에서 반환된 JSON 처리
+            .then((data) => {
+                if (data.redirect) {
+                    location.href = data.redirect; // 서버에서 받은 URL로 리디렉션
+                }
+            })
+            .catch((error) => {
+                console.error("Request failed", error);
+                document.body.innerText = "서버와의 통신에 실패했습니다.";
+            });
+    }
 </script>
