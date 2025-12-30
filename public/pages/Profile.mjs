@@ -39,7 +39,7 @@ async function loadMyProfile() {
 
     const statElements = document.querySelectorAll(".profile-stat-value");
     statElements[0].innerText = user.stats.totalTrips;
-    statElements[1].innerText = user.stats.totalPlaces;
+    statElements[1].innerText = user.stats.completedTrips;
     statElements[2].innerText = user.stats.totalBucketlists;
 
     loadTripHistory();
@@ -47,66 +47,66 @@ async function loadMyProfile() {
 
 loadMyProfile();
 
-async function loadTripHistory() {
-    try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(
-            "http://localhost:8080/trip/trip_history",
-            {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
+// async function loadTripHistory() {
+//     try {
+//         const token = localStorage.getItem("token");
+//         const response = await fetch(
+//             "http://localhost:8080/trip/tripId",
+//             {
+//                 method: "GET",
+//                 headers: {
+//                     Authorization: `Bearer ${token}`,
+//                 },
+//             }
+//         );
 
-        if (!response.ok) {
-            console.error("여행 히스토리 로드 실패");
-            return;
-        }
+//         if (!response.ok) {
+//             console.error("여행 히스토리 로드 실패");
+//             return;
+//         }
 
-        const histories = await response.json();
+//         const histories = await response.json();
 
-        const container = document.getElementById("tripHistoryContainer");
+//         const container = document.getElementById("tripHistoryContainer");
 
-        if (!histories || histories.length === 0) {
-            container.innerHTML =
-                '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리가 없습니다.</p>';
-            return;
-        }
+//         if (!histories || histories.length === 0) {
+//             container.innerHTML =
+//                 '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리가 없습니다.</p>';
+//             return;
+//         }
 
-        // 최대 3개만 표시
-        const displayData = histories.slice(0, 3);
+//         // 최대 3개만 표시
+//         const displayData = histories.slice(0, 3);
 
-        const html = displayData
-            .map(
-                (trip) => `
-            <div class="trip-history-item">
-                <div class="trip-history-icon">${getCategoryIcon(
-                    trip.category
-                )}</div>
-                <div class="trip-history-info">
-                    <div class="trip-history-title">${escapeHtml(
-                        trip.title
-                    )}</div>
-                    <div class="trip-history-date">${trip.dateRange}</div>
-                </div>
-                <div class="trip-history-stats">
-                    <span>💰 ${trip.budgetDisplay}</span>
-                    <span>📍 ${trip.placesDisplay}</span>
-                </div>
-            </div>
-        `
-            )
-            .join("");
+//         const html = displayData
+//             .map(
+//                 (trip) => `
+//             <div class="trip-history-item">
+//                 <div class="trip-history-icon">${getCategoryIcon(
+//                     trip.category
+//                 )}</div>
+//                 <div class="trip-history-info">
+//                     <div class="trip-history-title">${escapeHtml(
+//                         trip.title
+//                     )}</div>
+//                     <div class="trip-history-date">${trip.dateRange}</div>
+//                 </div>
+//                 <div class="trip-history-stats">
+//                     <span>💰 ${trip.budgetDisplay}</span>
+//                     <span>📍 ${trip.placesDisplay}</span>
+//                 </div>
+//             </div>
+//         `
+//             )
+//             .join("");
 
-        container.innerHTML = html;
-    } catch (err) {
-        console.error("여행 히스토리 로드 중 오류:", err);
-        document.getElementById("tripHistoryContainer").innerHTML =
-            '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리를 불러올 수 없습니다.</p>';
-    }
-}
+//         container.innerHTML = html;
+//     } catch (err) {
+//         console.error("여행 히스토리 로드 중 오류:", err);
+//         document.getElementById("tripHistoryContainer").innerHTML =
+//             '<p style="text-align: center; color: #999; padding: 30px;">여행 히스토리를 불러올 수 없습니다.</p>';
+//     }
+// }
 
 function escapeHtml(text) {
     const div = document.createElement("div");

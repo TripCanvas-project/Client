@@ -15,373 +15,19 @@
         <!-- 네비게이션 -->
         <div id="navbar"></div>
 
-    <script type="module">
-      import { loadNavbar } from "./js/navbar.js";
-      loadNavbar();
-    </script>
+        <script type="module">
+            import { loadNavbar } from "./js/navbar.js";
+            loadNavbar();
+        </script>
 
-    <!-- 메인 컨테이너 -->
-    <div class="main-container">
-      <!-- 왼쪽 사이드바 -->
-      <aside class="sidebar">
-        <div class="sidebar-tabs">
-          <button class="tab active" data-tab="route">📍 경로</button>
-          <button class="tab" data-tab="template">🎨 내 여행</button>
-          <button class="tab" data-tab="schedule">📊 일정</button>
-        </div>
-
-        <div class="sidebar-content">
-          <!-- 경로 탭 -->
-          <div class="tab-content active" id="route-content">
-            <div class="section-title">🤖 AI 경로 생성</div>
-
-            <div class="input-group">
-              <label>출발지</label>
-
-              <div class="input-with-btn">
-                <input
-                  type="text"
-                  id="departure"
-                  placeholder="예: 서울역"
-                  value="서울역"
-                />
-              </div>
-            </div>
-
-            <div class="input-group input-group-destination">
-              <label>도착지</label>
-              <select name="destination" id="destination">
-                <option value="">지역을 선택하세요</option>
-                <option value="서울특별시">서울특별시</option>
-                <option value="인천광역시">인천광역시</option>
-                <option value="대전광역시">대전광역시</option>
-                <option value="대구광역시">대구광역시</option>
-                <option value="광주광역시">광주광역시</option>
-                <option value="부산광역시">부산광역시</option>
-                <option value="울산광역시">울산광역시</option>
-                <option value="세종특별자치시">세종특별자치시</option>
-                <option value="경기도">경기도</option>
-                <option value="강원특별자치도">강원특별자치도</option>
-                <option value="충청북도">충청북도</option>
-                <option value="충청남도">충청남도</option>
-                <option value="경상북도">경상북도</option>
-                <option value="경상남도">경상남도</option>
-                <option value="전북특별자치도">전북특별자치도</option>
-                <option value="전라남도">전라남도</option>
-                <option value="제주특별자치도">제주특별자치도</option>
-              </select>
-
-              <select name="sub-destination" id="sub-destination">
-                <option value="">세부지역을 선택하세요</option>
-              </select>
-            </div>
-
-            <div class="date-row">
-              <div class="input-group">
-                <label>시작날짜</label>
-                <input type="date" id="start-date" />
-              </div>
-
-              <div class="input-group">
-                <label>마지막날짜</label>
-                <input type="date" id="end-date" />
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label>개인 예산 (원)</label>
-              <input
-                type="number"
-                id="personal-budget"
-                placeholder="예: 500000"
-                min="0"
-                step="10000"
-              />
-            </div>
-
-            <div class="input-group">
-              <label>여행 인원 (명)</label>
-              <input
-                type="number"
-                id="people-count"
-                placeholder="예: 2"
-                min="1"
-                value="1"
-              />
-            </div>
-
-            <div class="input-group">
-              <label>총 예산</label>
-              <div
-                id="total-budget"
-                style="
-                  padding: 12px;
-                  background: var(--primary);
-                  border-radius: 8px;
-                  color: white;
-                  font-size: 20px;
-                  font-weight: bold;
-                  text-align: center;
-                "
-              >
-                0원
-              </div>
-            </div>
-
-            <div class="input-group">
-              <label>여행 스타일</label>
-
-              <!-- ✅ Main.mjs: travel-style-chips -->
-              <div class="template-chips" id="travel-style-chips">
-                <div class="chip selected" data-value="맛집">🍜 맛집</div>
-                <div class="chip" data-value="역사/문화">🏛️ 역사/문화</div>
-                <div class="chip" data-value="자연">🏖️ 휴양</div>
-                <div class="chip" data-value="카페">☕ 카페</div>
-                <div class="chip" data-value="쇼핑">🛍️ 쇼핑</div>
-                <div class="chip" data-value="캠핑">⛺ 캠핑</div>
-              </div>
-
-              <!-- ✅ Main.mjs: selected-styles -->
-              <input
-                type="hidden"
-                id="selected-styles"
-                name="place-themes"
-                value="맛집"
-              />
-            </div>
-
-            <!-- ✅ Main.mjs: btn-generate -->
-            <button class="btn-generate" id="btn-generate">
-              ✨ AI로 경로 생성하기
-            </button>
-
-            <!-- 생성된 장소 리스트 -->
-            <div style="margin-top: 24px">
-              <div class="section-title">📍 추천 장소</div>
-
-              <!-- ✅ Main.mjs: ai-day-tabs -->
-              <div class="day-tabs" id="ai-day-tabs"></div>
-
-              <!-- ✅ Main.mjs: distance time -->
-              <div id="day-route-stats" class="day-route-stats"></div>
-
-              <!-- ✅ Main.mjs: 장소별 거리 시간 -->
-              <div id="segment-route-stats" class="day-route-stats"></div>
-
-              <!-- ✅ Main.mjs: ai-day-places -->
-              <div id="ai-day-places"></div>
-            </div>
-          </div>
-
-          <!-- 템플릿 탭 -->
-          <div class="tab-content" id="template-content">
-            <div class="section-title">🎨 내 여행 템플릿</div>
-            <p
-              style="
-                color: var(--text-light);
-                margin-bottom: 20px;
-                font-size: 14px;
-              "
-            ></p>
-
-            <div id="my-trips-list" class="template-grid">
-              <!-- ✅ 내 여행 목록 렌더링 자리 (추가) -->
-              <div class="template-card"></div>
-            </div>
-          </div>
-
-          <!-- 일정 탭 -->
-          <div class="tab-content" id="schedule-content">
-            <div class="section-title">📊 일정 관리</div>
-
-            <!-- ✅ Main.mjs: add-schedule-btn -->
-            <button class="btn-add-schedule" id="add-schedule-btn">
-              ➕ 일정 추가하기
-            </button>
-
-            <div style="margin-top: 20px">
-              <div class="section-title">📅 내 일정 목록</div>
-
-              <!-- ✅ Main.mjs: schedule-list -->
-              <!-- 일정 목록은 Main.mjs의 loadMySchedules()에서 동적으로 추가됩니다 -->
-              <div class="schedule-list" id="schedule-list">
-              </div>
-            </div>
-
-            <!-- ✅ Main.mjs: schedule-form + schedule-time/title/location + save/cancel -->
-            <div
-              id="schedule-form"
-              style="
-                display: none;
-                margin-top: 20px;
-                background: var(--bg);
-                padding: 16px;
-                border-radius: 12px;
-              "
-            >
-              <div class="section-title">✏️ 새 일정 추가</div>
-
-              <div class="input-group">
-                <label>시간</label>
-                <input type="time" id="schedule-time" />
-              </div>
-
-              <div class="input-group">
-                <label>일정 제목</label>
-                <input
-                  type="text"
-                  id="schedule-title"
-                  placeholder="예: 광안리 해변 산책"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>위치</label>
-                <input
-                  type="text"
-                  id="schedule-location"
-                  placeholder="예: 부산 광안리"
-                />
-              </div>
-
-              <div style="display: flex; gap: 8px">
-                <button
-                  class="btn-generate"
-                  id="save-schedule-btn"
-                  style="margin-top: 0"
-                >
-                  💾 저장
-                </button>
-                <button
-                  class="btn-secondary"
-                  id="cancel-schedule-btn"
-                  style="width: 100%; padding: 14px; margin-top: 0"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-
-            <!-- 일정 수정 폼 (숨김 상태) -->
-            <div
-              id="schedule-edit-form"
-              style="
-                display: none;
-                margin-top: 20px;
-                background: var(--bg);
-                padding: 16px;
-                border-radius: 12px;
-              "
-            >
-              <div class="section-title">✏️ 일정 수정</div>
-
-              <div class="input-group">
-                <label>시간</label>
-                <input type="time" id="schedule-edit-time" />
-              </div>
-
-              <div class="input-group">
-                <label>일정 제목</label>
-                <input
-                  type="text"
-                  id="schedule-edit-title"
-                  placeholder="예: 광안리 해변 산책"
-                />
-              </div>
-
-              <div class="input-group">
-                <label>위치</label>
-                <input
-                  type="text"
-                  id="schedule-edit-location"
-                  placeholder="예: 부산 광안리"
-                />
-              </div>
-
-              <div style="display: flex; gap: 8px">
-                <button
-                  class="btn-generate"
-                  id="update-schedule-btn"
-                  style="margin-top: 0; flex: 1; text-align: center"
-                >
-                  💾 저장
-                </button>
-                <button
-                  class="btn-secondary"
-                  id="cancel-edit-schedule-btn"
-                  style="margin-top: 0; flex: 1; padding: 14px; text-align: center"
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- 중앙 지도 영역 -->
-      <main class="map-container">
-        <!-- 왼쪽 패널 토글 버튼 -->
-        <button class="toggle-btn toggle-left" id="toggle-left-btn" title="왼쪽 패널 토글">
-          ◀
-        </button>
-
-        <!-- 오른쪽 패널 토글 버튼 -->
-        <button class="toggle-btn toggle-right" id="toggle-right-btn" title="오른쪽 패널 토글">
-          ▶
-        </button>
-
-        <div class="map-toolbar">
-          <button class="tool-btn active" title="이동">🖐️</button>
-          <button class="tool-btn" title="메모 작성">✏️</button>
-          <button class="tool-btn" title="하이라이트">🖍️</button>
-          <button class="tool-btn" title="텍스트">📝</button>
-          <button class="tool-btn" title="지우개">🧹</button>
-          <button class="tool-btn" title="실행 취소">↩️</button>
-        </div>
-
-        <div class="map-canvas">
-          <!-- ✅ Main.mjs: kakao-map -->
-          <div id="kakao-map" style="width: 100%; height: 100%"></div>
-
-          <div class="map-placeholder">
-            <div class="map-placeholder-icon">🗺️</div>
-            <div>AI로 경로를 생성하면 여기에 지도가 표시됩니다</div>
-            <div style="margin-top: 8px; font-size: 14px">
-              지도 위에 메모를 작성하고 동행자들과 실시간으로 공유하세요!
-            </div>
-          </div>
-        </div>
-      </main>
-
-      <!-- 오른쪽 패널 -->
-      <aside class="right-panel">
-        <div class="panel-tabs">
-          <button class="tab active" data-panel="chat">💬 채팅</button>
-          <button class="tab" data-panel="video">📹 화상</button>
-          <button class="tab" data-panel="budget">💰 예산</button>
-        </div>
-
-        <div class="panel-content">
-          <!-- 채팅 탭 -->
-          <div class="panel-tab-content active" id="chat-content">
-            <div class="section-title">💬 실시간 협업 채팅</div>
-
-            <!-- ✅ Main.mjs: chat-messages -->
-            <div class="chat-messages" id="chat-messages">
-              <div
-                class="chat-placeholder"
-                style="
-                  text-align: center;
-                  padding: 40px 20px;
-                  color: var(--text-light);
-                  font-size: 14px;
-                "
-              >
-                <div style="font-size: 48px; margin-bottom: 16px">💬</div>
-                <div>채팅 메시지가 없습니다</div>
-                <div style="margin-top: 8px; font-size: 12px">
-                  첫 메시지를 보내보세요!
+        <!-- 메인 컨테이너 -->
+        <div class="main-container">
+            <!-- 왼쪽 사이드바 -->
+            <aside class="sidebar">
+                <div class="sidebar-tabs">
+                    <button class="tab active" data-tab="route">📍 경로</button>
+                    <button class="tab" data-tab="template">🎨 내 여행</button>
+                    <button class="tab" data-tab="schedule">📊 일정</button>
                 </div>
 
                 <div class="sidebar-content">
@@ -392,35 +38,345 @@
                         <div class="input-group">
                             <label>출발지</label>
 
-            <div class="video-chat">
-              <!-- VideoChat.mjs가 동적으로 비디오 타일 추가 -->
-              <div class="video-grid">
-                <!-- Placeholder (선택사항) -->
-                <div
-                  class="video-placeholder"
-                  style="
-                    grid-column: 1 / -1;
-                    text-align: center;
-                    align-content: center;
-                    padding: 60px 20px;
-                    color: white;
-                    background: #334155;
-                    border-radius: 8px;
-                    margin: 8px;
-                  "
-                >
-                  <div style="font-size: 48px; margin-bottom: 16px">📹</div>
-                  <div style="font-size: 16px; margin-bottom: 8px">
-                    화상 채팅이 시작되지 않았습니다
-                  </div>
-                  <div style="font-size: 13px; opacity: 0.7">
-                    카메라 버튼(📹)을 눌러 통화를 시작하세요
-                  </div>
+                            <div class="input-with-btn">
+                                <input
+                                    type="text"
+                                    id="departure"
+                                    placeholder="예: 서울역"
+                                    value="서울역"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="input-group input-group-destination">
+                            <label>도착지</label>
+                            <select name="destination" id="destination">
+                                <option value="">지역을 선택하세요</option>
+                                <option value="서울특별시">서울특별시</option>
+                                <option value="인천광역시">인천광역시</option>
+                                <option value="대전광역시">대전광역시</option>
+                                <option value="대구광역시">대구광역시</option>
+                                <option value="광주광역시">광주광역시</option>
+                                <option value="부산광역시">부산광역시</option>
+                                <option value="울산광역시">울산광역시</option>
+                                <option value="세종특별자치시">
+                                    세종특별자치시
+                                </option>
+                                <option value="경기도">경기도</option>
+                                <option value="강원특별자치도">
+                                    강원특별자치도
+                                </option>
+                                <option value="충청북도">충청북도</option>
+                                <option value="충청남도">충청남도</option>
+                                <option value="경상북도">경상북도</option>
+                                <option value="경상남도">경상남도</option>
+                                <option value="전북특별자치도">
+                                    전북특별자치도
+                                </option>
+                                <option value="전라남도">전라남도</option>
+                                <option value="제주특별자치도">
+                                    제주특별자치도
+                                </option>
+                            </select>
+
+                            <select name="sub-destination" id="sub-destination">
+                                <option value="">세부지역을 선택하세요</option>
+                            </select>
+                        </div>
+
+                        <div class="date-row">
+                            <div class="input-group">
+                                <label>시작날짜</label>
+                                <input type="date" id="start-date" />
+                            </div>
+
+                            <div class="input-group">
+                                <label>마지막날짜</label>
+                                <input type="date" id="end-date" />
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>개인 예산 (원)</label>
+                            <input
+                                type="number"
+                                id="personal-budget"
+                                placeholder="예: 500000"
+                                min="0"
+                                step="10000"
+                            />
+                        </div>
+
+                        <div class="input-group">
+                            <label>여행 인원 (명)</label>
+                            <input
+                                type="number"
+                                id="people-count"
+                                placeholder="예: 2"
+                                min="1"
+                                value="1"
+                            />
+                        </div>
+
+                        <div class="input-group">
+                            <label>총 예산</label>
+                            <div
+                                id="total-budget"
+                                style="
+                                    padding: 12px;
+                                    background: var(--primary);
+                                    border-radius: 8px;
+                                    color: white;
+                                    font-size: 20px;
+                                    font-weight: bold;
+                                    text-align: center;
+                                "
+                            >
+                                0원
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>여행 스타일</label>
+
+                            <!-- ✅ Main.mjs: travel-style-chips -->
+                            <div class="template-chips" id="travel-style-chips">
+                                <div class="chip selected" data-value="맛집">
+                                    🍜 맛집
+                                </div>
+                                <div class="chip" data-value="역사/문화">
+                                    🏛️ 역사/문화
+                                </div>
+                                <div class="chip" data-value="자연">
+                                    🏖️ 휴양
+                                </div>
+                                <div class="chip" data-value="카페">
+                                    ☕ 카페
+                                </div>
+                                <div class="chip" data-value="쇼핑">
+                                    🛍️ 쇼핑
+                                </div>
+                                <div class="chip" data-value="캠핑">
+                                    ⛺ 캠핑
+                                </div>
+                            </div>
+
+                            <!-- ✅ Main.mjs: selected-styles -->
+                            <input
+                                type="hidden"
+                                id="selected-styles"
+                                name="place-themes"
+                                value="맛집"
+                            />
+                        </div>
+
+                        <!-- ✅ Main.mjs: btn-generate -->
+                        <button class="btn-generate" id="btn-generate">
+                            ✨ AI로 경로 생성하기
+                        </button>
+
+                        <!-- 생성된 장소 리스트 -->
+                        <div style="margin-top: 24px">
+                            <div class="section-title">📍 추천 장소</div>
+
+                            <!-- ✅ Main.mjs: ai-day-tabs -->
+                            <div class="day-tabs" id="ai-day-tabs"></div>
+
+                            <!-- ✅ Main.mjs: distance time -->
+                            <div
+                                id="day-route-stats"
+                                class="day-route-stats"
+                            ></div>
+
+                            <!-- ✅ Main.mjs: 장소별 거리 시간 -->
+                            <div
+                                id="segment-route-stats"
+                                class="day-route-stats"
+                            ></div>
+
+                            <!-- ✅ Main.mjs: ai-day-places -->
+                            <div id="ai-day-places"></div>
+                        </div>
+                    </div>
+
+                    <!-- 템플릿 탭 -->
+                    <div class="tab-content" id="template-content">
+                        <div class="section-title">🎨 내 여행 템플릿</div>
+                        <p
+                            style="
+                                color: var(--text-light);
+                                margin-bottom: 20px;
+                                font-size: 14px;
+                            "
+                        ></p>
+
+                        <div id="my-trips-list" class="template-grid">
+                            <!-- ✅ 내 여행 목록 렌더링 자리 (추가) -->
+                            <div class="template-card"></div>
+                        </div>
+                    </div>
+
+                    <!-- 일정 탭 -->
+                    <div class="tab-content" id="schedule-content">
+                        <div class="section-title">📊 일정 관리</div>
+
+                        <!-- ✅ Main.mjs: add-schedule-btn -->
+                        <button class="btn-add-schedule" id="add-schedule-btn">
+                            ➕ 일정 추가하기
+                        </button>
+
+                        <div style="margin-top: 20px">
+                            <div class="section-title">📅 내 일정 목록</div>
+
+                            <!-- ✅ Main.mjs: schedule-list -->
+                            <!-- 일정 목록은 Main.mjs의 loadMySchedules()에서 동적으로 추가됩니다 -->
+                            <div class="schedule-list" id="schedule-list"></div>
+                        </div>
+
+                        <!-- ✅ Main.mjs: schedule-form + schedule-time/title/location + save/cancel -->
+                        <div
+                            id="schedule-form"
+                            style="
+                                display: none;
+                                margin-top: 20px;
+                                background: var(--bg);
+                                padding: 16px;
+                                border-radius: 12px;
+                            "
+                        >
+                            <div class="section-title">✏️ 새 일정 추가</div>
+
+                            <div class="input-group">
+                                <label>시간</label>
+                                <input type="time" id="schedule-time" />
+                            </div>
+
+                            <div class="input-group">
+                                <label>일정 제목</label>
+                                <input
+                                    type="text"
+                                    id="schedule-title"
+                                    placeholder="예: 광안리 해변 산책"
+                                />
+                            </div>
+
+                            <div class="input-group">
+                                <label>위치</label>
+                                <input
+                                    type="text"
+                                    id="schedule-location"
+                                    placeholder="예: 부산 광안리"
+                                />
+                            </div>
+
+                            <div style="display: flex; gap: 8px">
+                                <button
+                                    class="btn-generate"
+                                    id="save-schedule-btn"
+                                    style="margin-top: 0"
+                                >
+                                    💾 저장
+                                </button>
+                                <button
+                                    class="btn-secondary"
+                                    id="cancel-schedule-btn"
+                                    style="
+                                        width: 100%;
+                                        padding: 14px;
+                                        margin-top: 0;
+                                    "
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 일정 수정 폼 (숨김 상태) -->
+                        <div
+                            id="schedule-edit-form"
+                            style="
+                                display: none;
+                                margin-top: 20px;
+                                background: var(--bg);
+                                padding: 16px;
+                                border-radius: 12px;
+                            "
+                        >
+                            <div class="section-title">✏️ 일정 수정</div>
+
+                            <div class="input-group">
+                                <label>시간</label>
+                                <input type="time" id="schedule-edit-time" />
+                            </div>
+
+                            <div class="input-group">
+                                <label>일정 제목</label>
+                                <input
+                                    type="text"
+                                    id="schedule-edit-title"
+                                    placeholder="예: 광안리 해변 산책"
+                                />
+                            </div>
+
+                            <div class="input-group">
+                                <label>위치</label>
+                                <input
+                                    type="text"
+                                    id="schedule-edit-location"
+                                    placeholder="예: 부산 광안리"
+                                />
+                            </div>
+
+                            <div style="display: flex; gap: 8px">
+                                <button
+                                    class="btn-generate"
+                                    id="update-schedule-btn"
+                                    style="
+                                        margin-top: 0;
+                                        flex: 1;
+                                        text-align: center;
+                                    "
+                                >
+                                    💾 저장
+                                </button>
+                                <button
+                                    class="btn-secondary"
+                                    id="cancel-edit-schedule-btn"
+                                    style="
+                                        margin-top: 0;
+                                        flex: 1;
+                                        padding: 14px;
+                                        text-align: center;
+                                    "
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
             <!-- 중앙 지도 영역 -->
             <main class="map-container">
+                <!-- 왼쪽 패널 토글 버튼 -->
+                <button
+                    class="toggle-btn toggle-left"
+                    id="toggle-left-btn"
+                    title="왼쪽 패널 토글"
+                >
+                    ◀
+                </button>
+
+                <!-- 오른쪽 패널 토글 버튼 -->
+                <button
+                    class="toggle-btn toggle-right"
+                    id="toggle-right-btn"
+                    title="오른쪽 패널 토글"
+                >
+                    ▶
+                </button>
+
                 <div class="map-toolbar">
                     <button class="tool-btn active" title="이동">🖐️</button>
                     <button class="tool-btn" title="메모 작성">✏️</button>
@@ -507,6 +463,7 @@
                                     style="
                                         grid-column: 1 / -1;
                                         text-align: center;
+                                        align-content: center;
                                         padding: 60px 20px;
                                         color: white;
                                         background: #334155;
@@ -661,20 +618,6 @@
             </div>
         </div>
 
-<<<<<<< HEAD
-        <script type="module" src="./pages/Main.mjs"></script>
-
-        <script>
-            fetch("navbar.html")
-                .then((res) => res.text())
-                .then((html) => {
-                    document.getElementById("navbar").innerHTML = html;
-                    import("./pages/NavbarUserInfo.js").then((m) =>
-                        m.loadNavbarUser()
-                    );
-                });
-        </script>
-
         <!-- 초대 링크 모달 -->
         <div id="invite-modal" class="modal hidden">
             <div class="modal-backdrop"></div>
@@ -702,47 +645,17 @@
                 </div>
             </div>
         </div>
+
+        <script type="module" src="./pages/Main.mjs"></script>
+        <script>
+            fetch("navbar.html")
+                .then((res) => res.text())
+                .then((html) => {
+                    document.getElementById("navbar").innerHTML = html;
+                    import("./pages/NavbarUserInfo.js").then((m) =>
+                        m.loadNavbarUser()
+                    );
+                });
+        </script>
     </body>
-=======
-    <!-- 초대 링크 모달 -->
-    <div id="invite-modal" class="modal hidden">
-      <div class="modal-backdrop"></div>
-
-      <div class="modal-content">
-          <h2>여행 초대 링크</h2>
-          <p class="modal-desc">
-              아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
-          </p>
-
-          <div class="invite-link-box">
-              <input
-                  type="text"
-                  id="inviteLinkInput"
-                  readonly
-                  placeholder="초대 링크 생성 중..."
-              />
-              <button id="copyInviteLinkBtn" title="복사">📋</button>
-          </div>
-
-          <div class="modal-actions">
-              <button class="btn-close" id="closeInviteModal">
-                  닫기
-              </button>
-          </div>
-      </div>
-    </div>
-
-    <script type="module" src="./pages/Main.mjs"></script>
-    <script>
-      fetch("navbar.html")
-          .then((res) => res.text())
-          .then((html) => {
-              document.getElementById("navbar").innerHTML = html;
-              import("./pages/NavbarUserInfo.js").then((m) =>
-                  m.loadNavbarUser()
-              );
-          });
-    </script>
-  </body>
->>>>>>> fa503977eb5a795344e744f812eb56df381a727e
 </html>
