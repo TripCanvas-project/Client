@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TripCanvas - AI 기반 여행 플래너</title>
-    <script
-      type="text/javascript"
-      src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
-    ></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <link rel="stylesheet" href="./styles/main.css" />
-  </head>
-  <body>
-    <!-- 네비게이션 -->
-    <div id="navbar"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TripCanvas - AI 기반 여행 플래너</title>
+        <script
+            type="text/javascript"
+            src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=b1c2a432c49b42d7baf0774cc6cb8380&autoload=false&libraries=services"
+        ></script>
+        <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+        <link rel="stylesheet" href="./styles/main.css" />
+    </head>
+    <body>
+        <!-- 네비게이션 -->
+        <div id="navbar"></div>
 
     <script type="module">
       import { loadNavbar } from "./js/navbar.js";
@@ -383,23 +383,14 @@
                 <div style="margin-top: 8px; font-size: 12px">
                   첫 메시지를 보내보세요!
                 </div>
-              </div>
-            </div>
 
-            <!-- ✅ Main.mjs: chat-input / chat-send-btn / chat-input -->
-            <div class="chat-input">
-              <input
-                type="text"
-                id="chat-input"
-                placeholder="메시지를 입력하세요..."
-              />
-              <button id="chat-send-btn">전송</button>
-            </div>
-          </div>
+                <div class="sidebar-content">
+                    <!-- 경로 탭 -->
+                    <div class="tab-content active" id="route-content">
+                        <div class="section-title">🤖 AI 경로 생성</div>
 
-          <!-- 화상 탭 -->
-          <div class="panel-tab-content" id="video-content">
-            <div class="section-title">📹 화상 채팅</div>
+                        <div class="input-group">
+                            <label>출발지</label>
 
             <div class="video-chat">
               <!-- VideoChat.mjs가 동적으로 비디오 타일 추가 -->
@@ -426,85 +417,289 @@
                     카메라 버튼(📹)을 눌러 통화를 시작하세요
                   </div>
                 </div>
-              </div>
-              <div class="video-controls">
-                <button class="video-control-btn">🎤</button>
-                <button class="video-control-btn">📹</button>
-                <button class="video-control-btn">🖥️</button>
-                <button class="video-control-btn danger">📞</button>
-              </div>
-            </div>
-          </div>
+            </aside>
 
-          <!-- 예산 탭 -->
-          <div class="panel-tab-content" id="budget-content">
-            <div class="budget-summary">
-              <div class="budget-amount" id="remaining-budget">₩0</div>
-              <div class="budget-label" id="total-budget-label">
-                총 예산
-              </div>
-            </div>
+            <!-- 중앙 지도 영역 -->
+            <main class="map-container">
+                <div class="map-toolbar">
+                    <button class="tool-btn active" title="이동">🖐️</button>
+                    <button class="tool-btn" title="메모 작성">✏️</button>
+                    <button class="tool-btn" title="하이라이트">🖍️</button>
+                    <button class="tool-btn" title="텍스트">📝</button>
+                    <button class="tool-btn" title="지우개">🧹</button>
+                    <button class="tool-btn" title="실행 취소">↩️</button>
+                </div>
 
-            <div class="section-title">최근 지출 내역</div>
+                <div class="map-canvas">
+                    <!-- ✅ Main.mjs: kakao-map -->
+                    <div id="kakao-map" style="width: 100%; height: 100%"></div>
 
-            <!-- 지출 목록은 Main.mjs의 loadMyExpenses()에서 동적으로 추가됩니다 -->
-            <!-- 지출 추가 폼 -->
-            <div id="expense-form-container" style="margin-top: 20px; background: var(--bg); padding: 16px; border-radius: 12px;">
-              <div class="section-title" id="expense-form-title">➕ 지출 추가</div>
-              
-              <div class="input-group">
-                <label>지출 항목</label>
-                <input type="text" id="expense-name" placeholder="예: 바다 앞 카페" />
-              </div>
+                    <div class="map-placeholder">
+                        <div class="map-placeholder-icon">🗺️</div>
+                        <div>AI로 경로를 생성하면 여기에 지도가 표시됩니다</div>
+                        <div style="margin-top: 8px; font-size: 14px">
+                            지도 위에 메모를 작성하고 동행자들과 실시간으로
+                            공유하세요!
+                        </div>
+                    </div>
+                </div>
+            </main>
 
-              <div class="input-group">
-                <label>카테고리</label>
-                <select id="expense-category" required>
-                  <option value="">카테고리 선택</option>
-                  <option value="식비">🍽️ 식비</option>
-                  <option value="교통비">🚗 교통비</option>
-                  <option value="숙박비">🏨 숙박비</option>
-                  <option value="액티비티">🎢 액티비티</option>
-                  <option value="쇼핑">🛍️ 쇼핑</option>
-                  <option value="입장권">🎫 입장권</option>
-                  <option value="기타">💡 기타</option>
-                </select>
-              </div>
+            <!-- 오른쪽 패널 -->
+            <aside class="right-panel">
+                <div class="panel-tabs">
+                    <button class="tab active" data-panel="chat">
+                        💬 채팅
+                    </button>
+                    <button class="tab" data-panel="video">📹 화상</button>
+                    <button class="tab" data-panel="budget">💰 예산</button>
+                </div>
 
-              <div class="input-group">
-                <label>금액 (원)</label>
-                <input type="number" id="expense-amount" placeholder="예: 15000" min="0" />
-              </div>
+                <div class="panel-content">
+                    <!-- 채팅 탭 -->
+                    <div class="panel-tab-content active" id="chat-content">
+                        <div class="section-title">💬 실시간 협업 채팅</div>
 
-              <!-- 추가 모드 버튼 -->
-              <button class="btn-generate" id="add-expense-btn" style="margin-top: 0">
-                📝 지출 추가하기
-              </button>
+                        <!-- ✅ Main.mjs: chat-messages -->
+                        <div class="chat-messages" id="chat-messages">
+                            <div
+                                class="chat-placeholder"
+                                style="
+                                    text-align: center;
+                                    padding: 40px 20px;
+                                    color: var(--text-light);
+                                    font-size: 14px;
+                                "
+                            >
+                                <div
+                                    style="font-size: 48px; margin-bottom: 16px"
+                                >
+                                    💬
+                                </div>
+                                <div>채팅 메시지가 없습니다</div>
+                                <div style="margin-top: 8px; font-size: 12px">
+                                    첫 메시지를 보내보세요!
+                                </div>
+                            </div>
+                        </div>
 
-              <!-- 수정 모드 버튼 (기본 숨김) -->
-              <div id="expense-edit-buttons" style="display: none; gap: 10px">
-                <button class="btn-generate" id="save-expense-btn" style="margin-top: 0; flex: 1; text-align: center">
-                  💾 저장
-                </button>
-                <button class="btn-secondary" id="cancel-expense-btn" style="margin-top: 0; flex: 1; padding: 14px; text-align: center">
-                  취소
-                </button>
-              </div>
-            </div>
-          </div>
+                        <!-- ✅ Main.mjs: chat-input / chat-send-btn / chat-input -->
+                        <div class="chat-input">
+                            <input
+                                type="text"
+                                id="chat-input"
+                                placeholder="메시지를 입력하세요..."
+                            />
+                            <button id="chat-send-btn">전송</button>
+                        </div>
+                    </div>
+
+                    <!-- 화상 탭 -->
+                    <div class="panel-tab-content" id="video-content">
+                        <div class="section-title">📹 화상 채팅</div>
+
+                        <div class="video-chat">
+                            <!-- VideoChat.mjs가 동적으로 비디오 타일 추가 -->
+                            <div class="video-grid">
+                                <!-- Placeholder (선택사항) -->
+                                <div
+                                    class="video-placeholder"
+                                    style="
+                                        grid-column: 1 / -1;
+                                        text-align: center;
+                                        padding: 60px 20px;
+                                        color: white;
+                                        background: #334155;
+                                        border-radius: 8px;
+                                        margin: 8px;
+                                    "
+                                >
+                                    <div
+                                        style="
+                                            font-size: 48px;
+                                            margin-bottom: 16px;
+                                        "
+                                    >
+                                        📹
+                                    </div>
+                                    <div
+                                        style="
+                                            font-size: 16px;
+                                            margin-bottom: 8px;
+                                        "
+                                    >
+                                        화상 채팅이 시작되지 않았습니다
+                                    </div>
+                                    <div style="font-size: 13px; opacity: 0.7">
+                                        카메라 버튼(📹)을 눌러 통화를 시작하세요
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="video-controls">
+                                <button class="video-control-btn">🎤</button>
+                                <button class="video-control-btn">📹</button>
+                                <button class="video-control-btn">🖥️</button>
+                                <button class="video-control-btn danger">
+                                    📞
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 예산 탭 -->
+                    <div class="panel-tab-content" id="budget-content">
+                        <div class="budget-summary">
+                            <div class="budget-amount" id="remaining-budget">
+                                ₩0
+                            </div>
+                            <div class="budget-label" id="total-budget-label">
+                                총 예산
+                            </div>
+                        </div>
+
+                        <div class="section-title">최근 지출 내역</div>
+
+                        <!-- 지출 목록은 Main.mjs의 loadMyExpenses()에서 동적으로 추가됩니다 -->
+                        <!-- 지출 추가 폼 -->
+                        <div
+                            id="expense-form-container"
+                            style="
+                                margin-top: 20px;
+                                background: var(--bg);
+                                padding: 16px;
+                                border-radius: 12px;
+                            "
+                        >
+                            <div class="section-title" id="expense-form-title">
+                                ➕ 지출 추가
+                            </div>
+
+                            <div class="input-group">
+                                <label>지출 항목</label>
+                                <input
+                                    type="text"
+                                    id="expense-name"
+                                    placeholder="예: 바다 앞 카페"
+                                />
+                            </div>
+
+                            <div class="input-group">
+                                <label>카테고리</label>
+                                <select id="expense-category" required>
+                                    <option value="">카테고리 선택</option>
+                                    <option value="식비">🍽️ 식비</option>
+                                    <option value="교통비">🚗 교통비</option>
+                                    <option value="숙박비">🏨 숙박비</option>
+                                    <option value="액티비티">
+                                        🎢 액티비티
+                                    </option>
+                                    <option value="쇼핑">🛍️ 쇼핑</option>
+                                    <option value="입장권">🎫 입장권</option>
+                                    <option value="기타">💡 기타</option>
+                                </select>
+                            </div>
+
+                            <div class="input-group">
+                                <label>금액 (원)</label>
+                                <input
+                                    type="number"
+                                    id="expense-amount"
+                                    placeholder="예: 15000"
+                                    min="0"
+                                />
+                            </div>
+
+                            <!-- 추가 모드 버튼 -->
+                            <button
+                                class="btn-generate"
+                                id="add-expense-btn"
+                                style="margin-top: 0"
+                            >
+                                📝 지출 추가하기
+                            </button>
+
+                            <!-- 수정 모드 버튼 (기본 숨김) -->
+                            <div
+                                id="expense-edit-buttons"
+                                style="display: none; gap: 10px"
+                            >
+                                <button
+                                    class="btn-generate"
+                                    id="save-expense-btn"
+                                    style="
+                                        margin-top: 0;
+                                        flex: 1;
+                                        text-align: center;
+                                    "
+                                >
+                                    💾 저장
+                                </button>
+                                <button
+                                    class="btn-secondary"
+                                    id="cancel-expense-btn"
+                                    style="
+                                        margin-top: 0;
+                                        flex: 1;
+                                        padding: 14px;
+                                        text-align: center;
+                                    "
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         </div>
-      </aside>
-    </div>
 
-    <!-- ✅ Main.mjs: loading-overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-      <div class="loading-box">
-        <div class="spinner"></div>
-        <p>AI가 최적의 여행 경로를 생성 중입니다…</p>
-      </div>
-    </div>
+        <!-- ✅ Main.mjs: loading-overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-box">
+                <div class="spinner"></div>
+                <p>AI가 최적의 여행 경로를 생성 중입니다…</p>
+            </div>
+        </div>
 
-    <script type="module" src="./pages/Main.mjs"></script>
-    <script type="module" src="./pages/NavbarUserInfo.js"></script>
-  </body>
+        <script type="module" src="./pages/Main.mjs"></script>
+
+        <script>
+            fetch("navbar.html")
+                .then((res) => res.text())
+                .then((html) => {
+                    document.getElementById("navbar").innerHTML = html;
+                    import("./pages/NavbarUserInfo.js").then((m) =>
+                        m.loadNavbarUser()
+                    );
+                });
+        </script>
+
+        <!-- 초대 링크 모달 -->
+        <div id="invite-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+
+            <div class="modal-content">
+                <h2>여행 초대 링크</h2>
+                <p class="modal-desc">
+                    아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
+                </p>
+
+                <div class="invite-link-box">
+                    <input
+                        type="text"
+                        id="inviteLinkInput"
+                        readonly
+                        placeholder="초대 링크 생성 중..."
+                    />
+                    <button id="copyInviteLinkBtn" title="복사">📋</button>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-close" id="closeInviteModal">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>

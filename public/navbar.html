@@ -58,7 +58,7 @@
     }
 
     .user-profile {
-        display: none;
+        display: flex;
         align-items: center;
         gap: 12px;
         cursor: pointer;
@@ -143,6 +143,23 @@
     </div>
 
     <div class="navbar-right">
+        <button
+            id="invite-btn"
+            class="btn-invite"
+            style="
+                display: none;
+                background: var(--primary);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+            "
+        >
+            + 초대하기
+        </button>
         <div class="user-profile" id="userProfile">
             <div class="user-avatar" id="navAvatar">🧑</div>
             <div class="user-info">
@@ -158,4 +175,21 @@
     </div>
 
     <script type="module" src="./pages/NavbarUserInfo.js"></script>
+    <script type="module">
+        import { loadNavbarUser } from "./pages/NavbarUserInfo.js";
+        loadNavbarUser();
+        // main.html에서만 초대하기 버튼 보이기
+        const inviteBtn = document.getElementById("invite-btn");
+        if (location.pathname.endsWith("main.html") && inviteBtn) {
+            inviteBtn.style.display = "inline-block";
+            inviteBtn.addEventListener("click", () => {
+                const inviteModal =
+                    document.getElementById("invite-modal") ||
+                    document.getElementById("inviteModal");
+                if (inviteModal) inviteModal.classList.remove("hidden");
+            });
+        } else if (inviteBtn) {
+            inviteBtn.style.display = "none";
+        }
+    </script>
 </nav>

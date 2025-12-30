@@ -1,4 +1,4 @@
-import Collaboration from './Collaboration.mjs';
+import Collaboration from "./Collaboration.mjs";
 import VideoChat from "./VideoChat.mjs";
 
 // client/public/pages/Main.mjs
@@ -1737,6 +1737,74 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         console.log('New trip created:', currentTripId);
     }
+
+    // -----------------------------
+    // 초대 링크 생성 및 모달 관리
+    // -----------------------------
+    const inviteBtn = document.getElementById("invite-btn");
+    const inviteModal = document.getElementById("invite-modal");
+    const closeBtn = document.getElementById("closeInviteModal");
+    const cancelBtn = document.getElementById("invite-cancel-btn");
+    const linkInput = document.getElementById("inviteLinkInput");
+    const copyBtn = document.getElementById("copyInviteLinkBtn");
+
+    // main.html에서만 초대 버튼 노출
+    if (location.pathname.endsWith("main.html") && inviteBtn) {
+        inviteBtn.style.display = "inline-block";
+    } else if (inviteBtn) {
+        inviteBtn.style.display = "none";
+        return;
+    }
+
+    // 초대 버튼 클릭 → 링크 생성 + 모달 열기
+    inviteBtn.addEventListener("click", async () => {
+        inviteModal.classList.remove("hidden");
+        linkInput.value = "초대 링크 생성 중...";
+
+        try {
+            const tripId = getTripId();
+
+            if (tripId === null) {
+                throw new Error("유효한 여행 ID가 없습니다.");
+            }
+
+            const res = await fetch(`/trip/${tripId}/invite-link`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+
+            linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
+        } catch (err) {
+            console.error(err);
+            linkInput.value = "초대 링크 생성 실패";
+        }
+    });
+
+    // 복사 버튼
+    copyBtn?.addEventListener("click", async () => {
+        if (!linkInput.value) return;
+
+        // 클립보드에 복사
+        await navigator.clipboard.writeText(linkInput.value);
+        copyBtn.textContent = "✅";
+        // 복사 완료 후 버튼 텍스트 변경
+        setTimeout(() => (copyBtn.textContent = "📋"), 1200);
+    });
+
+    // 닫기 / 취소
+    closeBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+
     // -----------------------------
     // 도착지 선택(세부사항)
     // -----------------------------
@@ -1974,12 +2042,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    console.log(document.querySelectorAll(".sidebar-tabs .tab"));
     // -----------------------------
     // 사이드바 탭 전환
     // -----------------------------
     document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
         tab.addEventListener("click", () => {
             const tabName = tab.dataset.tab;
+            console.log("clicked tab:", tabName);
 
             document
                 .querySelectorAll(".sidebar-tabs .tab")
@@ -2381,17 +2451,12 @@ function drawPathPreview(path) {
 // ==================== 서버 메모 관리 ====================
 // 서버에서 메모 불러오기
 async function loadMemoFromServer() {
-  if (!currentTripId) {
-    console.warn('No trip ID available, skipping memo load');
-    return;
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/memo/${currentTripId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to load memos: ${response.status}`)
+    if (!currentTripId) {
+        console.warn("No trip ID available, skipping memo load");
+        return;
     }
 
+<<<<<<< HEAD
     const savedMemos = await response.json();
     memos = savedMemos;
 
@@ -2408,6 +2473,21 @@ async function loadMemoFromServer() {
   } catch (error) {
     console.error('Failed to load memos');
   }
+=======
+    try {
+        const response = await fetch(`${API_BASE_URL}/memo/${currentTripId}`);
+        if (!response.ok) {
+            throw new Error(`Failed to load memos: ${response.status}`);
+        }
+
+        const savedMemos = await response.json();
+        memos = savedMemos;
+        renderMemos();
+        console.log("Loasded memos from server");
+    } catch (error) {
+        console.error("Failed to load memos");
+    }
+>>>>>>> mytrip_client
 }
 
 // 메모 추가
@@ -3787,71 +3867,73 @@ if (document.readyState === "loading") {
 // ==================== 여행 자동 생성 ====================
 // 새 여행 자동 생성
 async function createNewTrip() {
-  try {
-    const userId = localStorage.getItem('userId');
-    const username = localStorage.getItem('username');
+    try {
+        const userId = localStorage.getItem("userId");
+        const username = localStorage.getItem("username");
 
-    const response = await fetch(`${API_BASE_URL}/trip`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({
-        userId: userId,
-        title: `${username}의 여행 - ${new Date().toLocaleDateString()}`,
-        destination: {
-          name: '미정',
-          district: '미정',
-          city: '미정'
-        },
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'planning'
-      })
-    });
+        const response = await fetch(`${API_BASE_URL}/trip`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+                userId: userId,
+                title: `${username}의 여행 - ${new Date().toLocaleDateString()}`,
+                destination: {
+                    name: "미정",
+                    district: "미정",
+                    city: "미정",
+                },
+                startDate: new Date().toISOString(),
+                endDate: new Date(
+                    Date.now() + 2 * 24 * 60 * 60 * 1000
+                ).toISOString(),
+                status: "planning",
+            }),
+        });
 
-    if (!response.ok) {
-      throw new Error(`Failed to create trip: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`Failed to create trip: ${response.status}`);
+        }
+
+        const trip = await response.json();
+        const tripId = trip._id || trip.id;
+
+        currentTripId = tripId;
+        localStorage.setItem("lastTripId", tripId);
+        localStorage.setItem("currentTripId", tripId);
+
+        console.log(`New trip created: ${tripId}`);
+        return tripId;
+    } catch (error) {
+        console.error("Failed to create new trip", error);
     }
-
-    const trip = await response.json();
-    const tripId = trip._id || trip.id;
-
-    currentTripId = tripId;
-    localStorage.setItem('lastTripId', tripId);
-    localStorage.setItem('currentTripId', tripId);
-
-    console.log(`New trip created: ${tripId}`);
-    return tripId;
-  } catch (error) {
-    console.error('Failed to create new trip', error);
-  }
 }
 
-async function updateTripStatus(tripId, status, details={}) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/trip/${tripId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({
-        status: status,
-        ...details
-      })
-    });
+async function updateTripStatus(tripId, status, details = {}) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/trip/${tripId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+            },
+            body: JSON.stringify({
+                status: status,
+                ...details,
+            }),
+        });
 
-    if (!response.ok) {
-      throw new Error(`Failed to update trip`)
+        if (!response.ok) {
+            throw new Error(`Failed to update trip`);
+        }
+
+        const updatedTrip = await response.json();
+
+        return updatedTrip;
+    } catch (error) {
+        console.error("Failed to update trip status", error);
+        throw error;
     }
-
-    const updatedTrip = await response.json();
-    
-    return updatedTrip;
-  } catch (error) {
-    console.error('Failed to update trip status', error);
-    throw error;
-  }
 }
