@@ -1711,36 +1711,37 @@ function initKakaoMap() {
 document.addEventListener("DOMContentLoaded", async () => {
     // ==================== Trip ID 확인 및 자동 생성 ====================
     const urlParams = new URLSearchParams(window.location.search);
-    const tripIdFromUrl = urlParams.get('tripId');
-    const tripIdFromStorage = localStorage.getItem('currentTripId');
+    const tripIdFromUrl = urlParams.get("tripId");
+    const tripIdFromStorage = localStorage.getItem("currentTripId");
 
     if (tripIdFromUrl) {
         // URL에 tripId가 있으면 우선 사용
         currentTripId = tripIdFromUrl;
-        localStorage.setItem('currentTripId', tripIdFromUrl);
-        localStorage.setItem('lastTripId', tripIdFromUrl);
-        console.log('Using tripId from URL:', currentTripId);
-    } else if (tripIdFromStorage && tripIdFromStorage !== 'null' && tripIdFromStorage !== 'undefined') {
+        localStorage.setItem("currentTripId", tripIdFromUrl);
+        localStorage.setItem("lastTripId", tripIdFromUrl);
+        console.log("Using tripId from URL:", currentTripId);
+    } else if (
+        tripIdFromStorage &&
+        tripIdFromStorage !== "null" &&
+        tripIdFromStorage !== "undefined"
+    ) {
         // localStorage에 유효한 tripId가 있으면 사용
         currentTripId = tripIdFromStorage;
-        console.log('Using tripId from storage:', currentTripId);
+        console.log("Using tripId from storage:", currentTripId);
     } else {
         // tripId가 없으면 자동 생성
-        console.log('No tripId found, creating new trip...');
+        console.log("No tripId found, creating new trip...");
         currentTripId = await createNewTrip();
-        
+
         if (!currentTripId) {
-            alert('여행 생성에 실패했습니다. 대시보드로 이동합니다.');
-            window.location.href = '/dashboard.html';
+            alert("여행 생성에 실패했습니다. 대시보드로 이동합니다.");
+            window.location.href = "/dashboard.html";
             return;
         }
-        
-        console.log('New trip created:', currentTripId);
-    }
 
-    // -----------------------------
+        console.log("New trip created:", currentTripId);
+    }
     // 초대 링크 생성 및 모달 관리
-    // -----------------------------
     const inviteBtn = document.getElementById("invite-btn");
     const inviteModal = document.getElementById("invite-modal");
     const closeBtn = document.getElementById("closeInviteModal");
@@ -2068,74 +2069,76 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // ✅ 일정 탭 클릭 시 이벤트 리스너 재등록
             if (tabName === "schedule") {
-                console.log("📅 왼쪽 사이드바 일정 탭 활성화 - 이벤트 리스너 재등록");
+                console.log(
+                    "📅 왼쪽 사이드바 일정 탭 활성화 - 이벤트 리스너 재등록"
+                );
                 attachScheduleEventListeners();
             }
         });
     });
 
     // ==================== 사이드바 3단계 토글 ====================
-    const sidebar = document.querySelector('.sidebar');
-    const rightPanel = document.querySelector('.right-panel');
-    const toggleLeftBtn = document.getElementById('toggle-left-btn');
-    const toggleRightBtn = document.getElementById('toggle-right-btn');
+    const sidebar = document.querySelector(".sidebar");
+    const rightPanel = document.querySelector(".right-panel");
+    const toggleLeftBtn = document.getElementById("toggle-left-btn");
+    const toggleRightBtn = document.getElementById("toggle-right-btn");
 
     // 왼쪽 패널: 기본 → 접힘 → 최대화 → 기본
     if (toggleLeftBtn && sidebar) {
-    toggleLeftBtn.addEventListener('click', () => {
-        if (sidebar.classList.contains('maximized')) {
-        // 최대화 → 기본
-        sidebar.classList.remove('maximized');
-        toggleLeftBtn.textContent = '◀';
-        toggleLeftBtn.style.left = '400px';
-        toggleRightBtn.style.display = ''; // 오른쪽 버튼 복원
-        } else if (sidebar.classList.contains('collapsed')) {
-        // 접힌 → 최대화
-        sidebar.classList.remove('collapsed');
-        sidebar.classList.add('maximized');
-        toggleLeftBtn.textContent = '⊗';
-        toggleLeftBtn.style.left = 'calc(100vw - 32px)';
-        toggleRightBtn.style.display = 'none'; // 오른쪽 버튼 숨김
-        } else {
-        // 기본 → 접힘
-        sidebar.classList.add('collapsed');
-        toggleLeftBtn.textContent = '▶';
-        toggleLeftBtn.style.left = '0';
-        }
-        
-        setTimeout(() => {
-        if (currentMap) currentMap.relayout();
-        }, 300);
-    });
+        toggleLeftBtn.addEventListener("click", () => {
+            if (sidebar.classList.contains("maximized")) {
+                // 최대화 → 기본
+                sidebar.classList.remove("maximized");
+                toggleLeftBtn.textContent = "◀";
+                toggleLeftBtn.style.left = "400px";
+                toggleRightBtn.style.display = ""; // 오른쪽 버튼 복원
+            } else if (sidebar.classList.contains("collapsed")) {
+                // 접힌 → 최대화
+                sidebar.classList.remove("collapsed");
+                sidebar.classList.add("maximized");
+                toggleLeftBtn.textContent = "⊗";
+                toggleLeftBtn.style.left = "calc(100vw - 32px)";
+                toggleRightBtn.style.display = "none"; // 오른쪽 버튼 숨김
+            } else {
+                // 기본 → 접힘
+                sidebar.classList.add("collapsed");
+                toggleLeftBtn.textContent = "▶";
+                toggleLeftBtn.style.left = "0";
+            }
+
+            setTimeout(() => {
+                if (currentMap) currentMap.relayout();
+            }, 300);
+        });
     }
 
     // 오른쪽 패널: 기본 → 접힘 → 최대화 → 기본
     if (toggleRightBtn && rightPanel) {
-    toggleRightBtn.addEventListener('click', () => {
-        if (rightPanel.classList.contains('maximized')) {
-        // 최대화 → 기본
-        rightPanel.classList.remove('maximized');
-        toggleRightBtn.textContent = '▶';
-        toggleRightBtn.style.right = '350px';
-        toggleLeftBtn.style.display = ''; // 왼쪽 버튼 복원
-        } else if (rightPanel.classList.contains('collapsed')) {
-        // 접힌 → 최대화
-        rightPanel.classList.remove('collapsed');
-        rightPanel.classList.add('maximized');
-        toggleRightBtn.textContent = '⊗';
-        toggleRightBtn.style.right = 'calc(100vw - 32px)';
-        toggleLeftBtn.style.display = 'none'; // 왼쪽 버튼 숨김
-        } else {
-        // 기본 → 접힘
-        rightPanel.classList.add('collapsed');
-        toggleRightBtn.textContent = '◀';
-        toggleRightBtn.style.right = '0';
-        }
-        
-        setTimeout(() => {
-        if (currentMap) currentMap.relayout();
-        }, 300);
-    });
+        toggleRightBtn.addEventListener("click", () => {
+            if (rightPanel.classList.contains("maximized")) {
+                // 최대화 → 기본
+                rightPanel.classList.remove("maximized");
+                toggleRightBtn.textContent = "▶";
+                toggleRightBtn.style.right = "350px";
+                toggleLeftBtn.style.display = ""; // 왼쪽 버튼 복원
+            } else if (rightPanel.classList.contains("collapsed")) {
+                // 접힌 → 최대화
+                rightPanel.classList.remove("collapsed");
+                rightPanel.classList.add("maximized");
+                toggleRightBtn.textContent = "⊗";
+                toggleRightBtn.style.right = "calc(100vw - 32px)";
+                toggleLeftBtn.style.display = "none"; // 왼쪽 버튼 숨김
+            } else {
+                // 기본 → 접힘
+                rightPanel.classList.add("collapsed");
+                toggleRightBtn.textContent = "◀";
+                toggleRightBtn.style.right = "0";
+            }
+
+            setTimeout(() => {
+                if (currentMap) currentMap.relayout();
+            }, 300);
+        });
     }
 
     // -----------------------------
@@ -2375,7 +2378,7 @@ function handleCanvasMouseDown(e) {
     }
 
     if (currentTool === "text") {
-       // 포스트잇 생성
+        // 포스트잇 생성
         createStickyNote(x, y);
         return;
     }
@@ -2456,38 +2459,19 @@ async function loadMemoFromServer() {
         return;
     }
 
-<<<<<<< HEAD
     const savedMemos = await response.json();
     memos = savedMemos;
 
     // 텍스트 메모는 포스트잇으로 생성
-    memos.forEach(memo => {
-      if (memo.type === 'text' && memo.coords && memo.coords[0]) {
-        const pixel = latLngToPixel(memo.coords[0]);
-        createStickyNote(pixel.x, pixel.y, memo.text, memo);
-      }
+    memos.forEach((memo) => {
+        if (memo.type === "text" && memo.coords && memo.coords[0]) {
+            const pixel = latLngToPixel(memo.coords[0]);
+            createStickyNote(pixel.x, pixel.y, memo.text, memo);
+        }
     });
 
     renderMemos(); // path 메모만 Canvas에 렌더링
     console.log("Loasded memos from server");
-  } catch (error) {
-    console.error('Failed to load memos');
-  }
-=======
-    try {
-        const response = await fetch(`${API_BASE_URL}/memo/${currentTripId}`);
-        if (!response.ok) {
-            throw new Error(`Failed to load memos: ${response.status}`);
-        }
-
-        const savedMemos = await response.json();
-        memos = savedMemos;
-        renderMemos();
-        console.log("Loasded memos from server");
-    } catch (error) {
-        console.error("Failed to load memos");
-    }
->>>>>>> mytrip_client
 }
 
 // 메모 추가
@@ -2506,187 +2490,187 @@ function addMemo(memo) {
 }
 
 // 포스트잇 생성
-function createStickyNote(x, y, text = '', memo = null) {
-  const memoId = memo?.id || crypto.randomUUID();
-  const latLng = memo?.coords?.[0] || pixelToLatLng(x, y);
+function createStickyNote(x, y, text = "", memo = null) {
+    const memoId = memo?.id || crypto.randomUUID();
+    const latLng = memo?.coords?.[0] || pixelToLatLng(x, y);
 
-  // 포스트잇 DOM 요소 생성
-  const stickyNote = document.createElement('div');
-  stickyNote.className = 'sticky-note';
-  stickyNote.setAttribute('data-memo-id', memoId);
+    // 포스트잇 DOM 요소 생성
+    const stickyNote = document.createElement("div");
+    stickyNote.className = "sticky-note";
+    stickyNote.setAttribute("data-memo-id", memoId);
 
-  // 위치 설정
-  const pixel = latLngToPixel(latLng);
-  stickyNote.style.left = `${pixel.x}px`;
-  stickyNote.style.top = `${pixel.y}px`;
+    // 위치 설정
+    const pixel = latLngToPixel(latLng);
+    stickyNote.style.left = `${pixel.x}px`;
+    stickyNote.style.top = `${pixel.y}px`;
 
-  // 헤더 (삭제 버튼)
-  const header = document.createElement('div');
-  header.className = 'sticky-note-header';
+    // 헤더 (삭제 버튼)
+    const header = document.createElement("div");
+    header.className = "sticky-note-header";
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'sticky-note-delete';
-  deleteBtn.textContent = 'x';
-  deleteBtn.onclick = (e) => {
-    e.stopPropagation();
-    removeMemo(memoId);
-    stickyNote.remove();
-  };
-
-  header.appendChild(deleteBtn);
-
-  // 내용
-  const content = document.createElement('div');
-  content.className = 'sticky-note-content';
-  content.contentEditable = true;
-  content.textContent = text || memo?.text || '';
-
-  // 텍스트 변경 시 저장
-  let saveTimeout;
-  content.addEventListener('input', () => {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      updateStickyNoteText(memoId, content.textContent);
-    }, 500);
-  });
-
-  // 포커스 잃으면 저장
-  content.addEventListener('blur', () => {
-    updateStickyNoteText(memoId, content.textContent);
-  });
-
-  stickyNote.appendChild(header);
-  stickyNote.appendChild(content);
-
-  // 드래그 기능 추가
-  makeDraggable(stickyNote, memoId);
-
-  // 지도 컨테이너에 추가
-  document.querySelector('#kakao-map').appendChild(stickyNote);
-
-  // 새 메모면 자동 포커스
-  if (!text && !memo) {
-    content.focus();
-
-    // 메모 데이터 저장
-    const newMemo = {
-      id: memoId,
-      type: 'text',
-      coords: [latLng],
-      test: '',
-      style: { fontSize: 14, color: '#333' },
-      createdBy: localStorage.getItem('userId') || 'anonymous',
-      timestamp: Date.now()
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "sticky-note-delete";
+    deleteBtn.textContent = "x";
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        removeMemo(memoId);
+        stickyNote.remove();
     };
 
-    addMemo(newMemo);
-  }
+    header.appendChild(deleteBtn);
 
-  return stickyNote;
+    // 내용
+    const content = document.createElement("div");
+    content.className = "sticky-note-content";
+    content.contentEditable = true;
+    content.textContent = text || memo?.text || "";
+
+    // 텍스트 변경 시 저장
+    let saveTimeout;
+    content.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            updateStickyNoteText(memoId, content.textContent);
+        }, 500);
+    });
+
+    // 포커스 잃으면 저장
+    content.addEventListener("blur", () => {
+        updateStickyNoteText(memoId, content.textContent);
+    });
+
+    stickyNote.appendChild(header);
+    stickyNote.appendChild(content);
+
+    // 드래그 기능 추가
+    makeDraggable(stickyNote, memoId);
+
+    // 지도 컨테이너에 추가
+    document.querySelector("#kakao-map").appendChild(stickyNote);
+
+    // 새 메모면 자동 포커스
+    if (!text && !memo) {
+        content.focus();
+
+        // 메모 데이터 저장
+        const newMemo = {
+            id: memoId,
+            type: "text",
+            coords: [latLng],
+            test: "",
+            style: { fontSize: 14, color: "#333" },
+            createdBy: localStorage.getItem("userId") || "anonymous",
+            timestamp: Date.now(),
+        };
+
+        addMemo(newMemo);
+    }
+
+    return stickyNote;
 }
 
 // 포스트잇 텍스트 업데이트
 function updateStickyNoteText(memoId, text) {
-  const memo = memos.find(m => m.id === memoId);
-  if (memo) {
-    memo.text = text;
+    const memo = memos.find((m) => m.id === memoId);
+    if (memo) {
+        memo.text = text;
 
-    // 서버에 업데이트 (선택사항)
-    if (collaboration) {
-      collaboration.sendMemo(memo);
+        // 서버에 업데이트 (선택사항)
+        if (collaboration) {
+            collaboration.sendMemo(memo);
+        }
     }
-  }
 }
 
 // 포스트잇 드래그 기능
 function makeDraggable(element, memoId) {
-  let isDragging = false;
-  let startX, startY;
-  let initialLeft, initialTop;
+    let isDragging = false;
+    let startX, startY;
+    let initialLeft, initialTop;
 
-  const onMouseDown = (e) => {
-    // 내용 영역 클릭 시에는 드래그 하지 않음
-    if (e.target.classList.contains('sticky-note-content')) return;
-    if (e.target.classList.contains('sticky-note-delete')) return;
+    const onMouseDown = (e) => {
+        // 내용 영역 클릭 시에는 드래그 하지 않음
+        if (e.target.classList.contains("sticky-note-content")) return;
+        if (e.target.classList.contains("sticky-note-delete")) return;
 
-    isDragging = true;
-    element.classList.add('dragging');
+        isDragging = true;
+        element.classList.add("dragging");
 
-    startX = e.clientX;
-    startY = e.clientY;
-    initialLeft = parseInt(element.style.left) || 0;
-    initialTop = parseInt(element.style.top) || 0;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseInt(element.style.left) || 0;
+        initialTop = parseInt(element.style.top) || 0;
 
-    e.preventDefault();
-  };
+        e.preventDefault();
+    };
 
-  const onMouseMove = (e) => {
-    if (!isDragging) return;
-    
-    const deltaX = e.clientX - startX;
-    const deltaY = e.clientY - startY;
-    
-    const newLeft = initialLeft + deltaX;
-    const newTop = initialTop + deltaY;
-    
-    element.style.left = `${newLeft}px`;
-    element.style.top = `${newTop}px`;
-  };
+    const onMouseMove = (e) => {
+        if (!isDragging) return;
 
-  const onMouseUp = () => {
-    if (!isDragging) return;
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
 
-    isDragging = false;
-    element.classList.remove('dragging');
+        const newLeft = initialLeft + deltaX;
+        const newTop = initialTop + deltaY;
 
-    // 새 위치를 위경도로 변환하여 메모 업데이트
-    const x = parseInt(element.style.left);
-    const y = parseInt(element.style.top);
-    const newLatLng = pixelToLatLng(x, y);
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
+    };
 
-    const memo = memos.find(m => m.id === memoId);
-    if (memo) {
-      memo.coords = [newLatLng];
+    const onMouseUp = () => {
+        if (!isDragging) return;
 
-      // 서버에 업데이트
-      if (collaboration) {
-        collaboration.sendMemo(memo);
-      }
-    }
-  };
+        isDragging = false;
+        element.classList.remove("dragging");
 
-  element.addEventListener('mousedown', onMouseDown);
-  element.addEventListener('mousemove', onMouseMove);
-  element.addEventListener('mouseup', onMouseUp);
+        // 새 위치를 위경도로 변환하여 메모 업데이트
+        const x = parseInt(element.style.left);
+        const y = parseInt(element.style.top);
+        const newLatLng = pixelToLatLng(x, y);
+
+        const memo = memos.find((m) => m.id === memoId);
+        if (memo) {
+            memo.coords = [newLatLng];
+
+            // 서버에 업데이트
+            if (collaboration) {
+                collaboration.sendMemo(memo);
+            }
+        }
+    };
+
+    element.addEventListener("mousedown", onMouseDown);
+    element.addEventListener("mousemove", onMouseMove);
+    element.addEventListener("mouseup", onMouseUp);
 }
 
 // 모든 포스트잇 위치 업데이트
 function updateStickyNotesPositions() {
-  document.querySelectorAll('.sticky-note').forEach(note => {
-      const memoId = note.getAttribute('data-memo-id');
-      const memo = memos.find(m => m.id === memoId);
-      
-      if (memo && memo.coords && memo.coords[0]) {
-          const pixel = latLngToPixel(memo.coords[0]);
-          note.style.left = `${pixel.x}px`;
-          note.style.top = `${pixel.y}px`;
-      }
-  });
+    document.querySelectorAll(".sticky-note").forEach((note) => {
+        const memoId = note.getAttribute("data-memo-id");
+        const memo = memos.find((m) => m.id === memoId);
+
+        if (memo && memo.coords && memo.coords[0]) {
+            const pixel = latLngToPixel(memo.coords[0]);
+            note.style.left = `${pixel.x}px`;
+            note.style.top = `${pixel.y}px`;
+        }
+    });
 }
 
 // 지도 이벤트에 연결 (initKakaoMap 함수 내부에 추가)
-kakao.maps.event.addListener(currentMap, 'zoom_changed', () => {
-  renderMemos();
-  updateStickyNotesPositions();
+kakao.maps.event.addListener(currentMap, "zoom_changed", () => {
+    renderMemos();
+    updateStickyNotesPositions();
 });
 
-kakao.maps.event.addListener(currentMap, 'dragend', () => {
-  renderMemos();
-  updateStickyNotesPositions();
+kakao.maps.event.addListener(currentMap, "dragend", () => {
+    renderMemos();
+    updateStickyNotesPositions();
 });
 
-kakao.maps.event.addListener(currentMap, 'center_changed', () => {
-  updateStickyNotesPositions();
+kakao.maps.event.addListener(currentMap, "center_changed", () => {
+    updateStickyNotesPositions();
 });
 
 // 메모 삭제
@@ -2759,12 +2743,12 @@ function findMemoAtPosition(x, y) {
     const clickedNote = document.elementFromPoint(
         x + canvas.getBoundingClientRect().left,
         y + canvas.getBoundingClientRect().top
-    )
+    );
 
-    if (clickedNote && clickedNote.closest('.sticky-note')) {
-        const stickyNote = clickedNote.closest('.sticky-note');
-        const memoId = stickyNote.getAttribute('data-memo-id');
-        return memos.find(m => m.id === memoId);
+    if (clickedNote && clickedNote.closest(".sticky-note")) {
+        const stickyNote = clickedNote.closest(".sticky-note");
+        const memoId = stickyNote.getAttribute("data-memo-id");
+        return memos.find((m) => m.id === memoId);
     }
 
     // Canvas의 path 메모 체크
@@ -3744,7 +3728,8 @@ function attachBudgetEventListeners() {
     const saveExpenseBtn = document.getElementById("save-expense-btn");
     if (saveExpenseBtn) {
         saveExpenseBtn.replaceWith(saveExpenseBtn.cloneNode(true));
-        document.getElementById("save-expense-btn")
+        document
+            .getElementById("save-expense-btn")
             ?.addEventListener("click", updateExpense);
     }
 
@@ -3752,7 +3737,8 @@ function attachBudgetEventListeners() {
     const cancelExpenseBtn = document.getElementById("cancel-expense-btn");
     if (cancelExpenseBtn) {
         cancelExpenseBtn.replaceWith(cancelExpenseBtn.cloneNode(true));
-        document.getElementById("cancel-expense-btn")
+        document
+            .getElementById("cancel-expense-btn")
             ?.addEventListener("click", closeEditExpenseForm);
     }
 }
@@ -3765,7 +3751,8 @@ function attachScheduleEventListeners() {
     const addScheduleBtn = document.getElementById("add-schedule-btn");
     if (addScheduleBtn) {
         addScheduleBtn.replaceWith(addScheduleBtn.cloneNode(true));
-        document.getElementById("add-schedule-btn")
+        document
+            .getElementById("add-schedule-btn")
             ?.addEventListener("click", openScheduleForm);
     }
 
@@ -3773,7 +3760,8 @@ function attachScheduleEventListeners() {
     const saveScheduleBtn = document.getElementById("save-schedule-btn");
     if (saveScheduleBtn) {
         saveScheduleBtn.replaceWith(saveScheduleBtn.cloneNode(true));
-        document.getElementById("save-schedule-btn")
+        document
+            .getElementById("save-schedule-btn")
             ?.addEventListener("click", saveSchedule);
     }
 
@@ -3781,7 +3769,8 @@ function attachScheduleEventListeners() {
     const cancelScheduleBtn = document.getElementById("cancel-schedule-btn");
     if (cancelScheduleBtn) {
         cancelScheduleBtn.replaceWith(cancelScheduleBtn.cloneNode(true));
-        document.getElementById("cancel-schedule-btn")
+        document
+            .getElementById("cancel-schedule-btn")
             ?.addEventListener("click", closeScheduleForm);
     }
 
@@ -3789,7 +3778,8 @@ function attachScheduleEventListeners() {
     const updateScheduleBtn = document.getElementById("update-schedule-btn");
     if (updateScheduleBtn) {
         updateScheduleBtn.replaceWith(updateScheduleBtn.cloneNode(true));
-        document.getElementById("update-schedule-btn")
+        document
+            .getElementById("update-schedule-btn")
             ?.addEventListener("click", updateSchedule);
     }
 
@@ -3797,7 +3787,8 @@ function attachScheduleEventListeners() {
     const cancelEditBtn = document.getElementById("cancel-edit-schedule-btn");
     if (cancelEditBtn) {
         cancelEditBtn.replaceWith(cancelEditBtn.cloneNode(true));
-        document.getElementById("cancel-edit-schedule-btn")
+        document
+            .getElementById("cancel-edit-schedule-btn")
             ?.addEventListener("click", closeEditScheduleForm);
     }
 }
