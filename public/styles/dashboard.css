@@ -622,3 +622,37 @@ body {
     padding: 4px 8px;
     outline: none;
 }
+
+/* 상태 변경 전용 팔레트 스타일 */
+.status-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-option-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.status-option-btn:hover {
+    background: var(--hover);
+    border-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+/* 상태별 이모지 컬러 강조 (선택사항) */
+.status-option-btn[data-status="active"] { color: #10b981; }
+.status-option-btn[data-status="planning"] { color: #f59e0b; }
+.status-option-btn[data-status="completed"] { color: var(--text-light); }
