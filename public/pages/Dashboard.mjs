@@ -26,6 +26,12 @@ async function fetchWithAuth(url, method = "GET", options = {}) {
   return res.json();
 }
 
+function escapeHtml(text = "") {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // 유저 정보 + 통계
 async function loadMyTrips() {
   const { user } = await fetchWithAuth(`${API_BASE}/user/me`, "POST");
@@ -272,7 +278,7 @@ function updateTabCount(status, count) {
 async function initDashboard() {
   try {
     await loadMyTrips();
-    await loadMyChallenges();
+    await loadMyBucketPreview();
 
     // 기본 탭
     const activeTrips = await fetchWithAuth(`${API_BASE}/trip?status=active`);
@@ -315,52 +321,76 @@ function getStatusLabel(status) {
   }[status];
 }
 
-async function loadMyChallenges() {
+async function loadMyBucketPreview() {
   try {
-    const challenges = await fetchWithAuth(`${API_BASE}/bucket/`);
-    console.log("챌린지 데이터:", challenges);
-    renderChallenges(challenges);
+    const data = await fetchWithAuth(`${API_BASE}/bucketlist`);
+    const buckets = Array.isArray(data?.bucketlists)
+      ? data.bucketlists
+      : Array.isArray(data)
+      ? data
+      : [];
+
+    updateAchievedBucketCount(buckets);
+    renderBucketPreview(buckets.slice(0, 4));
   } catch (err) {
-    console.error("챌린지 조회 실패:", err);
+    console.error("버킷리스트 조회 실패:", err);
+    renderBucketPreview([]);
   }
 }
 
-function renderChallenges(challenges) {
+function calculateBucketProgress(bucket = {}) {
+  const items = Array.isArray(bucket.items) ? bucket.items : [];
+  const targetRaw = bucket.targetCount ?? bucket.target ?? items.length ?? 0;
+  const doneRaw =
+    bucket.completedCount ??
+    bucket.current ??
+    items.filter((i) => i.done).length ??
+    0;
+
+  const target = Number(targetRaw || 0);
+  const done = Number(doneRaw || 0);
+  const percent =
+    target > 0 ? Math.min(Math.round((done / target) * 100), 100) : 0;
+  return { target, done, percent };
+}
+
+function updateAchievedBucketCount(buckets = []) {
+  const achieved = buckets.filter((bucket) => {
+    const { target, done } = calculateBucketProgress(bucket);
+    return (target > 0 && done >= target) || bucket.status === "completed";
+  }).length;
+
+  const el = document.querySelector(".achivedBucket");
+  if (el) el.innerText = achieved;
+}
+
+function renderBucketPreview(buckets = []) {
   const grid = document.getElementById("challengesGrid");
+  if (!grid) return;
+
   grid.innerHTML = "";
 
-  if (!challenges || challenges.length === 0) {
-    grid.innerHTML = `<p class="empty-text">아직 챌린지가 없어요 😢</p>`;
+  if (!buckets.length) {
+    grid.innerHTML = `<p class="empty-text">아직 버킷리스트가 없어요.</p>`;
     return;
   }
 
-  challenges.forEach((challenge) => {
-    const progressPercent = Math.min(
-      Math.round((challenge.current / challenge.target) * 100),
-      100
-    );
-
-    const card = document.createElement("div");
-    card.className = "challenge-card";
-
-    card.innerHTML = `
-            <div class="challenge-icon">${challenge.icon || "🎯"}</div>
-            <div class="challenge-name">${challenge.name}</div>
-            <div class="challenge-progress">
-                ${challenge.current} / ${challenge.target}
-            </div>
-            <div class="challenge-target">
-                ${challenge.target}개 목표
-            </div>
-            <div class="challenge-bar">
-                <div
-                    class="challenge-bar-fill"
-                    style="width: ${progressPercent}%"
-                ></div>
-            </div>
-        `;
-
-    grid.appendChild(card);
+  buckets.forEach((bucket) => {
+    const { target, done, percent } = calculateBucketProgress(bucket);
+    grid.innerHTML += `
+      <div class="challenge-card">
+        <div class="challenge-icon">${escapeHtml(
+          bucket.theme || bucket.icon || "⭐"
+        )}</div>
+        <div class="challenge-name">${escapeHtml(
+          bucket.title || bucket.name || "나의 버킷리스트"
+        )}</div>
+        <div class="challenge-progress">${done} / ${target}</div>
+        <div class="challenge-bar">
+          <div class="challenge-bar-fill" style="width: ${percent}%"></div>
+        </div>
+      </div>
+    `;
   });
 }
 
