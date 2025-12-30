@@ -1736,66 +1736,102 @@ document.addEventListener("DOMContentLoaded", async () => {
   const inviteBtn = document.getElementById("invite-btn");
   const inviteModal = document.getElementById("invite-modal");
   const closeBtn = document.getElementById("closeInviteModal");
-  const cancelBtn = document.getElementById("invite-cancel-btn");
-  const linkInput = document.getElementById("inviteLinkInput");
-  const copyBtn = document.getElementById("copyInviteLinkBtn");
+  // 초대 버튼/모달 관련 초기화: 네비게이션이 비동기로 로드될 수 있으므로
+  // 네비바가 로드된 직후에도 이 초기화가 실행되도록 별도 함수로 분리합니다.
+  function setupInviteUI() {
+    const inviteBtn = document.getElementById("invite-btn");
+    const inviteModal = document.getElementById("invite-modal");
+    const closeBtn = document.getElementById("closeInviteModal");
+    const cancelBtn = document.getElementById("invite-cancel-btn");
+    const linkInput = document.getElementById("inviteLinkInput");
+    const copyBtn = document.getElementById("copyInviteLinkBtn");
 
-  // main.html에서만 초대 버튼 노출
-  if (location.pathname.endsWith("main.html") && inviteBtn) {
-    inviteBtn.style.display = "inline-block";
-  } else if (inviteBtn) {
-    inviteBtn.style.display = "none";
-    return;
+    console.debug("[Main] setupInviteUI called. inviteBtn?", !!inviteBtn);
+    if (!inviteBtn) return;
+
+    // main.html에서만 버튼 보이기 (라우팅/서버에 따라 .html이 생략될 수 있어 버튼이 있는지 DOM으로도 확인)
+    const isMainPath =
+      location.pathname.endsWith("main.html") ||
+      !!document.getElementById("btn-generate");
+    if (isMainPath) {
+      console.debug("[Main] on main.html - showing invite button");
+      inviteBtn.style.display = "inline-block";
+    } else {
+      inviteBtn.style.display = "none";
+      console.debug("[Main] not on main.html - hiding invite button");
+      return;
+    }
+
+    // 중복 바인딩 방지
+    if (inviteBtn.dataset.inviteAttached) return;
+    inviteBtn.dataset.inviteAttached = "true";
+
+    // 초대 버튼 클릭 → 링크 생성 + 모달 열기
+    inviteBtn.addEventListener("click", async () => {
+      if (inviteModal) inviteModal.classList.remove("hidden");
+      if (linkInput) linkInput.value = "초대 링크 생성 중...";
+
+      try {
+        const tripId = getTripId();
+
+        if (tripId === null) {
+          throw new Error("유효한 여행 ID가 없습니다.");
+        }
+
+        const res = await fetch(`/trip/${tripId}/invite-link`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        if (linkInput) linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // 모달 닫기
+    if (closeBtn)
+      closeBtn.addEventListener("click", () =>
+        inviteModal?.classList.add("hidden")
+      );
+    if (cancelBtn)
+      cancelBtn.addEventListener("click", () =>
+        inviteModal?.classList.add("hidden")
+      );
+
+    // 복사 버튼
+    if (copyBtn) {
+      copyBtn.addEventListener("click", async () => {
+        try {
+          if (linkInput && linkInput.value) {
+            await navigator.clipboard.writeText(linkInput.value);
+            alert("초대 링크가 복사되었습니다.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("복사에 실패했습니다.");
+        }
+      });
+    }
   }
 
-  // 초대 버튼 클릭 → 링크 생성 + 모달 열기
-  inviteBtn.addEventListener("click", async () => {
-    inviteModal.classList.remove("hidden");
-    linkInput.value = "초대 링크 생성 중...";
+  // setupInviteUI 종료
 
-    try {
-      const tripId = getTripId();
-
-      if (tripId === null) {
-        throw new Error("유효한 여행 ID가 없습니다.");
-      }
-
-      const res = await fetch(`/trip/${tripId}/invite-link`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
-    } catch (err) {
-      console.error(err);
-      linkInput.value = "초대 링크 생성 실패";
-    }
-  });
-
-  // 복사 버튼
-  copyBtn?.addEventListener("click", async () => {
-    if (!linkInput.value) return;
-
-    // 클립보드에 복사
-    await navigator.clipboard.writeText(linkInput.value);
-    copyBtn.textContent = "✅";
-    // 복사 완료 후 버튼 텍스트 변경
-    setTimeout(() => (copyBtn.textContent = "📋"), 1200);
-  });
-
-  // 닫기 / 취소
-  closeBtn?.addEventListener("click", () => {
-    inviteModal.classList.add("hidden");
-  });
-
-  cancelBtn?.addEventListener("click", () => {
-    inviteModal.classList.add("hidden");
-  });
+  // 네비바가 비동기로 삽입될 수 있으므로 즉시 시도하고, 로드 완료 이벤트에도 바인딩
+  setupInviteUI();
+  document.addEventListener("navbar:loaded", setupInviteUI);
+  // 이미 네비바가 로드된 상태일 수 있으므로 플래그도 확인합니다
+  if (window.__navbarLoaded) {
+    console.debug(
+      "[Main] detected window.__navbarLoaded -> running setupInviteUI"
+    );
+    setupInviteUI();
+  }
 
   // -----------------------------
   // 도착지 선택(세부사항)
