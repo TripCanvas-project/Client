@@ -35,11 +35,11 @@ async function loadMyTrips() {
   ).innerText = `안녕하세요, ${user.nickname}님! 👋`;
 
   document.querySelector(".allTrips").innerText = user.stats.totalTrips;
+  document.querySelector(".planningTrips").innerText = user.stats.planningTrips;
   document.querySelector(".completedTrips").innerText =
     user.stats.completedTrips;
   document.querySelector(".achivedBucket").innerText =
     user.stats.completedBucketlists;
-  document.querySelector(".visitedPlaces").innerText = user.stats.totalPlaces;
 }
 
 function renderTrips(trips, tripStyles = {}) {
@@ -68,6 +68,7 @@ function renderTrips(trips, tripStyles = {}) {
 
                 <div class="trip-actions">
                     <button class="trip-action-btn edit-btn">✏️ 편집</button>
+                    <button class="trip-action-btn delete-btn">❌ 삭제</button>
                 </div>
 
                 <div class="trip-palette hidden">
@@ -113,6 +114,7 @@ function renderTrips(trips, tripStyles = {}) {
     applyTripStyle(card, tripStyles[trip._id], trip.title);
 
     const editBtn = card.querySelector(".edit-btn");
+    const deleteBtn = card.querySelector(".delete-btn");
     const palette = card.querySelector(".trip-palette");
     const thumbnail = card.querySelector(".trip-thumbnail");
     const emojiInput = card.querySelector(".emoji-input");
@@ -134,6 +136,12 @@ function renderTrips(trips, tripStyles = {}) {
       titleElement.textContent = value;
 
       await saveTripStyle(trip._id, { title: value });
+    });
+
+    // 삭제버튼
+    deleteBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await deleteTrip(trip._id);
     });
 
     // ✏️ 편집 버튼 → 팔레트 토글
@@ -264,7 +272,7 @@ function updateTabCount(status, count) {
 async function initDashboard() {
   try {
     await loadMyTrips();
-    await loadMyBucketPreview();
+    await loadMyChallenges();
 
     // 기본 탭
     const activeTrips = await fetchWithAuth(`${API_BASE}/trip?status=active`);
@@ -306,59 +314,49 @@ function getStatusLabel(status) {
     cancelled: "취소",
   }[status];
 }
-// ===============================
-// ✅ 대시보드용 버킷리스트 미리보기
-// ===============================
 
-async function loadMyBucketPreview() {
+async function loadMyChallenges() {
   try {
-    const data = await fetchWithAuth(`${API_BASE}/bucketlist`);
-    const buckets = Array.isArray(data?.bucketlists)
-      ? data.bucketlists
-      : Array.isArray(data)
-      ? data
-      : [];
-
-    // 완료된 챌린지 카운트 업데이트
-    const achieved = buckets.filter((b) => {
-      const target = Number(b.targetCount ?? b.items?.length ?? 0);
-      const done = Number(b.completedCount ?? 0);
-      return (target > 0 && done >= target) || b.status === "completed";
-    }).length;
-    const achievedEl = document.querySelector(".achivedBucket");
-    if (achievedEl) achievedEl.textContent = achieved;
-
-    renderBucketPreview(buckets.slice(0, 4));
+    const challenges = await fetchWithAuth(`${API_BASE}/bucket/`);
+    console.log("챌린지 데이터:", challenges);
+    renderChallenges(challenges);
   } catch (err) {
-    console.error("버킷리스트 미리보기 실패:", err);
-    renderBucketPreview([]);
+    console.error("챌린지 조회 실패:", err);
   }
 }
 
-function renderBucketPreview(buckets = []) {
+function renderChallenges(challenges) {
   const grid = document.getElementById("challengesGrid");
-  if (!grid) return;
-
   grid.innerHTML = "";
 
-  if (!buckets.length) {
-    grid.innerHTML = `<p class="empty-text">아직 버킷리스트가 없어요 😢</p>`;
+  if (!challenges || challenges.length === 0) {
+    grid.innerHTML = `<p class="empty-text">아직 챌린지가 없어요 😢</p>`;
     return;
   }
 
-  buckets.forEach((b) => {
-    const target = b.targetCount ?? b.items?.length ?? 0;
-    const done = b.completedCount ?? 0;
-    const percent = target ? Math.round((done / target) * 100) : 0;
+  challenges.forEach((challenge) => {
+    const progressPercent = Math.min(
+      Math.round((challenge.current / challenge.target) * 100),
+      100
+    );
 
     const card = document.createElement("div");
     card.className = "challenge-card";
+
     card.innerHTML = `
-            <div class="challenge-icon">${b.theme || "🗂️"}</div>
-            <div class="challenge-name">${b.title}</div>
-            <div class="challenge-progress">${done} / ${target}</div>
+            <div class="challenge-icon">${challenge.icon || "🎯"}</div>
+            <div class="challenge-name">${challenge.name}</div>
+            <div class="challenge-progress">
+                ${challenge.current} / ${challenge.target}
+            </div>
+            <div class="challenge-target">
+                ${challenge.target}개 목표
+            </div>
             <div class="challenge-bar">
-                <div class="challenge-bar-fill" style="width:${percent}%"></div>
+                <div
+                    class="challenge-bar-fill"
+                    style="width: ${progressPercent}%"
+                ></div>
             </div>
         `;
 
@@ -419,3 +417,27 @@ document
       alert("여행 생성 중 오류가 발생했습니다.");
     }
   });
+
+async function deleteTrip(tripId) {
+  const token = localStorage.getItem("token");
+
+  try {
+    const response = await fetch(`http://localhost:8080/trip/${tripId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      alert("여행이 삭제되었습니다.");
+      location.reload();
+    } else {
+      const error = await response.json();
+      alert("여행 삭제 실패: " + error.message);
+    }
+  } catch (err) {
+    console.error("deleteTrip failed:", err);
+    return null;
+  }
+}

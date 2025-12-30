@@ -1737,6 +1737,74 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         console.log('New trip created:', currentTripId);
     }
+
+    // -----------------------------
+    // 초대 링크 생성 및 모달 관리
+    // -----------------------------
+    const inviteBtn = document.getElementById("invite-btn");
+    const inviteModal = document.getElementById("invite-modal");
+    const closeBtn = document.getElementById("closeInviteModal");
+    const cancelBtn = document.getElementById("invite-cancel-btn");
+    const linkInput = document.getElementById("inviteLinkInput");
+    const copyBtn = document.getElementById("copyInviteLinkBtn");
+
+    // main.html에서만 초대 버튼 노출
+    if (location.pathname.endsWith("main.html") && inviteBtn) {
+        inviteBtn.style.display = "inline-block";
+    } else if (inviteBtn) {
+        inviteBtn.style.display = "none";
+        return;
+    }
+
+    // 초대 버튼 클릭 → 링크 생성 + 모달 열기
+    inviteBtn.addEventListener("click", async () => {
+        inviteModal.classList.remove("hidden");
+        linkInput.value = "초대 링크 생성 중...";
+
+        try {
+            const tripId = getTripId();
+
+            if (tripId === null) {
+                throw new Error("유효한 여행 ID가 없습니다.");
+            }
+
+            const res = await fetch(`/trip/${tripId}/invite-link`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+
+            linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
+        } catch (err) {
+            console.error(err);
+            linkInput.value = "초대 링크 생성 실패";
+        }
+    });
+
+    // 복사 버튼
+    copyBtn?.addEventListener("click", async () => {
+        if (!linkInput.value) return;
+
+        // 클립보드에 복사
+        await navigator.clipboard.writeText(linkInput.value);
+        copyBtn.textContent = "✅";
+        // 복사 완료 후 버튼 텍스트 변경
+        setTimeout(() => (copyBtn.textContent = "📋"), 1200);
+    });
+
+    // 닫기 / 취소
+    closeBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+        inviteModal.classList.add("hidden");
+    });
+    
     // -----------------------------
     // 도착지 선택(세부사항)
     // -----------------------------

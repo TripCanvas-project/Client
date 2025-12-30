@@ -33,6 +33,11 @@
           <div class="stat-label">전체 여행</div>
         </div>
         <div class="stat-card">
+          <div class="stat-icon">📍</div>
+          <div class="stat-value planningTrips"></div>
+          <div class="stat-label">계획중인 여행</div>
+        </div>
+        <div class="stat-card">
           <div class="stat-icon">✅</div>
           <div class="stat-value completedTrips"></div>
           <div class="stat-label">완료한 여행</div>
@@ -41,11 +46,6 @@
           <div class="stat-icon">🎯</div>
           <div class="stat-value achivedBucket"></div>
           <div class="stat-label">달성한 챌린지</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📍</div>
-          <div class="stat-value visitedPlaces"></div>
-          <div class="stat-label">방문한 장소</div>
         </div>
       </div>
 
@@ -80,10 +80,7 @@
       <div class="challenge-section">
         <div class="section-header">
           <h2 class="section-title">🎯 나의 여행 챌린지</h2>
-          <button
-            class="btn btn-secondary"
-            onclick="location.href='/bucketlist.html'"
-          >
+          <button class="btn btn-secondary" onclick="showAllChallenges()">
             모두 보기 →
           </button>
         </div>
