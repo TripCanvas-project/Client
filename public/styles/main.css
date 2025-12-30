@@ -1283,3 +1283,83 @@ body {
   border-radius: 8px 0 0 8px;
   border-right: none;
 }
+
+/* ==============================
+   ✅ Guide Modal (main.html 테마 맞춤)
+============================== */
+
+/* main.css에 이미 .modal / .modal-backdrop / .modal.hidden 이 있더라도,
+   아래는 modal-box 전용 스타일이라 충돌 없이 동작해요. */
+
+#guide-modal.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000; /* main.css 모달과 동일 레벨 */
+}
+
+#guide-modal .modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* ✅ 네가 쓰는 박스 클래스(modal-box) 스타일 */
+#guide-modal .modal-box {
+  position: relative;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  margin: 120px auto;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  color: var(--text);
+}
+
+/* 제목/본문 */
+#guide-modal .modal-box h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+#guide-modal .modal-box p {
+  margin: 0 0 10px;
+  line-height: 1.6;
+  color: var(--text-light);
+}
+
+/* 안내 힌트 박스 */
+#guide-modal .modal-box .hint {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 확인 버튼: btn-generate와 같은 톤 */
+#guide-modal #modal-ok {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+#guide-modal #modal-ok:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+}
