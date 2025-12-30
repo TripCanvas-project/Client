@@ -1,105 +1,105 @@
 <!DOCTYPE html>
 <html lang="ko">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>TripCanvas - 대시보드</title>
-        <link rel="stylesheet" href="./styles/dashboard.css" />
-    </head>
-    <body>
-        <!-- 네비게이션 -->
-        <div id="navbar"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TripCanvas - 대시보드</title>
+    <link rel="stylesheet" href="./styles/dashboard.css" />
+  </head>
+  <body>
+    <!-- 네비게이션 -->
+    <div id="navbar"></div>
 
-        <script type="module">
-            import { loadNavbar } from "./js/navbar.js";
-            loadNavbar();
-        </script>
+    <script type="module">
+      import { loadNavbar } from "./js/navbar.js";
+      loadNavbar();
+    </script>
 
-        <!-- 메인 컨텐츠 -->
-        <div class="container">
-            <!-- 환영 섹션 -->
-            <div class="welcome-section">
-                <h1 class="welcome-title"></h1>
-                <p class="welcome-subtitle">
-                    다음 여행을 계획하거나 진행 중인 여행을 관리해보세요
-                </p>
-            </div>
+    <!-- 메인 컨텐츠 -->
+    <div class="container">
+      <!-- 환영 섹션 -->
+      <div class="welcome-section">
+        <h1 class="welcome-title"></h1>
+        <p class="welcome-subtitle">
+          다음 여행을 계획하거나 진행 중인 여행을 관리해보세요
+        </p>
+      </div>
 
-            <!-- 통계 카드 -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">🗺️</div>
-                    <div class="stat-value allTrips"></div>
-                    <div class="stat-label">전체 여행</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-value completedTrips"></div>
-                    <div class="stat-label">완료한 여행</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🎯</div>
-                    <div class="stat-value achivedBucket"></div>
-                    <div class="stat-label">달성한 챌린지</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📍</div>
-                    <div class="stat-value visitedPlaces"></div>
-                    <div class="stat-label">방문한 장소</div>
-                </div>
-            </div>
-
-            <!-- 액션 버튼 -->
-            <div class="action-buttons">
-                <button
-                    class="btn btn-primary"
-                    id="create-new-trip-btn"
-                    onclick="location.href='main.html'"
-                >
-                    ✨ 새 여행 만들기
-                </button>
-            </div>
-
-            <!-- 탭 -->
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="active">
-                    진행 중 (<span class="count">0</span>)
-                </button>
-                <button class="tab-btn" data-tab="planning">
-                    계획 중 (<span class="count">0</span>)
-                </button>
-                <button class="tab-btn" data-tab="completed">
-                    완료 (<span class="count">0</span>)
-                </button>
-            </div>
-
-            <!-- 여행 카드 렌더링 영역 (JS 전용) -->
-            <div class="trips-grid" id="activeTrips"></div>
-
-            <!-- 챌린지 섹션 -->
-            <div class="challenge-section">
-                <div class="section-header">
-                    <h2 class="section-title">🎯 나의 여행 챌린지</h2>
-                    <button
-                        class="btn btn-secondary"
-                        onclick="showAllChallenges()"
-                    >
-                        모두 보기 →
-                    </button>
-                </div>
-
-                <!-- 버킷리스트 js 동적 렌더링 부분 -->
-                <div class="challenges-grid" id="challengesGrid"></div>
-            </div>
+      <!-- 통계 카드 -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🗺️</div>
+          <div class="stat-value allTrips"></div>
+          <div class="stat-label">전체 여행</div>
         </div>
-        <!-- 대시보드 로직 -->
-        <script type="module" src="./pages/Dashboard.mjs"></script>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value completedTrips"></div>
+          <div class="stat-label">완료한 여행</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-value achivedBucket"></div>
+          <div class="stat-label">달성한 챌린지</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📍</div>
+          <div class="stat-value visitedPlaces"></div>
+          <div class="stat-label">방문한 장소</div>
+        </div>
+      </div>
 
-        <!-- 공통 알림용 (임시) -->
-        <script>
-            function showAllChallenges() {
-                alert("전체 챌린지 페이지로 이동합니다.");
-            }
-        </script>
-    </body>
+      <!-- 액션 버튼 -->
+      <div class="action-buttons">
+        <button
+          class="btn btn-primary"
+          id="create-new-trip-btn"
+          onclick="location.href='main.html'"
+        >
+          ✨ 새 여행 만들기
+        </button>
+      </div>
+
+      <!-- 탭 -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="active">
+          진행 중 (<span class="count">0</span>)
+        </button>
+        <button class="tab-btn" data-tab="planning">
+          계획 중 (<span class="count">0</span>)
+        </button>
+        <button class="tab-btn" data-tab="completed">
+          완료 (<span class="count">0</span>)
+        </button>
+      </div>
+
+      <!-- 여행 카드 렌더링 영역 (JS 전용) -->
+      <div class="trips-grid" id="activeTrips"></div>
+
+      <!-- 챌린지 섹션 -->
+      <div class="challenge-section">
+        <div class="section-header">
+          <h2 class="section-title">🎯 나의 여행 챌린지</h2>
+          <button
+            class="btn btn-secondary"
+            onclick="location.href='/bucketlist.html'"
+          >
+            모두 보기 →
+          </button>
+        </div>
+
+        <!-- 버킷리스트 js 동적 렌더링 부분 -->
+        <div class="challenges-grid" id="challengesGrid"></div>
+      </div>
+    </div>
+    <!-- 대시보드 로직 -->
+    <script type="module" src="./pages/Dashboard.mjs"></script>
+
+    <!-- 공통 알림용 (임시) -->
+    <script>
+      function showAllChallenges() {
+        alert("전체 챌린지 페이지로 이동합니다.");
+      }
+    </script>
+  </body>
 </html>
