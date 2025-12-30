@@ -1728,9 +1728,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("New trip created:", currentTripId);
   }
-});
-document.addEventListener("DOMContentLoaded", () => {
+
+  // -----------------------------
   // 초대 링크 생성 및 모달 관리
+  // -----------------------------
   const inviteBtn = document.getElementById("invite-btn");
   const inviteModal = document.getElementById("invite-modal");
   const closeBtn = document.getElementById("closeInviteModal");
@@ -2021,14 +2022,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  console.log(document.querySelectorAll(".sidebar-tabs .tab"));
   // -----------------------------
   // 사이드바 탭 전환
   // -----------------------------
   document.querySelectorAll(".sidebar-tabs .tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       const tabName = tab.dataset.tab;
-      console.log("clicked tab:", tabName);
 
       document
         .querySelectorAll(".sidebar-tabs .tab")
@@ -2436,7 +2435,16 @@ async function loadMemoFromServer() {
 
     const savedMemos = await response.json();
     memos = savedMemos;
-    renderMemos();
+
+    // 텍스트 메모는 포스트잇으로 생성
+    memos.forEach((memo) => {
+      if (memo.type === "text" && memo.coords && memo.coords[0]) {
+        const pixel = latLngToPixel(memo.coords[0]);
+        createStickyNote(pixel.x, pixel.y, memo.text, memo);
+      }
+    });
+
+    renderMemos(); // path 메모만 Canvas에 렌더링
     console.log("Loasded memos from server");
   } catch (error) {
     console.error("Failed to load memos");

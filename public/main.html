@@ -526,6 +526,32 @@
       </div>
     </div>
 
+    <!-- 초대 링크 모달 -->
+    <div id="invite-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+
+      <div class="modal-content">
+        <h2>여행 초대 링크</h2>
+        <p class="modal-desc">
+          아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
+        </p>
+
+        <div class="invite-link-box">
+          <input
+            type="text"
+            id="inviteLinkInput"
+            readonly
+            placeholder="초대 링크 생성 중..."
+          />
+          <button id="copyInviteLinkBtn" title="복사">📋</button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-close" id="closeInviteModal">닫기</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./pages/Main.mjs"></script>
 
     <script>
