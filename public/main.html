@@ -15,6 +15,11 @@
     <!-- 네비게이션 -->
     <div id="navbar"></div>
 
+    <script type="module">
+      import { loadNavbar } from "./js/navbar.js";
+      loadNavbar();
+    </script>
+
     <!-- 메인 컨테이너 -->
     <div class="main-container">
       <!-- 왼쪽 사이드바 -->
@@ -320,6 +325,24 @@
 
       <!-- 중앙 지도 영역 -->
       <main class="map-container">
+        <!-- 왼쪽 패널 토글 버튼 -->
+        <button
+          class="toggle-btn toggle-left"
+          id="toggle-left-btn"
+          title="왼쪽 패널 토글"
+        >
+          ◀
+        </button>
+
+        <!-- 오른쪽 패널 토글 버튼 -->
+        <button
+          class="toggle-btn toggle-right"
+          id="toggle-right-btn"
+          title="오른쪽 패널 토글"
+        >
+          ▶
+        </button>
+
         <div class="map-toolbar">
           <button class="tool-btn active" title="이동">🖐️</button>
           <button class="tool-btn" title="메모 작성">✏️</button>
@@ -399,6 +422,7 @@
                   style="
                     grid-column: 1 / -1;
                     text-align: center;
+                    align-content: center;
                     padding: 60px 20px;
                     color: white;
                     background: #334155;
@@ -553,7 +577,6 @@
     </div>
 
     <script type="module" src="./pages/Main.mjs"></script>
-
     <script>
       fetch("navbar.html")
         .then((res) => res.text())
@@ -562,31 +585,5 @@
           import("./pages/NavbarUserInfo.js").then((m) => m.loadNavbarUser());
         });
     </script>
-
-    <!-- 초대 링크 모달 -->
-    <div id="invite-modal" class="modal hidden">
-      <div class="modal-backdrop"></div>
-
-      <div class="modal-content">
-        <h2>여행 초대 링크</h2>
-        <p class="modal-desc">
-          아래 링크를 공유하면 해당 여행에 참여할 수 있어요.
-        </p>
-
-        <div class="invite-link-box">
-          <input
-            type="text"
-            id="inviteLinkInput"
-            readonly
-            placeholder="초대 링크 생성 중..."
-          />
-          <button id="copyInviteLinkBtn" title="복사">📋</button>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-close" id="closeInviteModal">닫기</button>
-        </div>
-      </div>
-    </div>
   </body>
 </html>
