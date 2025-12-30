@@ -16,6 +16,7 @@ let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
 let isExpenseEditMode = false; // 수정 모드 플래그
 let currentEditingExpenseId = null; // 수정 중인 지출 ID
+let currentTripStatus = null; // ✅ 추가: currentTrip의 status 캐시
 
 // =====================================================
 // ✅ Auth / Token helpers
@@ -1869,11 +1870,79 @@ document.addEventListener("DOMContentLoaded", async () => {
   calculateTotalBudget();
 
   // -----------------------------
+  // status 받아오는 helper
+  // -----------------------------
+  async function fetchCurrentTripStatus() {
+    const tripId = localStorage.getItem("currentTripId");
+
+    // 🔍 로그 1: localStorage에서 ID를 제대로 가져왔는지 확인
+    console.log("🛠️ [fetchCurrentTripStatus] localStorage tripId:", tripId);
+
+    if (!tripId) {
+      console.warn("⚠️ [fetchCurrentTripStatus] tripId가 없습니다.");
+      return null;
+    }
+
+    const token = getToken();
+    if (!token) {
+      console.warn("⚠️ [fetchCurrentTripStatus] 인증 토큰이 없습니다.");
+      return null;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/trip/${tripId}/status`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    // 📦 로그 2: 서버에서 받은 전체 응답 데이터 확인
+    console.log("📦 [fetchCurrentTripStatus] 서버 응답:", data);
+
+    if (!res.ok) {
+      console.error("❌ [fetchCurrentTripStatus] fetch 실패:", res.status);
+      return null;
+    }
+
+    // 데이터 구조에 따라 data.trip.status 또는 data.status 확인
+    const status = data?.trip?.status ?? data?.status ?? null;
+
+    // ✅ 로그 3: 최종적으로 추출된 상태 값 확인
+    console.log("📊 [fetchCurrentTripStatus] 추출된 status:", status);
+
+    return status;
+  }
+
+  // -----------------------------
   // 여행 계획 생성 버튼
   // -----------------------------
   const generatePlanButton = document.getElementById("btn-generate");
   if (generatePlanButton) {
     generatePlanButton.addEventListener("click", async () => {
+      const currentId = localStorage.getItem("currentTripId");
+
+      // 🚀 로그 4: 버튼 클릭 시점의 ID 확인
+      console.log("🚀 [Generate Click] 현재 ID:", currentId);
+
+      if (!currentId) {
+        alert("여행을 먼저 선택하거나 생성해주세요.");
+        return;
+      }
+
+      // ✅ 1) planning 상태인지 먼저 확인
+      const status = await fetchCurrentTripStatus();
+
+      // 🚦 로그 5: 조건문 직전 최종 상태 확인
+      console.log("🚦 [Generate Click] 최종 체크된 상태:", status);
+
+      if (status !== "planning") {
+        alert(`현재 상태는 '${status}'입니다. planning 상태에서만 가능합니다.`);
+        return;
+      }
+
+      // ✅ 2) 통과하면 그때 로딩 표시
       showLoading();
 
       const departure = document.getElementById("departure")?.value.trim();
@@ -2990,6 +3059,7 @@ async function loadTripData(tripId) {
 
     const data = await response.json();
     currentTripData = data.trip || data; // 서버 응답 형식에 따라 조정
+    currentTripStatus = data.trip?.status ?? null; // ✅ 추가
 
     console.log("✅ 여행 정보 불러오기 완료:", currentTripData);
 
