@@ -70,6 +70,7 @@ function renderTrips(trips, tripStyles = {}) {
                 <div class="trip-actions">
                     <button class="trip-action-btn edit-btn">✏️ 편집</button>
                     <button class="trip-action-btn delete-btn">❌ 삭제</button>
+                    <button class="trip-action-btn update-status-btn">🔄 상태 변경</button>
                 </div>
 
                 <div class="trip-palette hidden">
@@ -116,6 +117,7 @@ function renderTrips(trips, tripStyles = {}) {
 
         const editBtn = card.querySelector(".edit-btn");
         const deleteBtn = card.querySelector(".delete-btn");
+        const updateStatusBtn = card.querySelector(".update-status-btn");
         const palette = card.querySelector(".trip-palette");
         const thumbnail = card.querySelector(".trip-thumbnail");
         const emojiInput = card.querySelector(".emoji-input");
@@ -137,6 +139,85 @@ function renderTrips(trips, tripStyles = {}) {
             titleElement.textContent = value;
 
             await saveTripStyle(trip._id, { title: value });
+        });
+
+        // 상태 변경 버튼
+        updateStatusBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+
+            const existingPalette = card.querySelector(".status-palette");
+            if (existingPalette) {
+                existingPalette.remove();
+                return;
+            }
+
+            const statusPalette = document.createElement("div");
+            statusPalette.className = "trip-palette status-palette";
+            
+            const section = document.createElement("div");
+            section.className = "palette-section";
+            section.innerHTML = `<p>상태 변경</p>`;
+
+            const optionsContainer = document.createElement("div");
+            optionsContainer.className = "status-options";
+
+            const statusMap = {
+                planning: { label: "Planning", emoji: "📝" },
+                active: { label: "Active", emoji: "✈️" },
+                completed: { label: "Completed", emoji: "✅" }
+            };
+
+            Object.keys(statusMap).filter(s => s !== trip.status).forEach(status => {
+                const btn = document.createElement("button");
+                btn.className = "status-option-btn";
+                btn.dataset.status = status;
+                btn.innerHTML = `<span>${statusMap[status].emoji}</span> ${statusMap[status].label}`;
+
+                btn.onclick = async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const targetId = trip._id || trip.id;
+                    const newStatus = status;
+
+                    const result = await updateTripStatus(targetId, status);
+                    if (result) {
+                        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+                        const targetTabBtn = document.querySelector(`.tab-btn[data-tab="${newStatus}"]`);
+                        if (targetTabBtn) targetTabBtn.classList.add("active");
+
+                        const statuses = ['planning', 'active', 'completed'];
+                        for (const s of statuses) {
+                            const res = await fetchWithAuth(`${API_BASE}/trip?status=${s}`);
+                            updateTabCount(s, res.length);
+                        }
+
+                        const tripStyles = await fetchMyTripStyles();
+                        const tripsInNewStatus = await fetchWithAuth(`${API_BASE}/trip?status=${newStatus}`);
+                        renderTrips(tripsInNewStatus, tripStyles);
+
+                        await loadMyTrips();
+
+                        statusPalette.remove();
+                    }
+                };
+                optionsContainer.appendChild(btn);
+            });
+
+            section.appendChild(optionsContainer);
+            statusPalette.appendChild(section);
+            
+            // 카드에 추가
+            card.appendChild(statusPalette);
+
+            // 6. 외부 클릭 시 닫기
+            const closePalette = (event) => {
+                if (!statusPalette.contains(event.target) && event.target !== updateStatusBtn) {
+                    statusPalette.remove();
+                    document.removeEventListener("click", closePalette);
+                }
+            };
+            setTimeout(() => document.addEventListener("click", closePalette), 0);
         });
 
         // 삭제버튼
@@ -314,7 +395,6 @@ function getStatusLabel(status) {
         planning: "계획 중",
         active: "진행 중",
         completed: "완료",
-        cancelled: "취소",
     }[status];
 }
 
@@ -439,6 +519,34 @@ async function deleteTrip(tripId) {
         }
     } catch (err) {
         console.error("deleteTrip failed:", err);
+        return null;
+    }
+}
+
+async function updateTripStatus(tripId, status) {
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    
+    try {
+        const response = await fetch(`http://localhost:8080/trip/${tripId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ userId, status })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data
+        } else {
+            const error = await response.json();
+            alert('상태 변경 실패: ' + error.message);
+            return null;
+        }
+    } catch (err) {
+        console.error("updateTripStatus failed:", err);
         return null;
     }
 }
