@@ -570,7 +570,7 @@ async function updateTripStatus(tripId, status) {
             return data;
         } else {
             const error = await response.json();
-            alert("상태 변경 실패: " + error.message);
+            alert("방장이 아닙니다.");
             return null;
         }
     } catch (err) {
