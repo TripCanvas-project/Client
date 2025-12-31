@@ -143,9 +143,6 @@ class Collaboration {
     const message = this.chatInput?.value.trim();
     if (!message) return;
 
-    // 즉시 화면에 표시
-    this.displayChatMessage(this.username, message, Date.now());
-
     // 서버에 저장
     try {
       await fetch(`${SERVER_URL}/chat`, {
@@ -174,6 +171,7 @@ class Collaboration {
   // 채팅 메시지 처리
   handleChatMessage(data) {
     const { username, message, timestamp } = data;
+
     this.displayChatMessage(username, message, timestamp);
     this.onChatMessage(data);
   }
