@@ -3140,7 +3140,7 @@ async function initCollaboration() {
     });
 
     // Room 참가
-    collaboration.joinRoom(currentTripId, userId, username);
+    collaboration.joinRoom(currentTripId, userId, userName);
 
     loadMemoFromServer();
 
