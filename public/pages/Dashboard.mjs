@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 
 // 공통 fetch
 async function fetchWithAuth(url, method = "GET", options = {}) {
@@ -487,7 +487,7 @@ document
             }
 
             // 새 여행 생성
-            const response = await fetch("http://localhost:8080/trip", {
+            const response = await fetch(`${API_BASE}/trip`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

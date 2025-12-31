@@ -10,7 +10,7 @@ import VideoChat from "./VideoChat.mjs";
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
@@ -1664,6 +1664,19 @@ function initKakaoMap() {
     linkClickedPointToAccommodation(clickedLL);
   });
 
+  kakao.maps.event.addListener(currentMap, "bounds_changed", function () {
+    memos.forEach((memo) => {
+      if (memo.type === "text") {
+        const el = document.querySelector(`[data-memo-id="${memo.id}"]`);
+        if (el) {
+          const newPixel = latLngToPixel(memo.coords[0]);
+          el.style.left = `${newPixel.x}px`;
+          el.style.top = `${newPixel.y}px`;
+        }
+      }
+    });
+  });
+
   // 드로잉 기능 추가
   setupCanvas();
   setupDrawingTools();
@@ -1728,7 +1741,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     console.log("New trip created:", currentTripId);
   }
-  await loadMemoFromServer();
 
   // -----------------------------
   // 초대 링크 생성 및 모달 관리
@@ -1905,6 +1917,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     ?.addEventListener("input", calculateTotalBudget);
   calculateTotalBudget();
 
+  // ==============================
+  // ✅ guide modal (alert 대체)
+  // ==============================
+  function showGuideModal() {
+    const modal = document.getElementById("guide-modal");
+    if (!modal) return;
+
+    modal.classList.remove("hidden");
+
+    const okBtn = document.getElementById("modal-ok");
+    const backdrop = modal.querySelector(".modal-backdrop");
+
+    const close = () => modal.classList.add("hidden");
+
+    okBtn?.addEventListener("click", close, { once: true });
+    backdrop?.addEventListener("click", close, { once: true });
+
+    // ESC로 닫기
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") close();
+      document.removeEventListener("keydown", onKeyDown);
+    };
+    document.addEventListener("keydown", onKeyDown);
+  }
+
   // -----------------------------
   // status 받아오는 helper
   // -----------------------------
@@ -1974,7 +2011,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.log("🚦 [Generate Click] 최종 체크된 상태:", status);
 
       if (status !== "planning") {
-        alert(`현재 상태는 '${status}'입니다. planning 상태에서만 가능합니다.`);
+        showGuideModal();
         return;
       }
 
@@ -2321,6 +2358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       kakao.maps.load(() => {
         initKakaoMap();
         initCollaboration();
+        loadMemoFromServer();
       });
     } else {
       initKakaoMap();
@@ -2490,7 +2528,10 @@ function handleCanvasMouseUp(e) {
       tripId: tripId,
       id: crypto.randomUUID(),
       type: "path",
-      coords: currentPath.map((p) => ({ lat: p.latLng.lat, lng: p.latLng.lng })), // 지도를 확대하거나 축소해도 메모가 엉뚱한 곳으로 가지 않고 실제 지리적 위치에 고정
+      coords: currentPath.map((p) => ({
+        lat: p.latLng.lat,
+        lng: p.latLng.lng,
+      })), // 지도를 확대하거나 축소해도 메모가 엉뚱한 곳으로 가지 않고 실제 지리적 위치에 고정
       style: {
         color: currentTool === "highlight" ? "#ffeb3b" : "#ff5252",
         width: currentTool === "highlight" ? 8 : 3,
@@ -2529,7 +2570,7 @@ function drawPathPreview(path) {
 // ==================== 서버 메모 관리 ====================
 // 서버에서 메모 불러오기
 async function loadMemoFromServer() {
-    console.log("loadMemoFromServer 함수가 실행");
+  console.log("loadMemoFromServer 함수가 실행");
   if (!currentTripId) {
     console.warn("No trip ID available, skipping memo load");
     return;
@@ -2544,10 +2585,16 @@ async function loadMemoFromServer() {
     const savedMemos = await response.json();
     memos = savedMemos;
 
+    document.querySelectorAll(".sticky-note").forEach((el) => el.remove());
+
     // 텍스트 메모는 포스트잇으로 생성
     memos.forEach((memo) => {
       if (memo.type === "text" && memo.coords && memo.coords[0]) {
-        const pixel = latLngToPixel(memo.coords[0]);
+        const latLng = new kakao.maps.LatLng(
+          memo.coords[0].lat,
+          memo.coords[0].lng
+        );
+        const pixel = latLngToPixel(latLng);
         createStickyNote(pixel.x, pixel.y, memo.text, memo);
       }
     });
@@ -2597,9 +2644,8 @@ async function addMemo(memo) {
 }
 
 // 포스트잇 생성
-function createStickyNote(text = "", memo = null) {
-  const memoId = memo?.id || crypto.randomUUID();
-  const latLng = memo?.coords?.[0] || pixelToLatLng(x, y);
+function createStickyNote(x, y, text = "", memo = null) {
+  const memoId = memo?.id || memo?._id || crypto.randomUUID();
 
   // 포스트잇 DOM 요소 생성
   const stickyNote = document.createElement("div");
@@ -2607,9 +2653,8 @@ function createStickyNote(text = "", memo = null) {
   stickyNote.setAttribute("data-memo-id", memoId);
 
   // 위치 설정
-  const pixel = latLngToPixel(latLng);
-  stickyNote.style.left = `${pixel.x}px`;
-  stickyNote.style.top = `${pixel.y}px`;
+  stickyNote.style.left = `${x}px`;
+  stickyNote.style.top = `${y}px`;
 
   // 헤더 (삭제 버튼)
   const header = document.createElement("div");
@@ -2656,22 +2701,20 @@ function createStickyNote(text = "", memo = null) {
   document.querySelector("#kakao-map").appendChild(stickyNote);
 
   // 새 메모면 자동 포커스
-  if (!text && !memo) {
+  if (!memo) {
     content.focus();
 
     const tripId = localStorage.getItem("currentTripId");
+    const latLng = pixelToLatLng(x, y);
 
     // 메모 데이터 저장
     const newMemo = {
       tripId: tripId,
       id: memoId,
       type: "text",
-      coords: [{ 
-        lat: latLng.lat || latLng[0], 
-        lng: latLng.lng || latLng[1] 
-      }],
+      coords: [{ lat: latLng.lat, lng: latLng.lng }],
       text: "",
-      style: { fontSize: 14, color: "#333", width: 1, opacity: 1 },
+      style: { fontSize: 14, color: "#333" },
       createdBy: localStorage.getItem("userId") || "anonymous",
       timestamp: Date.now(),
     };
@@ -2694,24 +2737,24 @@ async function updateStickyNoteText(memoId, text) {
     }
 
     try {
-        const token = localStorage.getItem("token");
-        
-        const response = await fetch(`${API_BASE_URL}/memo/${memoId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(memo),
-        });
+      const token = localStorage.getItem("token");
 
-        if (!response.ok) {
-          throw new Error(`Failed to update memo text: ${response.status}`);
-        }
-        console.log("Memo text updated:", memoId);
-      } catch (error) {
-        console.error("Error updating memo text:", error);
-        return null;
+      const response = await fetch(`${API_BASE_URL}/memo/${memoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(memo),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update memo text: ${response.status}`);
+      }
+      console.log("Memo text updated:", memoId);
+    } catch (error) {
+      console.error("Error updating memo text:", error);
+      return null;
     }
   }
 }
