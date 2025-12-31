@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 
 const grid = document.getElementById("bucketlistGrid");
 const emptyState = document.getElementById("bucketlistEmpty");

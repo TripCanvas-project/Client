@@ -10,7 +10,7 @@ import VideoChat from "./VideoChat.mjs";
 // - NN + 2-opt로 장소 순서 최적화(클라이언트 UI 순서)
 // - ✅ 중복 제거: directions 호출 통일(fetchDirections), 총합/구간 계산 통일(computeDaySegments)
 // =====================================================
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 let currentTripId = null;
 let currentUserData = null;
 let currentTripData = null; // 현재 선택된 여행 정보 (예산 포함)
@@ -1664,18 +1664,18 @@ function initKakaoMap() {
     linkClickedPointToAccommodation(clickedLL);
   });
 
-    kakao.maps.event.addListener(currentMap, 'bounds_changed', function() {
-        memos.forEach(memo => {
-            if (memo.type === "text") {
-                const el = document.querySelector(`[data-memo-id="${memo.id}"]`);
-                if (el) {
-                    const newPixel = latLngToPixel(memo.coords[0]);
-                    el.style.left = `${newPixel.x}px`;
-                    el.style.top = `${newPixel.y}px`;
-                }
-            }
-        });
+  kakao.maps.event.addListener(currentMap, "bounds_changed", function () {
+    memos.forEach((memo) => {
+      if (memo.type === "text") {
+        const el = document.querySelector(`[data-memo-id="${memo.id}"]`);
+        if (el) {
+          const newPixel = latLngToPixel(memo.coords[0]);
+          el.style.left = `${newPixel.x}px`;
+          el.style.top = `${newPixel.y}px`;
+        }
+      }
     });
+  });
 
   // 드로잉 기능 추가
   setupCanvas();
@@ -2528,7 +2528,10 @@ function handleCanvasMouseUp(e) {
       tripId: tripId,
       id: crypto.randomUUID(),
       type: "path",
-      coords: currentPath.map((p) => ({ lat: p.latLng.lat, lng: p.latLng.lng })), // 지도를 확대하거나 축소해도 메모가 엉뚱한 곳으로 가지 않고 실제 지리적 위치에 고정
+      coords: currentPath.map((p) => ({
+        lat: p.latLng.lat,
+        lng: p.latLng.lng,
+      })), // 지도를 확대하거나 축소해도 메모가 엉뚱한 곳으로 가지 않고 실제 지리적 위치에 고정
       style: {
         color: currentTool === "highlight" ? "#ffeb3b" : "#ff5252",
         width: currentTool === "highlight" ? 8 : 3,
@@ -2567,7 +2570,7 @@ function drawPathPreview(path) {
 // ==================== 서버 메모 관리 ====================
 // 서버에서 메모 불러오기
 async function loadMemoFromServer() {
-    console.log("loadMemoFromServer 함수가 실행");
+  console.log("loadMemoFromServer 함수가 실행");
   if (!currentTripId) {
     console.warn("No trip ID available, skipping memo load");
     return;
@@ -2582,12 +2585,15 @@ async function loadMemoFromServer() {
     const savedMemos = await response.json();
     memos = savedMemos;
 
-    document.querySelectorAll('.sticky-note').forEach(el => el.remove());
+    document.querySelectorAll(".sticky-note").forEach((el) => el.remove());
 
     // 텍스트 메모는 포스트잇으로 생성
     memos.forEach((memo) => {
       if (memo.type === "text" && memo.coords && memo.coords[0]) {
-        const latLng = new kakao.maps.LatLng(memo.coords[0].lat, memo.coords[0].lng);
+        const latLng = new kakao.maps.LatLng(
+          memo.coords[0].lat,
+          memo.coords[0].lng
+        );
         const pixel = latLngToPixel(latLng);
         createStickyNote(pixel.x, pixel.y, memo.text, memo);
       }
@@ -2731,24 +2737,24 @@ async function updateStickyNoteText(memoId, text) {
     }
 
     try {
-        const token = localStorage.getItem("token");
-        
-        const response = await fetch(`${API_BASE_URL}/memo/${memoId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(memo),
-        });
+      const token = localStorage.getItem("token");
 
-        if (!response.ok) {
-          throw new Error(`Failed to update memo text: ${response.status}`);
-        }
-        console.log("Memo text updated:", memoId);
-      } catch (error) {
-        console.error("Error updating memo text:", error);
-        return null;
+      const response = await fetch(`${API_BASE_URL}/memo/${memoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(memo),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update memo text: ${response.status}`);
+      }
+      console.log("Memo text updated:", memoId);
+    } catch (error) {
+      console.error("Error updating memo text:", error);
+      return null;
     }
   }
 }
