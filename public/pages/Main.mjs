@@ -1664,6 +1664,19 @@ function initKakaoMap() {
     linkClickedPointToAccommodation(clickedLL);
   });
 
+    kakao.maps.event.addListener(currentMap, 'bounds_changed', function() {
+        memos.forEach(memo => {
+            if (memo.type === "text") {
+                const el = document.querySelector(`[data-memo-id="${memo.id}"]`);
+                if (el) {
+                    const newPixel = latLngToPixel(memo.coords[0]);
+                    el.style.left = `${newPixel.x}px`;
+                    el.style.top = `${newPixel.y}px`;
+                }
+            }
+        });
+    });
+
   // 드로잉 기능 추가
   setupCanvas();
   setupDrawingTools();
@@ -1728,7 +1741,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     console.log("New trip created:", currentTripId);
   }
-  await loadMemoFromServer();
 
   // -----------------------------
   // 초대 링크 생성 및 모달 관리
@@ -2346,6 +2358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       kakao.maps.load(() => {
         initKakaoMap();
         initCollaboration();
+        loadMemoFromServer();
       });
     } else {
       initKakaoMap();
@@ -2569,10 +2582,13 @@ async function loadMemoFromServer() {
     const savedMemos = await response.json();
     memos = savedMemos;
 
+    document.querySelectorAll('.sticky-note').forEach(el => el.remove());
+
     // 텍스트 메모는 포스트잇으로 생성
     memos.forEach((memo) => {
       if (memo.type === "text" && memo.coords && memo.coords[0]) {
-        const pixel = latLngToPixel(memo.coords[0]);
+        const latLng = new kakao.maps.LatLng(memo.coords[0].lat, memo.coords[0].lng);
+        const pixel = latLngToPixel(latLng);
         createStickyNote(pixel.x, pixel.y, memo.text, memo);
       }
     });
@@ -2622,9 +2638,8 @@ async function addMemo(memo) {
 }
 
 // 포스트잇 생성
-function createStickyNote(text = "", memo = null) {
-  const memoId = memo?.id || crypto.randomUUID();
-  const latLng = memo?.coords?.[0] || pixelToLatLng(x, y);
+function createStickyNote(x, y, text = "", memo = null) {
+  const memoId = memo?.id || memo?._id || crypto.randomUUID();
 
   // 포스트잇 DOM 요소 생성
   const stickyNote = document.createElement("div");
@@ -2632,9 +2647,8 @@ function createStickyNote(text = "", memo = null) {
   stickyNote.setAttribute("data-memo-id", memoId);
 
   // 위치 설정
-  const pixel = latLngToPixel(latLng);
-  stickyNote.style.left = `${pixel.x}px`;
-  stickyNote.style.top = `${pixel.y}px`;
+  stickyNote.style.left = `${x}px`;
+  stickyNote.style.top = `${y}px`;
 
   // 헤더 (삭제 버튼)
   const header = document.createElement("div");
@@ -2681,22 +2695,20 @@ function createStickyNote(text = "", memo = null) {
   document.querySelector("#kakao-map").appendChild(stickyNote);
 
   // 새 메모면 자동 포커스
-  if (!text && !memo) {
+  if (!memo) {
     content.focus();
 
     const tripId = localStorage.getItem("currentTripId");
+    const latLng = pixelToLatLng(x, y);
 
     // 메모 데이터 저장
     const newMemo = {
       tripId: tripId,
       id: memoId,
       type: "text",
-      coords: [{ 
-        lat: latLng.lat || latLng[0], 
-        lng: latLng.lng || latLng[1] 
-      }],
+      coords: [{ lat: latLng.lat, lng: latLng.lng }],
       text: "",
-      style: { fontSize: 14, color: "#333", width: 1, opacity: 1 },
+      style: { fontSize: 14, color: "#333" },
       createdBy: localStorage.getItem("userId") || "anonymous",
       timestamp: Date.now(),
     };
