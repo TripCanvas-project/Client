@@ -6,6 +6,12 @@ const emailError = document.getElementById("emailError");
 const nicknameError = document.getElementById("nicknameError");
 const passwordConfirmError = document.getElementById("passwordConfirmError");
 
+// 전역 변수
+const pwEl = document.getElementById("password");
+const pw2El = document.getElementById("passwordConfirm");
+const matchEl = document.getElementById("passwordMatchCheck");
+const pw2ErrEl = document.getElementById("passwordConfirmError");
+
 signupForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -63,12 +69,66 @@ signupForm.addEventListener("submit", async (e) => {
 
 /* ---------------- helpers ---------------- */
 
+function setMatchState(ok, msg) {
+  matchEl.style.display = "block";
+  matchEl.textContent = msg;
+
+  if (ok) {
+    matchEl.classList.add("success");
+    matchEl.classList.remove("error");
+    pw2ErrEl.textContent = "";
+  } else {
+    matchEl.classList.add("error");
+    matchEl.classList.remove("success");
+    pw2ErrEl.textContent = msg;
+  }
+}
+
+function checkPasswordMatch() {
+  const pw = pwEl.value.trim();
+  const pw2 = pw2El.value.trim();
+
+  // 둘 다 비어있으면 안내 숨김
+  if (!pw && !pw2) {
+    matchEl.style.display = "none";
+    pw2ErrEl.textContent = "";
+    return false;
+  }
+
+  // 확인칸이 비어있으면 아직 비교하지 않음(원하면 "입력하세요"로 바꿔도 됨)
+  if (!pw2) {
+    matchEl.style.display = "none";
+    pw2ErrEl.textContent = "";
+    return false;
+  }
+
+  const ok = pw === pw2;
+  if (ok) setMatchState(true, "비밀번호가 일치합니다");
+  else setMatchState(false, "비밀번호가 일치하지 않습니다");
+
+  return ok;
+}
+
+// 입력할 때마다 체크
+pwEl.addEventListener("input", checkPasswordMatch);
+pw2El.addEventListener("input", checkPasswordMatch);
+
 function clearErrors() {
   usernameError.textContent = "";
   emailError.textContent = "";
   nicknameError.textContent = "";
   passwordConfirmError.textContent = "";
 }
+
+// 제출 시에도 막기
+const form = document.getElementById("signupForm");
+form.addEventListener("submit", (e) => {
+  const ok = checkPasswordMatch();
+  if (!ok) {
+    e.preventDefault();
+    pw2El.focus();
+  }
+});
 
 function handleServerError(data) {
   // express-validator 에러 대응

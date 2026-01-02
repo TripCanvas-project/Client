@@ -356,3 +356,17 @@ body {
     transform: rotate(360deg);
   }
 }
+
+#passwordMatchCheck {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+#passwordMatchCheck.success {
+  color: #16a34a; /* 초록 */
+}
+
+#passwordMatchCheck.error {
+  color: #ef4444; /* 빨강 */
+}
