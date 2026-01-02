@@ -1,169 +1,197 @@
 <!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>버킷리스트 - TripCanvas</title>
-    <link rel="stylesheet" href="./styles/bucketlist.css" />
-  </head>
-  <body>
-    <div id="navbar"></div>
-    <script type="module">
-      import { loadNavbar } from "./js/navbar.js";
-      loadNavbar();
-    </script>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>버킷리스트 - TripCanvas</title>
+        <link rel="stylesheet" href="./styles/bucketlist.css" />
+    </head>
+    <body>
+        <div id="navbar"></div>
 
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">나의 버킷리스트</h1>
-        <p class="page-subtitle">
-          진행률과 상태를 한눈에 보고 관리하세요. 카드에서 바로 상세를 열어
-          체크리스트를 업데이트할 수 있습니다.
-        </p>
-      </div>
+        <script type="module">
+            import { loadNavbar } from "./utils/navbar.js";
+            loadNavbar();
+        </script>
 
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-icon">🗂️</div>
-          <div class="stat-value" id="statTotal">0</div>
-          <div class="stat-label">전체</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🚧</div>
-          <div class="stat-value" id="statActive">0</div>
-          <div class="stat-label">진행</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🏁</div>
-          <div class="stat-value" id="statCompleted">0</div>
-          <div class="stat-label">완료</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📈</div>
-          <div class="stat-value" id="statRate">0%</div>
-          <div class="stat-label">완성률</div>
-        </div>
-      </div>
+        <div class="container">
+            <div class="page-header">
+                <h1 class="page-title">나의 버킷리스트</h1>
+                <p class="page-subtitle">
+                    진행률과 상태를 한눈에 보고 관리하세요. 카드에서 바로 상세를
+                    열어 체크리스트를 업데이트할 수 있습니다.
+                </p>
+            </div>
 
-      <div class="actions">
-        <button class="btn btn-primary" id="openCreateBtn">
-          버킷리스트 만들기
-        </button>
-        <div class="filter-tabs">
-          <button class="filter-btn active" data-filter="all">전체</button>
-          <button class="filter-btn" data-filter="in-progress">진행</button>
-          <button class="filter-btn" data-filter="completed">완료</button>
-        </div>
-      </div>
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon">🗂️</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">전체</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🚧</div>
+                    <div class="stat-value" id="statActive">0</div>
+                    <div class="stat-label">진행</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏁</div>
+                    <div class="stat-value" id="statCompleted">0</div>
+                    <div class="stat-label">완료</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value" id="statRate">0%</div>
+                    <div class="stat-label">완성률</div>
+                </div>
+            </div>
 
-      <div id="bucketlistGrid" class="challenges-grid"></div>
-      <div id="bucketlistEmpty" class="empty-state" style="display: none">
-        아직 등록된 버킷리스트가 없습니다. 새로 만들어보세요.
-      </div>
-    </div>
+            <div class="actions">
+                <button class="btn btn-primary" id="openCreateBtn">
+                    버킷리스트 만들기
+                </button>
+                <div class="filter-tabs">
+                    <button class="filter-btn active" data-filter="all">
+                        전체
+                    </button>
+                    <button class="filter-btn" data-filter="in-progress">
+                        진행
+                    </button>
+                    <button class="filter-btn" data-filter="completed">
+                        완료
+                    </button>
+                </div>
+            </div>
 
-    <div class="modal" id="newBucketModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 class="modal-title">버킷리스트 만들기</h2>
-          <button class="modal-close" id="closeCreateBtn" type="button">
-            &times;
-          </button>
+            <div id="bucketlistGrid" class="challenges-grid"></div>
+            <div id="bucketlistEmpty" class="empty-state" style="display: none">
+                아직 등록된 버킷리스트가 없습니다. 새로 만들어보세요.
+            </div>
         </div>
 
-        <form id="bucketForm">
-          <div class="form-group">
-            <label>버킷리스트 이름</label>
-            <input
-              type="text"
-              id="bucketTitle"
-              placeholder="제주 카페 투어"
-              required
-            />
-          </div>
+        <div class="modal" id="newBucketModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">버킷리스트 만들기</h2>
+                    <button
+                        class="modal-close"
+                        id="closeCreateBtn"
+                        type="button"
+                    >
+                        &times;
+                    </button>
+                </div>
 
-          <div class="form-group">
-            <label>설명 (선택)</label>
-            <textarea
-              id="bucketDescription"
-              rows="3"
-              placeholder="목표를 자유롭게 적어주세요."
-            ></textarea>
-          </div>
+                <form id="bucketForm">
+                    <div class="form-group">
+                        <label>버킷리스트 이름</label>
+                        <input
+                            type="text"
+                            id="bucketTitle"
+                            placeholder="제주 카페 투어"
+                            required
+                        />
+                    </div>
 
-          <div class="form-group">
-            <label>테마/이모지 (선택)</label>
-            <input
-              type="text"
-              id="bucketTheme"
-              placeholder="🌊 바다/ 🏔️ 등산/ 🎡 나들이"
-            />
-          </div>
+                    <div class="form-group">
+                        <label>설명 (선택)</label>
+                        <textarea
+                            id="bucketDescription"
+                            rows="3"
+                            placeholder="목표를 자유롭게 적어주세요."
+                        ></textarea>
+                    </div>
 
-          <div class="form-group">
-            <label>초기 체크리스트(선택, 줄바꿈으로 구분)</label>
-            <textarea
-              id="initialItems"
-              rows="4"
-              placeholder="비행기 예약&#10;맛집 리스트 정리&#10;부모님이랑 추억 남기기"
-            ></textarea>
-          </div>
+                    <div class="form-group">
+                        <label>테마/이모지 (선택)</label>
+                        <input
+                            type="text"
+                            id="bucketTheme"
+                            placeholder="🌊 바다/ 🏔️ 등산/ 🎡 나들이"
+                        />
+                    </div>
 
-          <button
-            type="submit"
-            class="btn btn-primary"
-            style="width: 100%; padding: 16px"
-          >
-            만들기
-          </button>
-        </form>
-      </div>
-    </div>
+                    <div class="form-group">
+                        <label>초기 체크리스트(선택, 줄바꿈으로 구분)</label>
+                        <textarea
+                            id="initialItems"
+                            rows="4"
+                            placeholder="비행기 예약&#10;맛집 리스트 정리&#10;부모님이랑 추억 남기기"
+                        ></textarea>
+                    </div>
 
-    <div class="modal" id="bucketDetailModal">
-      <div class="modal-content detail-modal">
-        <div class="modal-header">
-          <div class="detail-header">
-            <p class="detail-status" id="detailStatus">진행</p>
-            <h2 class="modal-title" id="detailTitle"></h2>
-            <p class="detail-description" id="detailDescription"></p>
-          </div>
-          <button class="modal-close" id="closeDetailBtn" type="button">
-            &times;
-          </button>
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        style="width: 100%; padding: 16px"
+                    >
+                        만들기
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-label">진행률</span>
-            <span class="progress-value" id="detailCount">0/0</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="detailProgressFill"></div>
-          </div>
+        <div class="modal" id="bucketDetailModal">
+            <div class="modal-content detail-modal">
+                <div class="modal-header">
+                    <div class="detail-header">
+                        <p class="detail-status" id="detailStatus">진행</p>
+                        <h2 class="modal-title" id="detailTitle"></h2>
+                        <p
+                            class="detail-description"
+                            id="detailDescription"
+                        ></p>
+                    </div>
+                    <button
+                        class="modal-close"
+                        id="closeDetailBtn"
+                        type="button"
+                    >
+                        &times;
+                    </button>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <span class="progress-label">진행률</span>
+                        <span class="progress-value" id="detailCount">0/0</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div
+                            class="progress-fill"
+                            id="detailProgressFill"
+                        ></div>
+                    </div>
+                </div>
+
+                <div class="item-input-row">
+                    <input
+                        type="text"
+                        id="newItemInput"
+                        placeholder="새 체크리스트를 입력하세요"
+                    />
+                    <button
+                        class="btn btn-primary"
+                        type="button"
+                        id="addItemBtn"
+                    >
+                        추가
+                    </button>
+                </div>
+
+                <ul class="item-list" id="bucketItems"></ul>
+
+                <div class="detail-actions">
+                    <button
+                        class="btn btn-secondary delete-btn"
+                        id="deleteBucketBtn"
+                    >
+                        버킷리스트 삭제
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="item-input-row">
-          <input
-            type="text"
-            id="newItemInput"
-            placeholder="새 체크리스트를 입력하세요"
-          />
-          <button class="btn btn-primary" type="button" id="addItemBtn">
-            추가
-          </button>
-        </div>
-
-        <ul class="item-list" id="bucketItems"></ul>
-
-        <div class="detail-actions">
-          <button class="btn btn-secondary delete-btn" id="deleteBucketBtn">
-            버킷리스트 삭제
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <script type="module" src="./pages/Bucketlist.mjs"></script>
-  </body>
+        <script type="module" src="./pages/Bucketlist.mjs"></script>
+    </body>
 </html>
