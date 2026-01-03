@@ -628,3 +628,73 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* =========================
+   Checklist Item Delete Button
+   ========================= */
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* label(체크+텍스트) 영역이 길어지면 버튼이 밀리지 않게 */
+.item-row > label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-row .item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ✅ 삭제 버튼 */
+.item-delete-btn {
+  appearance: none;
+  border: 1px solid rgba(239, 68, 68, 0.22); /* red-500 느낌 */
+  background: rgba(239, 68, 68, 0.06);
+  color: #dc2626; /* red-600 */
+  font-weight: 700;
+  font-size: 12px;
+
+  padding: 7px 10px;
+  border-radius: 10px;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition: transform 120ms ease, background 120ms ease,
+    border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.item-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.12);
+  transform: translateY(-1px);
+}
+
+.item-delete-btn:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: none;
+}
+
+.item-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+}
+
+/* 모바일에서 누르기 편하게 */
+@media (max-width: 480px) {
+  .item-delete-btn {
+    padding: 8px 12px;
+    border-radius: 12px;
+  }
+}

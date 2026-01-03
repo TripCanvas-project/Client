@@ -361,10 +361,19 @@ function renderItems(bucket) {
       item.text || ""
     )}</span>
       </label>
+      <button class="item-delete-btn" data-delete-id="${
+        item._id
+      }" type="button">삭제</button>
     `;
 
     li.querySelector("input")?.addEventListener("change", (e) => {
       toggleItem(bucket._id, item._id, e.target.checked);
+    });
+
+    li.querySelector(".item-delete-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteItem(bucket._id, item._id);
     });
 
     bucketItemsEl.appendChild(li);
@@ -423,6 +432,23 @@ async function toggleItem(bucketId, itemId, done) {
   } catch (err) {
     console.error(err);
     alert("상태를 변경하지 못했습니다.");
+  }
+}
+
+async function deleteItem(bucketId, itemId) {
+  if (!confirm("이 체크리스트를 삭제할까요?")) return;
+  try {
+    const data = await authFetch(
+      `${API_BASE}/bucketlist/${bucketId}/items/${itemId}`,
+      { method: "DELETE" }
+    );
+    const updated = normalizeBucketResponse(data);
+    selectedBucket = updated;
+    updateLocalBucket(updated);
+    renderDetail(updated);
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "아이템을 삭제하지 못했습니다.");
   }
 }
 
