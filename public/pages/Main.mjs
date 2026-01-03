@@ -2078,6 +2078,48 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ==============================
+  // ✅ 현재 위치 가져오기(타임아웃 대응: 빠른 시도 → watch 재시도)
+  // ==============================
+  function getCurrentPositionSmart() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("NO_GEO"));
+        return;
+      }
+
+      // 1) 빠른 시도(네트워크 기반 / 캐시 허용)
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        (err) => {
+          // timeout이면 2) watch로 재시도(조금 더 기다리기)
+          if (err.code === 3) {
+            const watchId = navigator.geolocation.watchPosition(
+              (pos) => {
+                navigator.geolocation.clearWatch(watchId);
+                resolve(pos);
+              },
+              (err2) => {
+                navigator.geolocation.clearWatch(watchId);
+                reject(err2);
+              },
+              { enableHighAccuracy: false, timeout: 20000, maximumAge: 30000 }
+            );
+
+            // 안전장치(25초 지나면 포기)
+            setTimeout(() => {
+              navigator.geolocation.clearWatch(watchId);
+              reject(err);
+            }, 25000);
+          } else {
+            reject(err);
+          }
+        },
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 30000 }
+      );
+    });
+  }
+
+  // ==============================
   // ✅ 출발지 옆 "현재 위치" 버튼 (HTML에 버튼 없음 전제)
   // ==============================
   function attachMyLocationButtonToDeparture() {
@@ -2105,8 +2147,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     btn.title = "현재 위치로 출발지 입력";
     wrap.appendChild(btn);
 
-    // ✅ 클릭 이벤트
-    btn.addEventListener("click", () => {
+    // ✅ 클릭 이벤트 (getCurrentPositionSmart 반영)
+    btn.addEventListener("click", async () => {
       if (!navigator.geolocation) {
         alert("이 브라우저는 위치 기능을 지원하지 않아요.");
         return;
@@ -2116,51 +2158,55 @@ document.addEventListener("DOMContentLoaded", async () => {
       const prevText = btn.textContent;
       btn.textContent = "…";
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+      try {
+        const pos = await getCurrentPositionSmart();
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
 
-          // 1) 지도 이동
-          if (currentMap && window.kakao?.maps?.LatLng) {
-            try {
-              currentMap.panTo(new kakao.maps.LatLng(lat, lng));
-            } catch {}
-          }
+        // 1) 지도 이동
+        if (currentMap && window.kakao?.maps?.LatLng) {
+          try {
+            currentMap.panTo(new kakao.maps.LatLng(lat, lng));
+          } catch {}
+        }
 
-          // 2) 지도 클릭과 동일 동작 (마커 + 선택→숙소 경로)
-          linkClickedPointToAccommodation({ lat, lng });
+        // 2) 지도 클릭과 동일 동작 (마커 + 선택→숙소 경로)
+        linkClickedPointToAccommodation({ lat, lng });
 
-          // 3) 출발지 input 채우기(주소/좌표)
-          if (window.kakao?.maps?.services?.Geocoder) {
-            const geocoder = new kakao.maps.services.Geocoder();
-            geocoder.coord2Address(lng, lat, (result, status) => {
-              if (
-                status === kakao.maps.services.Status.OK &&
-                result?.[0]?.address?.address_name
-              ) {
-                depInput.value = result[0].address.address_name;
-              } else {
-                depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-              }
-            });
-          } else {
-            depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-          }
+        // 3) 출발지 input 채우기(주소/좌표)
+        if (window.kakao?.maps?.services?.Geocoder) {
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.coord2Address(lng, lat, (result, status) => {
+            if (
+              status === kakao.maps.services.Status.OK &&
+              result?.[0]?.address?.address_name
+            ) {
+              depInput.value = result[0].address.address_name;
+            } else {
+              depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            }
+          });
+        } else {
+          depInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        }
+      } catch (err) {
+        console.warn("geolocation error:", err);
 
-          btn.disabled = false;
-          btn.textContent = prevText;
-        },
-        (err) => {
-          console.warn("geolocation error:", err);
-          if (err.code === 1)
-            alert("위치 권한이 거부됐어요. 브라우저 권한을 허용해 주세요.");
-          else alert("현재 위치를 가져오지 못했어요.");
-          btn.disabled = false;
-          btn.textContent = prevText;
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-      );
+        if (err?.code === 1) {
+          alert("위치 권한이 거부됐어요. 브라우저 권한을 허용해 주세요.");
+        } else if (err?.code === 2) {
+          alert("위치 정보를 사용할 수 없어요. 위치 서비스를 켜주세요.");
+        } else if (err?.code === 3) {
+          alert(
+            "위치 탐색 시간이 초과됐어요. Wi-Fi를 켜고 다시 시도해 주세요."
+          );
+        } else {
+          alert("현재 위치를 가져오지 못했어요.");
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prevText;
+      }
     });
   }
 
