@@ -1163,7 +1163,7 @@ async function showNextLegFromPlaceIdx(idx) {
 }
 
 // =====================================================
-// 내 여행 불러오기 사이드 탭에
+// 내 여행 불러오기 사이드 탭에 (초대받은 Trip 포함)
 // =====================================================
 async function loadMyTripsIntoTemplate() {
   const wrap = document.getElementById("my-trips-list");
@@ -1171,10 +1171,12 @@ async function loadMyTripsIntoTemplate() {
 
   wrap.innerHTML = `<div class="place-description">불러오는 중…</div>`;
 
-  const token = getToken(); // 토큰 헬퍼 이미 있음 :contentReference[oaicite:3]{index=3}
+  const token = getToken();
   if (!token) return;
 
-  const res = await fetch(`${API_BASE_URL}/trip/mine`, {
+  // ✅ /trip 은 owner + collaborators 모두 포함해서 내려주도록 이미 라우터가 구성돼있음
+  // router.get("/", isAuth, tripController.getTripsForStatus);
+  const res = await fetch(`${API_BASE_URL}/trip`, {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -1188,37 +1190,89 @@ async function loadMyTripsIntoTemplate() {
     return;
   }
 
-  const trips = Array.isArray(data?.trips) ? data.trips : [];
+  // ✅ /trip 은 "배열"로 내려올 가능성이 큼 (getTripsForStatus가 trips 그대로 return)
+  const trips = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.trips)
+    ? data.trips
+    : [];
+
   if (!trips.length) {
-    wrap.innerHTML = `<div class="place-description">저장된 여행이 없습니다.</div>`;
+    wrap.innerHTML = `<div class="place-description">표시할 여행이 없습니다.</div>`;
     return;
   }
 
+  // 현재 로그인 유저 id (checkMe()에서 userId 저장 중)
+  const myUserId = localStorage.getItem("userId");
+
+  // (선택) owner/초대받은 여행 구분해서 정렬: owner 먼저
+  trips.sort((a, b) => {
+    const aMine = String(a?.owner?._id || a?.owner) === String(myUserId);
+    const bMine = String(b?.owner?._id || b?.owner) === String(myUserId);
+    return Number(bMine) - Number(aMine);
+  });
+
   wrap.innerHTML = "";
+
   trips.forEach((t) => {
+    const ownerId = String(t?.owner?._id || t?.owner || "");
+    const isOwner = myUserId && ownerId === String(myUserId);
+
+    // 내 역할 찾기(서버가 collaborators를 내려주는 경우)
+    const myRole =
+      (t?.collaborators || []).find(
+        (c) => String(c?.userId?._id || c?.userId) === String(myUserId)
+      )?.role || (isOwner ? "owner" : "viewer");
+
+    const ownerName = t?.owner?.nickname || t?.owner?.email || "알 수 없음";
+
     const card = document.createElement("div");
     card.className = "template-card";
 
     card.innerHTML = `
-    <div class="template-name">${escapeHtml(t.title || "제목 없음")}</div>
-    <div class="template-desc">
-      ${escapeHtml(t.description || "")}
-      <div style="margin-top:8px; opacity:.7; font-size:12px;">
-        ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
+      <div class="template-name">
+        ${escapeHtml(t.title || "제목 없음")}
+        <div style="margin-top:6px; font-size:12px; opacity:.75;">
+          ${
+            isOwner
+              ? "🧑‍💼 내 여행"
+              : `👥 초대받은 여행 · owner: ${escapeHtml(ownerName)}`
+          }
+          <span style="margin-left:8px; font-weight:800;">(role: ${escapeHtml(
+            myRole
+          )})</span>
+        </div>
+      </div>
+
+      <div class="template-desc">
+        ${escapeHtml(t.description || "")}
+        <div style="margin-top:8px; opacity:.7; font-size:12px;">
+          ${escapeHtml(fmtDateYMD(t.startDate))} ~ ${escapeHtml(
       fmtDateYMD(t.endDate)
     )}
-      </div>
-      <button class="btn-generate" style="margin-top:12px; width:100%; padding:10px;">
-        ✅ 이 여행 선택
-      </button>
-    </div>
-  `;
+        </div>
 
+        <button class="btn-generate" style="margin-top:12px; width:100%; padding:10px;">
+          🗺️ 경로 보기
+        </button>
+      </div>
+    `;
+
+    // ✅ “경로 보기” 허용: 초대받은 여행도 tripId로 route 로드
     const btn = card.querySelector("button");
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
+
+      // route 탭으로 이동
       switchSidebarTab("route");
+
+      // ✅ 여기서 기존 로직 그대로 사용
       await loadRouteForTripAndRenderTabs(t._id);
+
+      // (선택) URL도 바꿔서 새로고침해도 유지되게
+      history.replaceState(null, "", `/main.html?tripId=${t._id}`);
+      localStorage.setItem("currentTripId", t._id);
+      localStorage.setItem("lastTripId", t._id);
     });
 
     wrap.appendChild(card);
