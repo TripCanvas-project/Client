@@ -1630,6 +1630,7 @@ async function loadRouteForTripAndRenderTabs(tripId) {
 
   // 여행 정보 가져오기 (예산 정보 포함)
   await loadTripData(tripId);
+  setupLeaveTripUI();
 
   // ✅ 여행 선택 시 예산과 일정 다시 불러오기
   await loadMyExpenses();
@@ -1738,12 +1739,17 @@ function initKakaoMap() {
   // 지도 이벤트에 메모 랜더링 추가
   kakao.maps.event.addListener(currentMap, "zoom_changed", () => {
     renderMemos();
+    updateStickyNotesPositions();
   });
+
   kakao.maps.event.addListener(currentMap, "dragend", () => {
     renderMemos();
+    updateStickyNotesPositions();
   });
+
   kakao.maps.event.addListener(currentMap, "center_changed", () => {
     renderMemos();
+    updateStickyNotesPositions();
   });
 
   if (pendingDayToRender) {
@@ -1886,18 +1892,74 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // setupInviteUI 종료
+  function setupLeaveTripUI() {
+    const btn = document.getElementById("btn-leave-trip");
+    if (!btn) return;
 
-  // 네비바가 비동기로 삽입될 수 있으므로 즉시 시도하고, 로드 완료 이벤트에도 바인딩
-  setupInviteUI();
-  document.addEventListener("navbar:loaded", setupInviteUI);
-  // 이미 네비바가 로드된 상태일 수 있으므로 플래그도 확인합니다
-  if (window.__navbarLoaded) {
-    console.debug(
-      "[Main] detected window.__navbarLoaded -> running setupInviteUI"
-    );
-    setupInviteUI();
+    // ✅ main.html에서만 보이게
+    const isMain =
+      location.pathname.endsWith("main.html") ||
+      !!document.getElementById("btn-generate"); // main에만 있는 요소로 보조 체크
+
+    if (!isMain) {
+      btn.style.display = "none";
+      return;
+    }
+
+    // ✅ main에서는 무조건 보이게 + 초대하기랑 동일 스타일
+    btn.style.display = "inline-block";
+    btn.style.background = "var(--primary)";
+    btn.style.color = "white";
+    btn.style.border = "none";
+    btn.style.borderRadius = "8px";
+    btn.style.padding = "10px 20px";
+    btn.style.fontSize = "16px";
+    btn.style.fontWeight = "bold";
+    btn.style.cursor = "pointer";
+
+    // ✅ 중복 바인딩 방지
+    if (btn.dataset.attached) return;
+    btn.dataset.attached = "true";
+
+    btn.addEventListener("click", async () => {
+      const tripId = getTripId();
+      if (!tripId) return;
+
+      if (!confirm("이 여행에서 나갈까요?")) return;
+
+      const token = getToken();
+      const res = await fetch(`${API_BASE_URL}/trip/${tripId}/leave`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data?.message || "나가기 실패");
+        return;
+      }
+
+      // 로컬 정리
+      if (localStorage.getItem("currentTripId") === tripId)
+        localStorage.removeItem("currentTripId");
+      if (localStorage.getItem("lastTripId") === tripId)
+        localStorage.removeItem("lastTripId");
+
+      location.href = "/dashboard.html";
+    });
   }
+
+  // -----------------------------
+  // ✅ 네비바 로딩 타이밍 통일
+  // -----------------------------
+  function bindNavbarUiOnce() {
+    setupInviteUI();
+    setupLeaveTripUI();
+  }
+
+  bindNavbarUiOnce();
+  document.addEventListener("navbar:loaded", bindNavbarUiOnce);
+  if (window.__navbarLoaded) bindNavbarUiOnce();
 
   // -----------------------------
   // 도착지 선택(세부사항)
@@ -2934,21 +2996,6 @@ function updateStickyNotesPositions() {
     }
   });
 }
-
-// 지도 이벤트에 연결 (initKakaoMap 함수 내부에 추가)
-kakao.maps.event.addListener(currentMap, "zoom_changed", () => {
-  renderMemos();
-  updateStickyNotesPositions();
-});
-
-kakao.maps.event.addListener(currentMap, "dragend", () => {
-  renderMemos();
-  updateStickyNotesPositions();
-});
-
-kakao.maps.event.addListener(currentMap, "center_changed", () => {
-  updateStickyNotesPositions();
-});
 
 // 메모 삭제
 async function removeMemo(memoId) {
