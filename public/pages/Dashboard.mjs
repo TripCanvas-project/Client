@@ -54,6 +54,11 @@ function renderTrips(trips, tripStyles = {}) {
   trips.forEach((trip) => {
     const card = document.createElement("div");
     card.className = "trip-card";
+    const ownerName =
+      trip?.owner?.nickname ||
+      trip?.owner?.email ||
+      trip?.owner ||
+      "알 수 없음";
 
     card.innerHTML = `
             <div class="trip-thumbnail">
@@ -64,7 +69,33 @@ function renderTrips(trips, tripStyles = {}) {
             </div>
 
             <div class="trip-content">
-                <h3 class="trip-title">${trip.title}</h3>
+              <h3 class="trip-title">${trip.title}</h3>
+              <div class="trip-owner" style="
+                margin-top: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              ">
+                <span style="
+                  padding: 4px 10px;
+                  border-radius: 999px;
+                  background: rgba(34,197,94,0.12);
+                  color: rgba(21,128,61,1);
+                  font-size: 11px;
+                  font-weight: 800;
+                  letter-spacing: .2px;
+                ">OWNER</span>
+
+                <span style="
+                  font-size: 12.5px;
+                  font-weight: 700;
+                  color: rgba(0,0,0,0.75);
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  max-width: 220px;
+                ">${ownerName}</span>
+              </div>
 
                 <div class="trip-actions">
                     <button class="trip-action-btn edit-btn">✏️ 편집</button>
