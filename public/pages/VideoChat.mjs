@@ -145,7 +145,7 @@ class VideoChat {
         this.removeVideoTile(peerId);
 
         const videoTile = document.createElement('div');
-        videoTile.className = 'video-name';
+        videoTile.className = 'video-tile';
         videoTile.setAttribute('data-peer-id', peerId);
 
         const video = document.createElement('video');

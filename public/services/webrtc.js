@@ -282,7 +282,7 @@ class WebRTCService {
 
     // Offer 처리
     async handleOffer(peerId, username, offer) {
-        const peerConnection = this.createPeerConnection(peerId, username, false);
+        const peerConnection = await this.createPeerConnection(peerId, username, false);
 
         try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
