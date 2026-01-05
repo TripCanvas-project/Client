@@ -1719,71 +1719,84 @@ function renderPlacesList(dayPlan) {
 // =====================================================
 // ✅ Route Load + Day Tabs
 // =====================================================
-async function loadLatestRouteAndRenderTabs() {
-  const token = getToken();
-  if (!token) return;
+function renderEmptyRouteUI() {
+  console.log("🗺️ 빈 Route UI 렌더");
 
-  const res = await fetch(`${API_BASE_URL}/route/latest`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const tabsEl = document.getElementById("ai-day-tabs");
+  if (tabsEl) tabsEl.innerHTML = "";
 
-  if (!res.ok) {
-    console.warn("⚠️ /route/latest 실패:", res.status);
-    return;
+  // Day 1 기본 탭 하나 생성
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "day-tab active";
+  btn.textContent = "Day 1";
+  tabsEl?.appendChild(btn);
+
+  // 장소 리스트 비우기
+  const listEl = document.getElementById("ai-day-places");
+  if (listEl) {
+    listEl.innerHTML = `
+      <div class="place-description" style="opacity:.6;">
+        아직 생성된 여행 경로가 없습니다.<br/>
+        장소를 추가하거나 AI 경로 생성을 눌러보세요.
+      </div>
+    `;
   }
 
-  const data = await res.json();
-
-  currentTripId = data.route?.tripId;
-
-  if (currentTripId) {
-    console.log(`🚀 새 여행 생성됨 - tripId: ${currentTripId}`);
-    localStorage.setItem("lastTripId", currentTripId);
-
-    // ✅ 여행 정보 가져오기 (예산 정보 포함)
-    await loadTripData(currentTripId);
-
-    // ✅ 예산과 일정 초기화 (새 여행이므로 빈 상태)
-    await loadMyExpenses();
-    await loadMySchedules();
-  }
-
-  renderDayTabs(data.route);
+  // 지도는 그냥 유지 (마커/폴리라인만 제거)
+  clearMarkers();
+  clearPolylines();
+  clearRoutePolyline();
 }
 
 async function loadRouteForTripAndRenderTabs(tripId) {
   const token = getToken();
-  if (!token) return;
+  if (!token || !tripId) return;
 
-  const res = await fetch(`${API_BASE_URL}/route/by-trip/${tripId}`, {
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  let route = null;
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    alert(data?.message || "Trip 경로 불러오기 실패");
-    return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/route/by-trip/${tripId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      route = data.route ?? null;
+    } else if (res.status !== 404) {
+      const data = await res.json().catch(() => ({}));
+      alert(data?.message || "Trip 경로 불러오기 실패");
+    }
+  } catch (e) {
+    console.warn("route fetch error:", e);
   }
 
-  const data = await res.json();
-
-  // tripId 저장
+  // ✅ tripId는 무조건 세팅
   currentTripId = tripId;
+  localStorage.setItem("currentTripId", tripId);
   localStorage.setItem("lastTripId", tripId);
 
-  console.log(`🚀 여행 선택됨 - tripId: ${currentTripId}`);
+  console.log(
+    route
+      ? `🚀 route 로드됨 - tripId: ${tripId}`
+      : `ℹ️ route 없음 - 빈 지도 표시`
+  );
 
-  // 여행 정보 가져오기 (예산 정보 포함)
+  // 여행 기본 정보는 항상 로드
   await loadTripData(tripId);
   setupLeaveTripUI();
-
-  // ✅ 여행 선택 시 예산과 일정 다시 불러오기
   await loadMyExpenses();
   await loadMySchedules();
 
-  renderDayTabs(data.route);
+  // ✅ route가 있으면 정상 렌더
+  if (route) {
+    renderDayTabs(route);
+    return;
+  }
+
+  // ✅ route가 없을 때 fallback UI
+  renderEmptyRouteUI();
 }
 
 function renderDayTabs(route) {
@@ -2180,7 +2193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (response.ok) {
           console.log("여행 계획 생성 성공:", data);
-          await loadLatestRouteAndRenderTabs();
+          await loadRouteForTripAndRenderTabs(tripId);
         } else {
           alert(`계획 생성 실패: ${data.message || "오류"}`);
         }
@@ -2510,7 +2523,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // -----------------------------
   // 초기 루트 로드
   // -----------------------------
-  loadLatestRouteAndRenderTabs();
+  loadRouteForTripAndRenderTabs(currentTripId);
 
   // -----------------------------
   // 카카오 지도 로드/초기화
