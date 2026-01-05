@@ -18,6 +18,153 @@ let isExpenseEditMode = false; // 수정 모드 플래그
 let currentEditingExpenseId = null; // 수정 중인 지출 ID
 let currentTripStatus = null;
 
+// -----------------------------
+// 초대 링크 생성 및 모달 관리
+// -----------------------------
+const inviteBtn = document.getElementById("invite-btn");
+const inviteModal = document.getElementById("invite-modal");
+const closeBtn = document.getElementById("closeInviteModal");
+// 초대 버튼/모달 관련 초기화: 네비게이션이 비동기로 로드될 수 있으므로
+// 네비바가 로드된 직후에도 이 초기화가 실행되도록 별도 함수로 분리합니다.
+function setupInviteUI() {
+  const inviteBtn = document.getElementById("invite-btn");
+  const inviteModal = document.getElementById("invite-modal");
+  const closeBtn = document.getElementById("closeInviteModal");
+  const cancelBtn = document.getElementById("invite-cancel-btn");
+  const linkInput = document.getElementById("inviteLinkInput");
+  const copyBtn = document.getElementById("copyInviteLinkBtn");
+
+  console.debug("[Main] setupInviteUI called. inviteBtn?", !!inviteBtn);
+  if (!inviteBtn) return;
+
+  // main.html에서만 버튼 보이기 (라우팅/서버에 따라 .html이 생략될 수 있어 버튼이 있는지 DOM으로도 확인)
+  const isMainPath =
+    location.pathname.endsWith("main.html") ||
+    !!document.getElementById("btn-generate");
+  if (isMainPath) {
+    console.debug("[Main] on main.html - showing invite button");
+    inviteBtn.style.display = "inline-block";
+  } else {
+    inviteBtn.style.display = "none";
+    console.debug("[Main] not on main.html - hiding invite button");
+    return;
+  }
+
+  // 중복 바인딩 방지
+  if (inviteBtn.dataset.inviteAttached) return;
+  inviteBtn.dataset.inviteAttached = "true";
+
+  // 초대 버튼 클릭 → 링크 생성 + 모달 열기
+  inviteBtn.addEventListener("click", async () => {
+    if (inviteModal) inviteModal.classList.remove("hidden");
+    if (linkInput) linkInput.value = "초대 링크 생성 중...";
+
+    try {
+      const tripId = getTripId();
+
+      if (tripId === null) {
+        throw new Error("유효한 여행 ID가 없습니다.");
+      }
+
+      const res = await fetch(`/trip/${tripId}/invite-link`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      if (linkInput) linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  // 모달 닫기
+  if (closeBtn)
+    closeBtn.addEventListener("click", () =>
+      inviteModal?.classList.add("hidden")
+    );
+  if (cancelBtn)
+    cancelBtn.addEventListener("click", () =>
+      inviteModal?.classList.add("hidden")
+    );
+
+  // 복사 버튼
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      try {
+        if (linkInput && linkInput.value) {
+          await navigator.clipboard.writeText(linkInput.value);
+          alert("초대 링크가 복사되었습니다.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("복사에 실패했습니다.");
+      }
+    });
+  }
+}
+
+function setupLeaveTripUI() {
+  const btn = document.getElementById("btn-leave-trip");
+  if (!btn) return;
+
+  // ✅ main.html에서만 보이게
+  const isMain =
+    location.pathname.endsWith("main.html") ||
+    !!document.getElementById("btn-generate"); // main에만 있는 요소로 보조 체크
+
+  if (!isMain) {
+    btn.style.display = "none";
+    return;
+  }
+
+  // ✅ main에서는 무조건 보이게 + 초대하기랑 동일 스타일
+  btn.style.display = "inline-block";
+  btn.style.background = "var(--primary)";
+  btn.style.color = "white";
+  btn.style.border = "none";
+  btn.style.borderRadius = "8px";
+  btn.style.padding = "10px 20px";
+  btn.style.fontSize = "16px";
+  btn.style.fontWeight = "bold";
+  btn.style.cursor = "pointer";
+
+  // ✅ 중복 바인딩 방지
+  if (btn.dataset.attached) return;
+  btn.dataset.attached = "true";
+
+  btn.addEventListener("click", async () => {
+    const tripId = getTripId();
+    if (!tripId) return;
+
+    if (!confirm("이 여행에서 나갈까요?")) return;
+
+    const token = getToken();
+    const res = await fetch(`${API_BASE_URL}/trip/${tripId}/leave`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data?.message || "나가기 실패");
+      return;
+    }
+
+    // 로컬 정리
+    if (localStorage.getItem("currentTripId") === tripId)
+      localStorage.removeItem("currentTripId");
+    if (localStorage.getItem("lastTripId") === tripId)
+      localStorage.removeItem("lastTripId");
+
+    location.href = "/dashboard.html";
+  });
+}
+
 // =====================================================
 // ✅ Auth / Token helpers
 // =====================================================
@@ -1800,153 +1947,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     console.log("New trip created:", currentTripId);
-  }
-
-  // -----------------------------
-  // 초대 링크 생성 및 모달 관리
-  // -----------------------------
-  const inviteBtn = document.getElementById("invite-btn");
-  const inviteModal = document.getElementById("invite-modal");
-  const closeBtn = document.getElementById("closeInviteModal");
-  // 초대 버튼/모달 관련 초기화: 네비게이션이 비동기로 로드될 수 있으므로
-  // 네비바가 로드된 직후에도 이 초기화가 실행되도록 별도 함수로 분리합니다.
-  function setupInviteUI() {
-    const inviteBtn = document.getElementById("invite-btn");
-    const inviteModal = document.getElementById("invite-modal");
-    const closeBtn = document.getElementById("closeInviteModal");
-    const cancelBtn = document.getElementById("invite-cancel-btn");
-    const linkInput = document.getElementById("inviteLinkInput");
-    const copyBtn = document.getElementById("copyInviteLinkBtn");
-
-    console.debug("[Main] setupInviteUI called. inviteBtn?", !!inviteBtn);
-    if (!inviteBtn) return;
-
-    // main.html에서만 버튼 보이기 (라우팅/서버에 따라 .html이 생략될 수 있어 버튼이 있는지 DOM으로도 확인)
-    const isMainPath =
-      location.pathname.endsWith("main.html") ||
-      !!document.getElementById("btn-generate");
-    if (isMainPath) {
-      console.debug("[Main] on main.html - showing invite button");
-      inviteBtn.style.display = "inline-block";
-    } else {
-      inviteBtn.style.display = "none";
-      console.debug("[Main] not on main.html - hiding invite button");
-      return;
-    }
-
-    // 중복 바인딩 방지
-    if (inviteBtn.dataset.inviteAttached) return;
-    inviteBtn.dataset.inviteAttached = "true";
-
-    // 초대 버튼 클릭 → 링크 생성 + 모달 열기
-    inviteBtn.addEventListener("click", async () => {
-      if (inviteModal) inviteModal.classList.remove("hidden");
-      if (linkInput) linkInput.value = "초대 링크 생성 중...";
-
-      try {
-        const tripId = getTripId();
-
-        if (tripId === null) {
-          throw new Error("유효한 여행 ID가 없습니다.");
-        }
-
-        const res = await fetch(`/trip/${tripId}/invite-link`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message);
-
-        if (linkInput) linkInput.value = data.inviteLink; // 생성된 초대 링크 표시
-      } catch (err) {
-        console.error(err);
-      }
-    });
-
-    // 모달 닫기
-    if (closeBtn)
-      closeBtn.addEventListener("click", () =>
-        inviteModal?.classList.add("hidden")
-      );
-    if (cancelBtn)
-      cancelBtn.addEventListener("click", () =>
-        inviteModal?.classList.add("hidden")
-      );
-
-    // 복사 버튼
-    if (copyBtn) {
-      copyBtn.addEventListener("click", async () => {
-        try {
-          if (linkInput && linkInput.value) {
-            await navigator.clipboard.writeText(linkInput.value);
-            alert("초대 링크가 복사되었습니다.");
-          }
-        } catch (err) {
-          console.error(err);
-          alert("복사에 실패했습니다.");
-        }
-      });
-    }
-  }
-
-  function setupLeaveTripUI() {
-    const btn = document.getElementById("btn-leave-trip");
-    if (!btn) return;
-
-    // ✅ main.html에서만 보이게
-    const isMain =
-      location.pathname.endsWith("main.html") ||
-      !!document.getElementById("btn-generate"); // main에만 있는 요소로 보조 체크
-
-    if (!isMain) {
-      btn.style.display = "none";
-      return;
-    }
-
-    // ✅ main에서는 무조건 보이게 + 초대하기랑 동일 스타일
-    btn.style.display = "inline-block";
-    btn.style.background = "var(--primary)";
-    btn.style.color = "white";
-    btn.style.border = "none";
-    btn.style.borderRadius = "8px";
-    btn.style.padding = "10px 20px";
-    btn.style.fontSize = "16px";
-    btn.style.fontWeight = "bold";
-    btn.style.cursor = "pointer";
-
-    // ✅ 중복 바인딩 방지
-    if (btn.dataset.attached) return;
-    btn.dataset.attached = "true";
-
-    btn.addEventListener("click", async () => {
-      const tripId = getTripId();
-      if (!tripId) return;
-
-      if (!confirm("이 여행에서 나갈까요?")) return;
-
-      const token = getToken();
-      const res = await fetch(`${API_BASE_URL}/trip/${tripId}/leave`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data?.message || "나가기 실패");
-        return;
-      }
-
-      // 로컬 정리
-      if (localStorage.getItem("currentTripId") === tripId)
-        localStorage.removeItem("currentTripId");
-      if (localStorage.getItem("lastTripId") === tripId)
-        localStorage.removeItem("lastTripId");
-
-      location.href = "/dashboard.html";
-    });
   }
 
   // -----------------------------
