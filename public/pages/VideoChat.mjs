@@ -15,6 +15,7 @@ class VideoChat {
         this.isScreenSharing = false; // 화면 공유 상태 추가
 
         this.init();
+        window.videoChat = this; // [중요] Service에서 상태를 확인할 수 있도록 전역 할당
     }
 
     init() {
@@ -154,7 +155,7 @@ class VideoChat {
         video.srcObject = stream;
         video.style.width = '100%';
         video.style.height = '100%';
-        video.style.objectFit = 'cover;'
+        video.style.objectFit = 'cover'
 
         const nameTag = document.createElement('div');
         nameTag.className = 'video-name';
