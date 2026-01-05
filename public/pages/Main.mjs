@@ -3286,10 +3286,10 @@ async function initCollaboration() {
       controls: ".video-controls",
     });
 
+    await loadMemoFromServer();
+
     // Room 참가
     collaboration.joinRoom(currentTripId, userId, userName);
-
-    loadMemoFromServer();
 
     console.log(`✅ Collaboration initialized`);
     console.log(`   - Trip ID: ${currentTripId}`);

@@ -106,7 +106,7 @@ class SocketService {
   createMemo(memo) {
     if (!this.IsInRoom()) return;
 
-    this.socket.emit("create-memo", {
+    this.socket.emit("memo-create", {
       roomId: this.roomId,
       memo,
     });
@@ -127,7 +127,7 @@ class SocketService {
   deleteMemo(memoId) {
     if (!this.IsInRoom()) return;
 
-    this.socket.emit("memo-deleted", {
+    this.socket.emit("memo-delete", {
       roomId: this.roomId,
       memoId,
     });

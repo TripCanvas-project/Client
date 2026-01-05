@@ -48,17 +48,17 @@ class Collaboration {
 
     // 메모
     socketService.on("memo-created", (memo) => {
-      console.log("memo created:", memo);
+      console.log("memo create:", memo);
       this.onMemoReceived(memo);
     });
 
     socketService.on("memo-updated", ({ memoId, memo }) => {
-      console.log("memo updated:", memoId, memo);
+      console.log("memo update:", memoId, memo);
       this.onMemoReceived(memo);
     });
 
     socketService.on("memo-deleted", ({ memoId }) => {
-      console.log("memo deleted:", memoId);
+      console.log("memo delete:", memoId);
       this.onMemoDeleted(memoId);
     });
 
