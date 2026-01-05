@@ -236,11 +236,11 @@ class WebRTCService {
         }
         
         // 로컬 스트림 추가
-        if (this.localStream) {
-            this.localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, this.localStream);
-            })
-        }
+        // if (this.localStream) {
+        //     this.localStream.getTracks().forEach(track => {
+        //         peerConnection.addTrack(track, this.localStream);
+        //     })
+        // }
 
         // Data Channel 생성 (텍스트 메시징용, 선택사항)
         if (initiator) {
