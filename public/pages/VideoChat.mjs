@@ -155,7 +155,7 @@ class VideoChat {
         video.srcObject = stream;
         video.style.width = '100%';
         video.style.height = '100%';
-        video.style.objectFit = 'cover'
+        video.style.objectFit = 'cover;'
 
         const nameTag = document.createElement('div');
         nameTag.className = 'video-name';
@@ -184,7 +184,9 @@ class VideoChat {
         this.isVideoEnabled = !this.isVideoEnabled;
         webrtcService.toggleVideo(this.isVideoEnabled);
 
-        const btn = this.controls?.querySelector('video-control-btn')[1];
+        const buttons = this.controls?.querySelectorAll('.video-control-btn');
+        const btn = buttons ? buttons[1] : null;
+
         if (btn) {
             btn.style.background = this.isVideoEnabled ? '#475569' : '#ef4444'
         }
