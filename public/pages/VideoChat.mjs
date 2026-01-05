@@ -155,7 +155,7 @@ class VideoChat {
         video.srcObject = stream;
         video.style.width = '100%';
         video.style.height = '100%';
-        video.style.objectFit = 'cover;'
+        video.style.objectFit = 'cover'
 
         const nameTag = document.createElement('div');
         nameTag.className = 'video-name';
