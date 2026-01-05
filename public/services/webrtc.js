@@ -203,6 +203,15 @@ class WebRTCService {
         return false;
     }
 
+    // 현재 내가 송출 중인 가장 최신 스트림을 반환하는 헬퍼 함수
+    getActiveStream() {
+        // VideoChat 인스턴스에서 화면 공유 중이면 screenStream을, 아니면 localStream을 반환
+        if (window.videoChat && window.videoChat.isScreenSharing && window.videoChat.screenStream) {
+            return window.videoChat.screenStream;
+        }
+        return this.localStream;
+    }
+
     // Peer 연결 생성
     // peerId: 소켓 ID, username: 사용자 이름, initiator: 초기 연결 여부
     async createPeerConnection(peerId, username, initiator = false) {
@@ -216,6 +225,16 @@ class WebRTCService {
         const peerConnection = new RTCPeerConnection(this.configuration)
         this.peerConnections.set(peerId, peerConnection);
 
+        // 현재 내가 송출 중인 가장 최신 스트림을 반환하는 헬퍼 함수
+        // [핵심] 현재 활성화된 스트림(카메라 혹은 화면)을 가져와서 트랙 추가
+        const streamToSend = this.getActiveStream();
+        if (streamToSend) {
+            streamToSend.getTracks().forEach(track => {
+                peerConnection.addTrack(track, streamToSend);
+            });
+            console.log(`Sending ${window.videoChat?.isScreenSharing ? 'Screen' : 'Camera'} track to ${username}`);
+        }
+        
         // 로컬 스트림 추가
         if (this.localStream) {
             this.localStream.getTracks().forEach(track => {
