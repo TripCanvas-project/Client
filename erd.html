@@ -1,0 +1,1006 @@
+<svg viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+        >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+        </marker>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1400" height="1000" fill="#0f172a" />
+
+    <!-- Title -->
+    <text
+        x="700"
+        y="40"
+        font-family="Arial, sans-serif"
+        font-size="24"
+        font-weight="bold"
+        fill="#e2e8f0"
+        text-anchor="middle"
+    >
+        MongoDB Schema Relationships
+    </text>
+
+    <!-- User (Central) -->
+    <g filter="url(#glow)">
+        <rect
+            x="580"
+            y="80"
+            width="240"
+            height="140"
+            rx="8"
+            fill="#1e293b"
+            stroke="#3b82f6"
+            stroke-width="3"
+        />
+        <text
+            x="700"
+            y="110"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#3b82f6"
+            text-anchor="middle"
+        >
+            User
+        </text>
+        <text
+            x="590"
+            y="135"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="590"
+            y="155"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            userid: String
+        </text>
+        <text
+            x="590"
+            y="175"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            email: String
+        </text>
+        <text
+            x="590"
+            y="195"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            nickname: String
+        </text>
+    </g>
+
+    <!-- Trip -->
+    <g filter="url(#glow)">
+        <rect
+            x="580"
+            y="280"
+            width="240"
+            height="180"
+            rx="8"
+            fill="#1e293b"
+            stroke="#8b5cf6"
+            stroke-width="3"
+        />
+        <text
+            x="700"
+            y="310"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#8b5cf6"
+            text-anchor="middle"
+        >
+            Trip
+        </text>
+        <text
+            x="590"
+            y="335"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="590"
+            y="355"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            owner → User
+        </text>
+        <text
+            x="590"
+            y="375"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            startDate, endDate
+        </text>
+        <text
+            x="590"
+            y="395"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            destination
+        </text>
+        <text
+            x="590"
+            y="415"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            activeRoute → Route
+        </text>
+        <text
+            x="590"
+            y="435"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            collaborators[]
+        </text>
+    </g>
+
+    <!-- Route -->
+    <g filter="url(#glow)">
+        <rect
+            x="320"
+            y="520"
+            width="240"
+            height="160"
+            rx="8"
+            fill="#1e293b"
+            stroke="#10b981"
+            stroke-width="3"
+        />
+        <text
+            x="440"
+            y="550"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#10b981"
+            text-anchor="middle"
+        >
+            Route
+        </text>
+        <text
+            x="330"
+            y="575"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="330"
+            y="595"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            tripId → Trip
+        </text>
+        <text
+            x="330"
+            y="615"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            dailyPlans[]
+        </text>
+        <text
+            x="330"
+            y="635"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            places[] → Place
+        </text>
+        <text
+            x="330"
+            y="655"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            totalDistance, Cost
+        </text>
+    </g>
+
+    <!-- Budget -->
+    <g filter="url(#glow)">
+        <rect
+            x="840"
+            y="520"
+            width="240"
+            height="160"
+            rx="8"
+            fill="#1e293b"
+            stroke="#f59e0b"
+            stroke-width="3"
+        />
+        <text
+            x="960"
+            y="550"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#f59e0b"
+            text-anchor="middle"
+        >
+            Budget
+        </text>
+        <text
+            x="850"
+            y="575"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="850"
+            y="595"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            tripId → Trip
+        </text>
+        <text
+            x="850"
+            y="615"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            userId → User
+        </text>
+        <text
+            x="850"
+            y="635"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            amount, category
+        </text>
+        <text
+            x="850"
+            y="655"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            payers[], sharers[]
+        </text>
+    </g>
+
+    <!-- Schedule -->
+    <g filter="url(#glow)">
+        <rect
+            x="580"
+            y="520"
+            width="220"
+            height="140"
+            rx="8"
+            fill="#1e293b"
+            stroke="#ec4899"
+            stroke-width="2"
+        />
+        <text
+            x="690"
+            y="550"
+            font-family="Arial, sans-serif"
+            font-size="16"
+            font-weight="bold"
+            fill="#ec4899"
+            text-anchor="middle"
+        >
+            Schedule
+        </text>
+        <text
+            x="590"
+            y="575"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            tripId → Trip
+        </text>
+        <text
+            x="590"
+            y="595"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            userId → User
+        </text>
+        <text
+            x="590"
+            y="615"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            placeId → Place
+        </text>
+        <text
+            x="590"
+            y="635"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            time, location
+        </text>
+    </g>
+
+    <!-- Memo -->
+    <g filter="url(#glow)">
+        <rect
+            x="100"
+            y="330"
+            width="220"
+            height="140"
+            rx="8"
+            fill="#1e293b"
+            stroke="#06b6d4"
+            stroke-width="2"
+        />
+        <text
+            x="210"
+            y="360"
+            font-family="Arial, sans-serif"
+            font-size="16"
+            font-weight="bold"
+            fill="#06b6d4"
+            text-anchor="middle"
+        >
+            Memo
+        </text>
+        <text
+            x="110"
+            y="385"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            tripId: String
+        </text>
+        <text
+            x="110"
+            y="405"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            createdBy: String
+        </text>
+        <text
+            x="110"
+            y="425"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            type, coords[]
+        </text>
+        <text
+            x="110"
+            y="445"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            placeId → Place
+        </text>
+    </g>
+
+    <!-- ChatMessage -->
+    <g filter="url(#glow)">
+        <rect
+            x="900"
+            y="330"
+            width="220"
+            height="120"
+            rx="8"
+            fill="#1e293b"
+            stroke="#14b8a6"
+            stroke-width="2"
+        />
+        <text
+            x="1010"
+            y="360"
+            font-family="Arial, sans-serif"
+            font-size="16"
+            font-weight="bold"
+            fill="#14b8a6"
+            text-anchor="middle"
+        >
+            ChatMessage
+        </text>
+        <text
+            x="910"
+            y="385"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            tripId: String
+        </text>
+        <text
+            x="910"
+            y="405"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            username: String
+        </text>
+        <text
+            x="910"
+            y="425"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            message, timestamp
+        </text>
+    </g>
+
+    <!-- Bucketlist -->
+    <g filter="url(#glow)">
+        <rect
+            x="1140"
+            y="80"
+            width="220"
+            height="160"
+            rx="8"
+            fill="#1e293b"
+            stroke="#a855f7"
+            stroke-width="3"
+        />
+        <text
+            x="1250"
+            y="110"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#a855f7"
+            text-anchor="middle"
+        >
+            Bucketlist
+        </text>
+        <text
+            x="1150"
+            y="135"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="1150"
+            y="155"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            userId → User
+        </text>
+        <text
+            x="1150"
+            y="175"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            items[], category
+        </text>
+        <text
+            x="1150"
+            y="195"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            completedPlaces[]
+        </text>
+        <text
+            x="1150"
+            y="215"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            status, progress
+        </text>
+    </g>
+
+    <!-- Place -->
+    <g filter="url(#glow)">
+        <rect
+            x="100"
+            y="750"
+            width="240"
+            height="180"
+            rx="8"
+            fill="#1e293b"
+            stroke="#ef4444"
+            stroke-width="3"
+        />
+        <text
+            x="220"
+            y="780"
+            font-family="Arial, sans-serif"
+            font-size="18"
+            font-weight="bold"
+            fill="#ef4444"
+            text-anchor="middle"
+        >
+            Place
+        </text>
+        <text
+            x="110"
+            y="805"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="110"
+            y="825"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            contentId: String
+        </text>
+        <text
+            x="110"
+            y="845"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            title, category
+        </text>
+        <text
+            x="110"
+            y="865"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            coordinates (GeoJSON)
+        </text>
+        <text
+            x="110"
+            y="885"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            address, stats
+        </text>
+        <text
+            x="110"
+            y="905"
+            font-family="monospace"
+            font-size="12"
+            fill="#94a3b8"
+        >
+            dataSource: KTO/SBIZ
+        </text>
+    </g>
+
+    <!-- Template -->
+    <g filter="url(#glow)">
+        <rect
+            x="400"
+            y="80"
+            width="140"
+            height="140"
+            rx="8"
+            fill="#1e293b"
+            stroke="#6366f1"
+            stroke-width="2"
+        />
+        <text
+            x="470"
+            y="110"
+            font-family="Arial, sans-serif"
+            font-size="16"
+            font-weight="bold"
+            fill="#6366f1"
+            text-anchor="middle"
+        >
+            Template
+        </text>
+        <text
+            x="410"
+            y="135"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            _id: ObjectId
+        </text>
+        <text
+            x="410"
+            y="155"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            category
+        </text>
+        <text
+            x="410"
+            y="175"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            places[]
+        </text>
+        <text
+            x="410"
+            y="195"
+            font-family="monospace"
+            font-size="11"
+            fill="#94a3b8"
+        >
+            duration, cost
+        </text>
+    </g>
+
+    <!-- Relationships -->
+    <!-- User to Trip -->
+    <line
+        x1="700"
+        y1="220"
+        x2="700"
+        y2="280"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="710"
+        y="255"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Trip to Route -->
+    <line
+        x1="620"
+        y1="460"
+        x2="500"
+        y2="520"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="540"
+        y="490"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Trip to Budget -->
+    <line
+        x1="780"
+        y1="460"
+        x2="900"
+        y2="520"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="850"
+        y="490"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Trip to Schedule -->
+    <line
+        x1="690"
+        y1="460"
+        x2="690"
+        y2="520"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="700"
+        y="495"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Trip to Memo -->
+    <line
+        x1="580"
+        y1="360"
+        x2="320"
+        y2="400"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="430"
+        y="380"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Trip to ChatMessage -->
+    <line
+        x1="820"
+        y1="360"
+        x2="900"
+        y2="380"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="870"
+        y="375"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- User to Bucketlist -->
+    <line
+        x1="820"
+        y1="150"
+        x2="1140"
+        y2="150"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="970"
+        y="145"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        1:N
+    </text>
+
+    <!-- Template to Trip -->
+    <line
+        x1="540"
+        y1="150"
+        x2="580"
+        y2="330"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+        stroke-dasharray="5,5"
+    />
+    <text
+        x="550"
+        y="240"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        0:N
+    </text>
+
+    <!-- Route to Place -->
+    <line
+        x1="380"
+        y1="680"
+        x2="260"
+        y2="750"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+    />
+    <text
+        x="300"
+        y="715"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        N:M
+    </text>
+
+    <!-- Schedule to Place -->
+    <line
+        x1="600"
+        y1="660"
+        x2="300"
+        y2="750"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+        stroke-dasharray="5,5"
+    />
+
+    <!-- Memo to Place -->
+    <line
+        x1="210"
+        y1="470"
+        x2="220"
+        y2="750"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+        stroke-dasharray="5,5"
+    />
+
+    <!-- Bucketlist to Place -->
+    <line
+        x1="1140"
+        y1="240"
+        x2="340"
+        y2="760"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+        stroke-dasharray="5,5"
+    />
+
+    <!-- Trip to Bucketlist (embedded) -->
+    <path
+        d="M 820 380 Q 1000 280 1140 180"
+        stroke="#64748b"
+        stroke-width="2"
+        marker-end="url(#arrowhead)"
+        stroke-dasharray="3,3"
+        fill="none"
+    />
+    <text
+        x="980"
+        y="300"
+        font-family="Arial, sans-serif"
+        font-size="11"
+        fill="#cbd5e1"
+    >
+        embedded
+    </text>
+
+    <!-- Legend -->
+    <g transform="translate(1150, 750)">
+        <text
+            x="0"
+            y="0"
+            font-family="Arial, sans-serif"
+            font-size="14"
+            font-weight="bold"
+            fill="#e2e8f0"
+        >
+            Legend
+        </text>
+        <line
+            x1="0"
+            y1="15"
+            x2="40"
+            y2="15"
+            stroke="#64748b"
+            stroke-width="2"
+            marker-end="url(#arrowhead)"
+        />
+        <text
+            x="50"
+            y="20"
+            font-family="Arial, sans-serif"
+            font-size="11"
+            fill="#cbd5e1"
+        >
+            Reference
+        </text>
+        <line
+            x1="0"
+            y1="35"
+            x2="40"
+            y2="35"
+            stroke="#64748b"
+            stroke-width="2"
+            stroke-dasharray="5,5"
+        />
+        <text
+            x="50"
+            y="40"
+            font-family="Arial, sans-serif"
+            font-size="11"
+            fill="#cbd5e1"
+        >
+            Optional Ref
+        </text>
+        <line
+            x1="0"
+            y1="55"
+            x2="40"
+            y2="55"
+            stroke="#64748b"
+            stroke-width="2"
+            stroke-dasharray="3,3"
+        />
+        <text
+            x="50"
+            y="60"
+            font-family="Arial, sans-serif"
+            font-size="11"
+            fill="#cbd5e1"
+        >
+            Embedded
+        </text>
+    </g>
+</svg>
