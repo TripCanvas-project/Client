@@ -4,10 +4,7 @@ const errorMessage = document.getElementById("errorMessage");
 const params = new URLSearchParams(location.search);
 const inviteToken = params.get("invite"); // 초대 토큰
 
-const API_BASE_URL =
-    location.hostname === "localhost"
-        ? "http://localhost:8080"
-        : "https://sunlike-diametrically-marta.ngrok-free.dev";
+const API_BASE_URL = ""
 
 loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
