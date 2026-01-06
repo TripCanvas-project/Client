@@ -227,20 +227,20 @@ class WebRTCService {
 
         // 현재 내가 송출 중인 가장 최신 스트림을 반환하는 헬퍼 함수
         // [핵심] 현재 활성화된 스트림(카메라 혹은 화면)을 가져와서 트랙 추가
-        // const streamToSend = this.getActiveStream();
-        // if (streamToSend) {
-        //     streamToSend.getTracks().forEach(track => {
-        //         peerConnection.addTrack(track, streamToSend);
-        //     });
-        //     console.log(`Sending ${window.videoChat?.isScreenSharing ? 'Screen' : 'Camera'} track to ${username}`);
-        // }
+        const streamToSend = this.getActiveStream();
+        if (streamToSend) {
+            streamToSend.getTracks().forEach(track => {
+                peerConnection.addTrack(track, streamToSend);
+            });
+            console.log(`Sending ${window.videoChat?.isScreenSharing ? 'Screen' : 'Camera'} track to ${username}`);
+        }
         
         // 로컬 스트림 추가
-        if (this.localStream) {
-            this.localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, this.localStream);
-            })
-        }
+        // if (this.localStream) {
+        //     this.localStream.getTracks().forEach(track => {
+        //         peerConnection.addTrack(track, this.localStream);
+        //     })
+        // }
 
         // Data Channel 생성 (텍스트 메시징용, 선택사항)
         if (initiator) {
