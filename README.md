@@ -3,7 +3,7 @@
 AI 기반 여행 플래너 **TripCanvas**의 프론트엔드입니다.  
 카카오맵 위에서 AI가 생성한 여행 경로를 확인하고, 여행 멤버들과 함께 메모·채팅·화상 통화로 협업할 수 있습니다.
 
-<!-- 이미지: 메인 화면 / 지도 + 메모 + 채팅 스크린샷 -->
+![](./upload/Screenshot%202026-02-25%20at%209.48.39 AM.png)
 
 ### 주요 기능
 
@@ -121,18 +121,4 @@ Client/
 
 2. Server가 자동으로 `Client/public`을 정적 파일로 서빙합니다.  
    브라우저에서 서버 주소(예: `http://localhost:8080/`)에 접속하면 `login.html` → `main.html` 등으로 진입할 수 있습니다.
-
-#### 2) Client만 별도로 확인할 때
-
-1. VSCode Live Server, `npx serve` 등으로 `Client/public` 폴더를 정적 서버로 띄웁니다.
-2. 이 경우, **Server의 주소와 CORS 설정**, 그리고 프론트에서 사용하는 `SERVER_URL` / API 베이스 URL이 실제 서버 주소와 일치해야 합니다.
-3. 개발 중이라면 가급적 Server에서 정적 파일을 서빙하는 방식을 사용하는 것을 추천합니다.
-
-### 개발 팁
-
-- Kakao Maps SDK, Socket.IO, WebRTC 등은 브라우저 콘솔 로그를 잘 활용하면 디버깅이 훨씬 수월합니다.
-- 메모/채팅/화상 기능은 **tripId(룸 ID)** 에 강하게 묶여 있으므로, URL 쿼리나 로컬 스토리지에 저장된 `tripId` 흐름을 함께 확인하면 좋습니다.
-- 디자인/카피를 수정하고 싶다면 먼저 [`public/intro.html`](public/intro.html)과 주요 CSS(`styles/main.css`, `styles/intro.css`)를 참고하세요.
-
-<!-- 이미지: 온보딩/인트로 페이지 스크린샷 -->
 
